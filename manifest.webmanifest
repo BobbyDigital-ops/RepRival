@@ -1,0 +1,24 @@
+{
+  "name": "RepRival \u2014 Train. Compete. Improve.",
+  "short_name": "RepRival",
+  "description": "A guided workout and performance competition prototype.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f8fe",
+  "theme_color": "#f5f8fe",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
