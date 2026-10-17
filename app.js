@@ -1,8 +1,9 @@
 'use strict';
 (function () {
   const PLAN = window.REPQUEST_PROGRAM;
-  const STORAGE_KEY = 'repquest-prototype-v01'; // Preserve V0.1 browser history
-  const SESSION_ORDER = ['A', 'B', 'C'];
+  const STORAGE_KEY = 'repquest-prototype-v01'; // Read-only legacy fallback
+  const PROFILE_KEY='reprival-athletes-v12';
+  let SESSION_ORDER = ['A', 'B', 'C'];
   const MUSCLES = ['Chest','Back','Biceps','Triceps','Side delts','Rear delts','Quads','Hamstrings','Core'];
   const CHOICES = {
     fitness:'Feel fitter & look more toned',
@@ -21,9 +22,14 @@
   const LEGACY_IDS={incline_press:'low_incline_db_press',flat_press:'flat_db_bench_press',reverse_lunge:'reverse_lunge',incline_curl:'incline_db_curl',pec_fly:'flat_db_pec_fly',lateral_raise:'db_lateral_raise',tricep_extension:'lying_db_triceps_extension',ab_rollout:'ab_rollout',rdl:'db_romanian_deadlift',rear_fly:'chest_supported_rear_fly',hammer_curl:'hammer_curl',goblet_squat:'goblet_squat'};
   const $app = document.querySelector('#app');
   let page = 'home';
+  let selectedPlan='pump';
+  let manager=null;
+  let pendingPlan=null;
+  let activeProfile=null;
   let clock = null;
   let toastUntil = null;
   let state = loadState();
+  initializeProfiles();
   function loadState(){
     try {
       const raw=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');
@@ -42,7 +48,82 @@
     } catch(e){console.warn('Could not load saved workouts',e);}
     return defaults();
   }
-  function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state));}catch(e){console.warn('Storage unavailable',e);}}
+  function save(){
+    if(!manager||!activeProfile)return;
+    manager.profiles[activeProfile].training=structuredClone(state);
+    manager.last=activeProfile;
+    try{localStorage.setItem(PROFILE_KEY,JSON.stringify(manager));}catch(e){console.warn('Storage unavailable',e);}
+  }
+  function initializeProfiles(){
+    try{const stored=JSON.parse(localStorage.getItem(PROFILE_KEY)||'null');
+      if(stored?.version===12&&stored.profiles&&Object.keys(stored.profiles).length){manager=stored;activeProfile=stored.last in stored.profiles?stored.last:Object.keys(stored.profiles)[0];state=manager.profiles[activeProfile].training;if(stored.setupPending)page='setup';}
+    }catch(e){console.warn('Profile data unavailable',e);}
+    if(!manager){
+      manager={version:12,last:'admin',profiles:{admin:{username:'',pin:'',role:'admin',training:structuredClone(state),body:{unit:'kg',heightUnit:'cm',waistUnit:'cm',measurements:[]},selectedMovements:[],planId:'pump',plans:null}},setupPending:true};
+      activeProfile='admin';page='setup';
+    }
+    ensureTraining();
+  }
+  function profile(){return manager.profiles[activeProfile];}
+  function ensureTraining(){
+    state=profile().training;
+    if(!state.settings)state.settings=defaults().settings;
+    if(!profile().body)profile().body={unit:'kg',heightUnit:'cm',waistUnit:'cm',measurements:[]};
+    if(!profile().selectedMovements)profile().selectedMovements=[];
+    if(!profile().planId)profile().planId='pump';
+    if(!profile().plans)profile().plans={pump:structuredClone(PLAN)};
+    selectedPlan=profile().planId;
+    SESSION_ORDER=Object.keys(profile().plans[selectedPlan]||PLAN);
+    if(!SESSION_ORDER.includes(state.next))state.next=SESSION_ORDER[0];
+  }
+  function switchTo(id){activeProfile=id;manager.last=id;ensureTraining();page='home';save();render();}
+  function profileNames(){return Object.keys(manager.profiles);}
+  function newProfileId(){return 'athlete-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,5);}
+  function weightKg(v,unit){return unit==='lb'?v/2.2046226218:unit==='st'?v*6.35029318:v;}
+  function displayWeight(kg){const u=profile().body.unit||'kg';return u==='lb'?`${fmt(kg*2.2046226218)} lb`:u==='st'?`${Math.floor(kg/6.35029318)} st ${fmt((kg/0.45359237)%14)} lb`:`${fmt(kg)} kg`;}
+  function heightIn(centimeters){return Number(centimeters||0)/2.54;}
+  function chartWeight(kg){const u=profile().body.unit||'kg';return u==='lb'?kg*2.2046226218:u==='st'?kg/6.35029318:kg;}
+  function weightUnitLabel(){const u=profile().body.unit||'kg';return u==='st'?'st':u;}
+  function todayLocal(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+  function dayNumber(day){const [y,m,d]=day.split('-').map(Number);return Math.floor(Date.UTC(y,m-1,d)/86400000);}
+  function dayAt(day,delta){const d=new Date(day+'T12:00:00');d.setDate(d.getDate()+delta);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+  function tracking(){if(!profile().planTracking){const earliest=state.history.map(s=>dateOnly(s.startedAt||s.endedAt)).sort()[0]||todayLocal();profile().planTracking={planId:selectedPlan,start:earliest,weeklyGoal:3};}return profile().planTracking;}
+  function consistency(){const conf=tracking(),start=conf.start||todayLocal(),goal=Number(conf.weeklyGoal)||3,today=todayLocal(),elapsed=Math.max(0,dayNumber(today)-dayNumber(start)),week=Math.floor(elapsed/7),since=dayAt(start,week*7),through=dayAt(since,6),completed=(from,to)=>state.history.filter(s=>{const d=dateOnly(s.startedAt||s.endedAt);return d>=from&&d<=to&&(s.planId?s.planId===conf.planId:conf.planId==='pump')}).length;const done=completed(since,through),weeks=[];for(let i=Math.max(0,week-3);i<=week;i++){const a=dayAt(start,i*7);weeks.push({start:a,end:dayAt(a,6),count:completed(a,dayAt(a,6)),goal});}const completeWeeks=weeks.filter(w=>w.end<=today);const summary=completeWeeks.length?completeWeeks:weeks;const total=summary.reduce((a,x)=>a+Math.min(x.count,x.goal),0),target=summary.reduce((a,x)=>a+x.goal,0);return {start,goal,week,since,through,done,weeks,percentage:target?Math.round(total/target*100):0};}
+  function bodyUnitOptions(){return `<div class="form-grid"><div class="field"><label>Height unit</label><select name="heightUnit" data-unit="height"><option value="cm">Centimetres</option><option value="ft">Feet / inches</option></select></div><div class="field"><label>Weight unit</label><select name="unit" data-unit="weight"><option value="kg">Kilograms</option><option value="lb">Pounds</option><option value="st">Stone / pounds</option></select></div></div>`;}
+  function bodyInputFields(b={}){const unit=b.unit||'kg',hu=b.heightUnit||'cm',wu=b.waistUnit||'cm',cm=b.height||0,feet=Math.floor(heightIn(cm)/12),inch=+(heightIn(cm)%12).toFixed(1),g=b.goalKg!=null?b.goalKg:0;return `<div class="body-fields">
+    <div class="form-grid"><div class="field"><label>Date of birth</label><input type="date" name="dob" value="${esc(b.dob||'')}"></div><div class="field"><label>Sex (optional)</label><select name="sex"><option value="">Prefer not to say</option>${[['male','Male'],['female','Female'],['other','Other / self-described']].map(([v,l])=>`<option value="${v}" ${b.sex===v?'selected':''}>${l}</option>`).join('')}</select></div></div>
+    <div class="form-grid"><div class="field"><label>Height unit</label><select name="heightUnit" data-unit="height"><option value="cm" ${hu==='cm'?'selected':''}>cm</option><option value="ft" ${hu==='ft'?'selected':''}>Feet / inches</option></select></div><div class="field"><label>Weight unit</label><select name="unit" data-unit="weight"><option value="kg" ${unit==='kg'?'selected':''}>kg</option><option value="lb" ${unit==='lb'?'selected':''}>lb</option><option value="st" ${unit==='st'?'selected':''}>Stone / lb</option></select></div></div>
+    <div data-height-cm ${hu==='ft'?'hidden':''} class="field"><label>Height (cm)</label><input name="height" type="number" step="0.1" min="0" max="250" value="${cm||''}" placeholder="e.g. 182"></div>
+    <div data-height-ft ${hu!=='ft'?'hidden':''} class="form-grid"><div class="field"><label>Height (feet)</label><input name="heightFeet" type="number" step="1" min="0" max="8" value="${cm?feet:''}" placeholder="5"></div><div class="field"><label>Height (inches)</label><input name="heightInches" type="number" step="0.1" min="0" max="11.9" value="${cm?inch:''}" placeholder="11"></div></div>
+    <div data-weight-kg ${unit!=='kg'?'hidden':''} class="form-grid"><div class="field"><label>Starting weight (kg)</label><input name="startKg" type="number" min="0" max="600" step="0.1" value="" placeholder="Optional"></div><div class="field"><label>Goal weight (kg)</label><input name="goalKg" type="number" min="0" max="600" step="0.1" value="${g&&unit==='kg'?+g.toFixed(1):''}"></div></div>
+    <div data-weight-lb ${unit!=='lb'?'hidden':''} class="form-grid"><div class="field"><label>Starting weight (lb)</label><input name="startLb" type="number" min="0" max="1400" step="0.1" placeholder="Optional"></div><div class="field"><label>Goal weight (lb)</label><input name="goalLb" type="number" min="0" max="1400" step="0.1" value="${g&&unit==='lb'?+(g*2.20462262).toFixed(1):''}"></div></div>
+    <div data-weight-st ${unit!=='st'?'hidden':''} class="stack"><div class="form-grid"><div class="field"><label>Starting stone</label><input name="startSt" type="number" min="0" step="1"></div><div class="field"><label>Starting lb</label><input name="startStLb" type="number" min="0" max="13.9" step="0.1"></div></div><div class="form-grid"><div class="field"><label>Goal stone</label><input name="goalSt" type="number" min="0" step="1" value="${g&&unit==='st'?Math.floor(g/6.35029318):''}"></div><div class="field"><label>Goal lb</label><input name="goalStLb" type="number" min="0" max="13.9" step="0.1" value="${g&&unit==='st'?+((g/0.45359237)%14).toFixed(1):''}"></div></div></div>
+    <div class="form-grid"><div class="field"><label>Waist unit</label><select name="waistUnit" data-unit="waist" data-last="${wu}"><option value="cm" ${wu==='cm'?'selected':''}>cm</option><option value="in" ${wu==='in'?'selected':''}>Inches</option></select></div><div class="field"><label data-waist-label>Waist (${wu}) · optional</label><input name="waist" type="number" min="0" step="0.1" value="${b.waistCm?+(b.waistCm/(wu==='in'?2.54:1)).toFixed(1):''}"></div></div><div class="field"><label>Body fat (%) · optional</label><input name="bodyFat" type="number" min="0" max="80" step="0.1" value="${b.bodyFat||''}"></div>
+  </div>`;}
+  function readBodyForm(f,old={},initial=false){const b={...old,measurements:[...(old.measurements||[])]};b.dob=String(f.get('dob')||'');b.sex=String(f.get('sex')||'');b.heightUnit=String(f.get('heightUnit')||'cm');b.unit=String(f.get('unit')||'kg');b.waistUnit=String(f.get('waistUnit')||'cm');const val=key=>Number(f.get(key))||0;b.height=b.heightUnit==='ft'?((val('heightFeet')*12+val('heightInches'))*2.54||null):(val('height')||null);const wg=(p)=>b.unit==='kg'?val(p+'Kg'):b.unit==='lb'?weightKg(val(p+'Lb'),'lb'):weightKg(val(p+'St')+val(p+'StLb')/14,'st');b.goalKg=wg('goal')||null;const waist=val('waist');b.waistCm=waist?waist*(b.waistUnit==='in'?2.54:1):null;b.bodyFat=val('bodyFat')||null;if(initial){const kg=wg('start');if(kg>0)b.measurements.push({date:todayLocal(),kg,waistCm:b.waistCm,bodyFat:b.bodyFat});}return b;}
+  function syncBodyFields(form,changed){
+    const get=name=>form.querySelector(`[name="${name}"]`),n=name=>Number(get(name)?.value)||0,put=(name,value)=>{const input=get(name);if(input)input.value=value==null?'':String(+value.toFixed(1));};
+    if(changed==='height'){
+      const cmPanel=form.querySelector('[data-height-cm]'),ftPanel=form.querySelector('[data-height-ft]');
+      if(get('heightUnit').value==='ft'&&!cmPanel.hidden&&n('height')){const inches=n('height')/2.54;put('heightFeet',Math.floor(inches/12));put('heightInches',inches%12);}
+      if(get('heightUnit').value==='cm'&&!ftPanel.hidden&&(n('heightFeet')||n('heightInches'))){put('height',(n('heightFeet')*12+n('heightInches'))*2.54);}
+    }
+    if(changed==='weight'){
+      const current=['kg','lb','st'].find(u=>{const el=form.querySelector(`[data-weight-${u}]`);return el&&!el.hidden;})||'kg',next=get('unit').value;
+      const kgValue=prefix=>current==='kg'?n(prefix+'Kg'):current==='lb'?n(prefix+'Lb')/2.2046226218:(n(prefix+'St')*14+n(prefix+'StLb'))*0.45359237;
+      for(const prefix of ['start','goal']){const oldField=(current==='kg'?get(prefix+'Kg'):current==='lb'?get(prefix+'Lb'):get(prefix+'St'));
+        if(!oldField||oldField.value==='')continue;const kg=kgValue(prefix);if(next==='kg')put(prefix+'Kg',kg);else if(next==='lb')put(prefix+'Lb',kg*2.2046226218);else {const lb=kg*2.2046226218;put(prefix+'St',Math.floor(lb/14));put(prefix+'StLb',lb%14);}}
+    }
+    if(changed==='waist'){
+      const field=get('waist');if(field?.value){const previous=get('waistUnit').dataset.last||'cm',next=get('waistUnit').value;if(previous!==next){put('waist',previous==='cm'?n('waist')/2.54:n('waist')*2.54);}}
+      get('waistUnit').dataset.last=get('waistUnit').value;
+    }
+    const h=get('heightUnit')?.value||'cm',u=get('unit')?.value||'kg';for(const [sel,visible] of [['[data-height-cm]',h==='cm'],['[data-height-ft]',h==='ft'],['[data-weight-kg]',u==='kg'],['[data-weight-lb]',u==='lb'],['[data-weight-st]',u==='st']]){const el=form.querySelector(sel);if(el)el.hidden=!visible;}
+    const label=form.querySelector('[data-waist-label]');if(label)label.textContent=`Waist (${get('waistUnit')?.value||'cm'}) · optional`;
+  }
+  function dateOnly(iso){return String(iso).slice(0,10);}
+  function ageFromDate(d){if(!d)return null;const now=new Date(),born=new Date(d+'T12:00:00');let a=now.getFullYear()-born.getFullYear();if(now.getMonth()<born.getMonth()||(now.getMonth()===born.getMonth()&&now.getDate()<born.getDate()))a--;return a;}
+
   function esc(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
   function clamp(n,min,max){return Math.max(min,Math.min(max,n));}
   function num(v){const n=Number(v);return Number.isFinite(n)?n:0;}
@@ -53,13 +134,15 @@
   function workoutsUntilCalibration(){return SESSION_ORDER.filter(id=>!state.history.some(s=>s.session===id));}
   function isCalibrated(){return workoutsUntilCalibration().length===0;}
   function athleteIndex(){
-    const comparable=allMovements().map(m=>comparableSessions(m)).filter(s=>s.length);
-    if(!comparable.length)return {value:null,compared:0,tracked:0};
-    const ratios=comparable.map(s=>s.at(-1).performance/Math.max(0.01,s[0].performance));
-    // Geometric mean normalises strength/endurance to each movement's own baseline.
-    const value=100*Math.exp(ratios.reduce((sum,r)=>sum+Math.log(Math.max(.05,r)),0)/ratios.length);
-    return {value:Math.round(value*10)/10,compared:comparable.filter(s=>s.length>=2).length,tracked:comparable.length};
+    const comparable=allMovements().map(m=>comparableSessions(m)).filter(s=>s.length>=2);
+    if(!isCalibrated()||!comparable.length)return {value:null,compared:comparable.length,tracked:allMovements().length};
+    const ratios=comparable.map(s=>s.at(-1).performance/Math.max(.01,s[0].performance));
+    const value=100*Math.exp(ratios.reduce((n,r)=>n+Math.log(Math.max(.05,r)),0)/ratios.length);
+    return {value:Math.round(value*10)/10,compared:comparable.length,tracked:allMovements().length};
   }
+
+  function ratingExplanation(){const r=athleteIndex(),missing=workoutsUntilCalibration();if(r.value==null)return `Rating is waiting for repeat sets. First complete ${missing.length?missing.join(', ')+' workouts':'another session with the same movements'}, then compare your best qualifying sets. This is personal progression, not a ranking against other athletes.`;const delta=+(r.value-100).toFixed(1);return `100 represents your first recorded performance on each compared movement. ${fmt(r.value)} means your best working-set performance is approximately ${delta>=0?'+':''}${fmt(delta)}% versus those baselines across ${r.compared} repeated movements. This is an estimated personal trend, not a competitive percentile or a verified strength test.`;}
+  function ratingCard(){const r=athleteIndex();return `<div class="rating-explain"><h3>What does my rating mean?</h3><p class="subhead mt8">${esc(ratingExplanation())}</p>${r.value!=null?`<p class="fineprint">Compared movements: ${r.compared}. Higher means improving relative to your OWN baseline.</p>`:''}</div>`;}
   function fullRound(tasks,index){
     const start=Math.min(Math.max(index,0),tasks.length-1);
     if(!tasks[start])return {start:0,end:-1,items:[],task:null};
@@ -74,7 +157,7 @@
   function musclePanel(compact=false){
     const focus=state.settings.spotlight;
     const rows=MUSCLES.map(m=>({name:m,data:muscleChange(m)}));
-    const shown=compact?rows.filter(x=>x.data).sort((a,b)=>a.name===focus?-1:b.name===focus?1:0).slice(0,5):rows;
+    const shown=rows;
     const peak=Math.max(15,...shown.filter(x=>x.data).map(x=>Math.abs(x.data.change)));
     return `${shown.length===0?`<p class="subhead mt16">Your muscle trends appear after your first completed session.</p>`:`<div class="muscle-list">${shown.map(row=>`<div class="muscle-item"><div class="muscle-label"><strong>${esc(row.name)}</strong><span class="${row.data?(row.data.change>0?'positive':row.data.change<0?'negative':''):''}">${row.data?progressPct(row.data.change):'Not started'}</span></div><div class="muscle-track"><span style="width:${row.data?Math.max(row.data.count?5:0,Math.min(100,Math.abs(row.data.change)/peak*100)):0}%"></span></div></div>`).join('')}</div>`}<p class="fineprint">Change in comparable exercise performance since your first completed session — not a measurement of muscle size.</p>`;
   }
@@ -83,8 +166,8 @@
   }
 
   function lastSessionOf(id){return [...state.history].reverse().find(s=>s.session===id);}
-  function nextLetter(id){return SESSION_ORDER[(SESSION_ORDER.indexOf(id)+1)%3];}
-  function planFor(id){return PLAN[id]||PLAN.A;}
+  function nextLetter(id){return SESSION_ORDER[(SESSION_ORDER.indexOf(id)+1)%SESSION_ORDER.length];}
+  function planFor(id){const p=profile().plans[selectedPlan]||PLAN;return p[id]||p[Object.keys(p)[0]]||PLAN.A;}
   function buildTasks(id){
     const result=[];
     planFor(id).pairs.forEach((pair,pi)=>{
@@ -163,30 +246,30 @@
   function bar(part,total){return `<div class="meter"><span style="width:${clamp(Math.round(part/Math.max(total,1)*100),0,100)}%"></span></div>`;}
   function miniProgress(n,done){return `<div class="progress-row">${Array.from({length:n},(_,i)=>`<span class="${i<done?'done':i===done?'current':''}"></span>`).join('')}</div>`;}
   function dateText(iso){return new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
-  function title(){return `<header class="topbar"><span class="brand">RepRival</span><span class="version-chip">PERSONAL PREVIEW · 1.0</span></header>`;}
+  function title(){return `<header class="topbar"><span class="brand">RepRival</span><span class="version-chip">PERSONAL PREVIEW · 1.3</span></header>`;}
 
   function bottomNav(){
-    const links=[['home','⌂','Home'],['workout','◫','Workout'],['progress','▥','Progress'],['plan','⚙','My plan']];
+    const links=[['home','⌂','Home'],['workout','◫','Workout'],['progress','▥','Progress'],['plan','⚙','My plan'],[profile().role==='admin'?'admin':'account','♙',profile().role==='admin'?'Admin':'Account']];
     return `<nav class="tabnav" aria-label="Main navigation">${links.map(([id,ico,label])=>`<button type="button" class="${page===id?'active':''}" data-page="${id}" aria-label="${label}"><span class="ico">${ico}</span>${label}</button>`).join('')}</nav>`;
   }
 
-  function shell(body){$app.innerHTML=`<main class="shell">${title()}${body}</main>${page==='workout'&&state.active?'':bottomNav()}<div id="toast" aria-live="polite"></div>`;}
+  function shell(body){$app.innerHTML=`<main class="shell">${title()}${body}</main>${(page==='workout'&&state.active)||page==='setup'||page==='unlock'?'':bottomNav()}<div id="toast" aria-live="polite"></div>`;}
   function allMovements(){
-    const x=[];SESSION_ORDER.forEach(day=>planFor(day).pairs.forEach(p=>p.exercises.forEach(e=>x.push({...e,day,key:day+':'+e.id}))));return x;
+    const x=[],seen=new Set();
+    SESSION_ORDER.forEach(day=>planFor(day).pairs.forEach(p=>p.exercises.forEach(e=>{const key=day+':'+e.id;if(!seen.has(key)){x.push({...e,day,key});seen.add(key);}})));
+    state.history.forEach(session=>(session.logs||[]).forEach(l=>{const key=(session.session||'H')+':'+l.exId;if(!seen.has(key)){x.push({id:l.exId,name:l.name,muscle:l.muscle,load:l.load,sets:1,min:1,max:20,day:session.session||'H',key});seen.add(key);}}));
+    return x;
   }
   function comparableSessions(movement){
     if(!movement)return [];
-    return state.history.filter(s=>s.session===movement.day).map(s=>{
+    return state.history.map(s=>{
       const logs=(s.logs||[]).filter(l=>l.exId===movement.id);
-      if(logs.length<movement.sets)return null;
-      const used=logs.slice(0,movement.sets);
-      const avgLoad=used.reduce((a,l)=>a+Number(l.weight||0),0)/used.length;
-      const reps=used.reduce((a,l)=>a+l.reps,0);
-      // Same structure as V5 scorecard: mean estimated 1RM per set, or reps/set for BW.
-      const performance=used.reduce((a,l)=>a+score(l),0)/used.length;
-      return {date:s.endedAt||s.startedAt,sessionId:s.id,reps,load:avgLoad,performance,log:used};
+      if(!logs.length)return null;
+      const best=bestSet(logs);
+      return {date:s.endedAt||s.startedAt,sessionId:s.id,reps:logs.reduce((a,l)=>a+l.reps,0),load:best.weight||0,performance:score(best),log:logs};
     }).filter(Boolean).sort((a,b)=>new Date(a.date)-new Date(b.date));
   }
+
   function muscleChange(muscle){
     const rows=allMovements().filter(m=>m.muscle===muscle).map(m=>({m,series:comparableSessions(m)})).filter(x=>x.series.length);
     if(!rows.length)return null;
@@ -218,74 +301,94 @@
     }
     return {best,previous};
   }
+  function consistencyCard(){const c=consistency();const from=c.since,days=Array.from({length:7},(_,i)=>{const date=dayAt(from,i),count=state.history.filter(s=>dateOnly(s.startedAt||s.endedAt)===date&&(s.planId?s.planId===tracking().planId:tracking().planId==='pump')).length;return {date,name:new Date(date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short'}),count};});return card(`<div class="row"><h3>Training consistency</h3><span class="label-tag">Week ${c.week+1}</span></div><p class="subhead mt8">${dateText(c.since)} – ${dateText(c.through)} · target ${c.goal} sessions</p><div class="row mt12"><h2 class="feature-title">${c.done} / ${c.goal} workouts</h2><strong>${c.percentage}% over recent training weeks</strong></div>${bar(Math.min(c.done,c.goal),c.goal)}<div class="week-days mt12">${days.map(d=>`<div class="week-day ${d.count?'trained':''}"><small>${esc(d.name)}</small><b>${d.date.slice(-2)}</b>${d.count?'✓':''}</div>`).join('')}</div><p class="fineprint">Training weeks are consecutive 7-day blocks anchored to when you started this plan. Rest days do not count against your goal. Extra sessions never push the percentage over 100%.</p>`,'section');}
   function home(){
-    const a=state.active;
-    const last=state.history.at(-1);
-    const missing=workoutsUntilCalibration();
-    const index=athleteIndex();
-    const focus=state.settings.spotlight;
-    const top=recentExercises(focus).slice(0,2);
+    const a=state.active,missing=workoutsUntilCalibration(),rating=athleteIndex();
     const session=a?.session||state.next;
     const rounds=buildTasks(session).filter((t,i,ts)=>i===0||t.pair.id!==ts[i-1].pair.id||t.round!==ts[i-1].round).length;
-    return `<div class="eyebrow">YOUR TRAINING</div><h1 class="page-title">Train with purpose.</h1><p class="lead">A clear plan. Measurable progress. Competition at your level.</p>
-      ${card(`<div class="row"><span class="eyebrow">${a?'SESSION IN PROGRESS':'NEXT WORKOUT'}</span><span class="tiny muted">A → B → C</span></div><h2 class="feature-title">Full Body ${session}</h2><p class="subhead">${rounds} guided rounds · ${buildTasks(session).length} working sets · supersets and individual movements</p><div class="mt16">${btn(a?'Resume workout →':'Start workout →','start','primary full')}</div>${a?`<p class="fineprint">Your completed rounds are saved. Pick up where you left off.</p>`:''}`,'hero')}
-      <div class="section two-stat"><div class="metric athlete"><div class="eyebrow">ATHLETE SCORE</div><div class="score-number">${index.value==null?'—':fmt(index.value)}</div><div class="stat-detail">${index.value==null?'Start training to establish 100':index.compared?`${index.compared} movements compared with baseline`:`Starting index · ${index.tracked} movements`}</div></div><div class="metric"><div class="eyebrow">WORKOUTS</div><div class="score-number">${workoutsCount()}</div><div class="stat-detail">${state.history.length===0?'Your first one awaits':`${trainingMetrics().sets} sets recorded`}</div></div></div>
-      ${card(`<div class="row"><h3>Muscle performance</h3><button class="quiet-link" type="button" data-action="progress">Full analysis →</button></div><p class="subhead">Your logged movement trends at a glance.</p>${musclePanel(true)}`,'section')}
-      ${card(`<div class="row"><h3>${esc(focus)} spotlight</h3><span class="label-tag">Priority muscle</span></div>${top.length?top.map(l=>`<div class="spot-movement"><strong>${esc(l.name)}</strong><span>${esc(scoreLabel(l))} · best recorded set</span></div>`).join(''):`<p class="subhead mt12">Your ${esc(focus.toLowerCase())} benchmarks will appear after your first workout.</p>`}<p class="fineprint">You can change your spotlight in My Plan.</p>`,'section')}
-      ${card(`<div class="row"><h3>Competition readiness</h3><span class="label-tag">${3-missing.length}/3</span></div><p class="subhead">${missing.length?'Complete your first A, B and C sessions to establish movement baselines.':'Calibration complete. Real leagues will be enabled when online matching is built.'}</p>${bar(3-missing.length,3)}<p class="fineprint">${missing.length?`Remaining: ${missing.join(', ')}`:'No simulated opponents or rankings.'}</p>`,'section')}
-      ${card(`<div class="row"><h3>Recent workouts</h3><span class="tiny muted">Saved history</span></div><div class="mt12">${historyList(3)}</div>`,'section')}
-      ${state.history.length===0?card(`<h3>Bring in your first session</h3><p class="subhead">Your 17 October Workout A is available from the V5 spreadsheet as 18 individual sets.</p><div class="mt12">${btn('Import my 17 October workout','import-v5','outline full')}</div>`,'section'):''}
-    `;
+    const recent=state.history.filter(s=>Date.now()-new Date(s.endedAt).getTime()<30*86400000);
+    const sessions=state.history.filter(s=>!s.demo);
+    const last=state.history.at(-1);
+    const all=allLogs(),bests=Object.values(bestByExercise(all)).sort((x,y)=>new Date(y.loggedAt)-new Date(x.loggedAt)).slice(0,3);
+    const bm=profile().body,ws=[...(bm.measurements||[])].sort((x,y)=>x.date.localeCompare(y.date));
+    const days=ws.map(m=>({date:m.date,value:+chartWeight(m.kg).toFixed(2)}));
+    const gains=allMovements().map(m=>({m,change:muscleChange(m.muscle)})).filter(x=>x.change?.count&&x.change.change>0).sort((x,y)=>y.change.change-x.change.change);
+    const insight=!state.history.length?'Your first workout will establish your baseline.':gains.length?`${gains[0].m.muscle} is currently your most improved muscle group (${progressPct(gains[0].change.change)} versus baseline).`:'Log a second session for each movement to see useful improvement insights.';
+    return `<div class="eyebrow">${esc(profile().username||'YOUR TRAINING')} / HOME</div><h1 class="page-title">Train with purpose.</h1><p class="lead">Your next session, progress and meaningful milestones.</p>
+      ${card(`<div class="row"><span class="eyebrow">${a?'SESSION IN PROGRESS':'NEXT WORKOUT'}</span><span class="tiny muted">${SESSION_ORDER.map(esc).join(' → ')}</span></div><h2 class="feature-title">${esc(planFor(session).name||'Workout '+session)}</h2><p class="subhead">${rounds} guided rounds · ${buildTasks(session).length} working sets</p><div class="mt16">${btn(a?'Resume workout →':'Start workout →','start','primary full')}</div>`,'hero')}
+      <div class="section two-stat"><div class="metric athlete"><div class="eyebrow">ATHLETE RATING</div><div class="score-number">${rating.value==null?'Calibrating':fmt(rating.value)}</div><div class="stat-detail">${rating.value==null?`${SESSION_ORDER.length-missing.length} of ${SESSION_ORDER.length} initial sessions · ${rating.compared} movements repeat-tested`:`Personal performance · ${rating.compared} movements`}</div></div><div class="metric"><div class="eyebrow">LAST 30 DAYS</div><div class="score-number">${recent.length}</div><div class="stat-detail">Workouts completed · rest days count as recovery</div></div></div>
+      ${card(ratingCard(),'section')}
+      ${consistencyCard()}
+      ${card(`<div class="row"><h3>Muscle performance</h3><span class="label-tag">All groups</span></div>${musclePanel(false)}`,'section')}
+      ${card(`<div class="row"><h3>Body weight</h3>${btn('+ Weigh in','weigh-in','outline')}</div><div class="mt12"><h2>${ws.length?displayWeight(ws.at(-1).kg):'No weigh-ins yet'}</h2><p class="subhead">${ws.length>1?`Change since first: ${(chartWeight(ws.at(-1).kg-ws[0].kg)>=0?'+':'')+fmt(chartWeight(ws.at(-1).kg-ws[0].kg))} ${weightUnitLabel()} · `:''}${ws.length} weigh-ins saved</p></div>${days.length>1?`<p class="fineprint">Chart in ${weightUnitLabel()}</p>${drawChart(days)}`:'<p class="subhead mt16">Your weight trend will appear after two weigh-ins.</p>'}`,'section')}
+      ${card(`<h3>Personal bests & milestones</h3><div class="mt12">${bests.length?bests.map(l=>`<div class="session-row"><div><strong>${esc(l.name)}</strong><small>Best recorded effort · ${esc(scoreLabel(l))}</small></div><span class="label-tag">PB</span></div>`).join(''):'<p class="subhead">Complete a workout to see your first milestone.</p>'}</div>`,'section')}
+      ${card(`<h3>Today’s training insight</h3><p class="subhead mt12">${esc(insight)}</p><p class="fineprint">Based only on logged training, not a medical or recovery assessment.</p>`,'section')}
+      ${card(`<div class="row"><h3>Recent workouts</h3><span class="label-tag">${sessions.length} saved</span></div><div class="mt12">${historyList(4)}</div>`,'section')}
+      ${!state.history.length?card(`<h3>Bring in your first session</h3><p class="subhead">Import your 17 October Workout A baseline as 18 individual working sets.</p>${btn('Import V5 baseline','import-v5','outline full')}`,'section'):''}`;
   }
 
   function startWorkout(){
     if(!state.active){
-      state.active={session:state.next,taskIndex:0,logs:[],startedAt:new Date().toISOString(),stage:'lift',restUntil:null,restNote:'',restSeconds:0};save();
+      state.active={session:state.next,planId:selectedPlan,planVersion:state.settings.planVersion||0,taskIndex:0,logs:[],startedAt:new Date().toISOString(),stage:'lift',restUntil:null,restNote:'',restSeconds:0};save();
     }
     page='workout';render();
   }
+  function previousMatchingSet(exId,round){
+    for(const session of [...state.history].reverse()){
+      const logs=(session.logs||[]).filter(x=>x.exId===exId);
+      if(logs.length)return logs.find(l=>l.round===round)||logs[Math.min(round-1,logs.length-1)];
+    }return null;
+  }
+  function weightStep(ex){return ex.load==='combined'?5:2.5;}
+  function legalWeight(value,ex){const step=weightStep(ex);return +(Math.max(step,Math.round(Number(value)/step)*step)).toFixed(2);}
+  function recommend(ex,previous){
+    if(!previous)return {weight:ex.load==='bodyweight'?0:'',reps:ex.min,reason:'First benchmark · select your actual working load'};
+    const isBody=ex.load==='bodyweight',weight=Number(previous.weight)||0,reps=Number(previous.reps)||ex.min,rir=previous.rir==null?null:Number(previous.rir);const w=isBody?0:legalWeight(weight,ex);
+    // Never auto-increase weights based on an unknown RIR.
+    if(rir!=null&&reps>=ex.max&&rir>=2&&!isBody){const next=w+weightStep(ex);return {weight:next,reps:ex.min,reason:`Top of rep range reached · next available ${ex.load==='combined'?'pair':'dumbbell'} increment`};}
+    if(rir!=null&&rir>=3&&reps<ex.max)return {weight:w,reps:reps+1,reason:'Good reserve · aim for one more rep'};
+    if(rir===0)return {weight:w,reps:Math.max(ex.min,Math.min(reps,ex.max)),reason:'Maximum effort last time · hold steady'};
+    if(reps<ex.min)return {weight:w,reps:ex.min,reason:'Return to the lower end of the target range'};
+    if(rir==null)return {weight:w,reps:Math.min(reps,ex.max),reason:'Previous RIR unknown · maintain target until effort is recorded'};
+    return {weight:w,reps:Math.min(ex.max,reps+(rir>=2?1:0)),reason:rir>=2?'Progress by one rep when ready':'Maintain weight and reps'};
+  }
+  function movementCue(ex){const name=(ex.name+' '+ex.id).toLowerCase();let kind='press';if(/inverted|row|pull|chin/.test(name))kind='row';else if(/squat|lunge|step.up/.test(name))kind='squat';else if(/deadlift|rdl|hinge|swing/.test(name))kind='hinge';else if(/curl/.test(name))kind='curl';else if(/raise|fly|lateral|rear.delt/.test(name))kind='raise';else if(/rollout|plank|core|crunch/.test(name))kind='core';else if(/dip|tricep/.test(name))kind='dip';else if(/carry/.test(name))kind='carry';else if(/press/.test(name)&&/overhead|shoulder/.test(name))kind='overhead';
+    const head='<circle cx="39" cy="21" r="7"/>',hand=(x,y)=>`<circle cx="${x}" cy="${y}" r="3" fill="#7899aa"/>`;let lines='';
+    if(kind==='press'){lines='<path d="M10 77H92 M17 56H70 M19 56V77 M67 56V77 M35 39L51 43L64 53 M35 39L27 51 M51 43L61 18 M27 51L22 27 M65 53L76 70 M65 53L84 69 M16 20H28 M56 12H70"/>'+hand(22,25)+hand(62,14);}
+    else if(kind==='row'){lines='<path d="M8 13H93 M14 13V78 M87 13V78 M37 28L50 39L71 63 M50 39L30 65 M37 28L36 14 M37 28L55 13 M71 63L89 71 M30 65L15 71"/>'+head;}
+    else if(kind==='squat'){lines='<path d="M39 32L46 49L27 61L24 76 M46 49L69 60L78 76 M39 32L22 43L15 32 M39 32L61 40L76 28 M7 78H90"/>'+head;}
+    else if(kind==='hinge'){lines='<path d="M39 30L65 44L45 63L38 78 M65 44L75 78 M65 44L78 61 M78 61V74 M32 77H82"/>'+head;}
+    else if(kind==='curl'){lines='<path d="M39 30L40 53L30 78 M40 53L56 78 M39 33L25 44L28 55L44 43 M39 33L57 43L60 56L73 43"/>'+head;}
+    else if(kind==='raise'){lines='<path d="M39 30L40 54L30 78 M40 54L55 78 M39 33L14 31L8 18 M39 33L66 30L79 18"/>'+head;}
+    else if(kind==='core'){lines='<path d="M12 63L33 52L59 54L81 71 M35 52L27 73 M59 54L73 40 M10 78H92"/><circle cx="27" cy="50" r="6"/>' ;}
+    else if(kind==='dip'){lines='<path d="M19 40H82 M19 40V77 M82 40V77 M42 33L48 50L42 67 M48 50L61 65 M42 33L20 43 M42 33L66 43"/>'+head;}
+    else if(kind==='carry'){lines='<path d="M39 32L41 53L33 77 M41 53L53 76 M39 33L22 48L17 65 M41 34L62 49L68 65 M10 65H25 M61 65H78"/>'+head;}
+    else {lines='<path d="M39 31L42 54L31 78 M42 54L57 78 M40 33L26 21L24 9 M40 33L57 20L60 9 M15 9H34 M50 9H70"/>'+head;}
+    if(kind==='press'&&/incline/.test(name))lines+='<path d="M18 59L56 41" stroke="#2e738d" stroke-width="4"/>';
+    return `<svg class="exercise-cue" viewBox="0 0 100 86" role="img" aria-label="${esc(ex.name)} exercise posture illustration" fill="none" stroke="#557383" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">${lines}</svg>`;
+  }
   function workout(){
     if(!state.active)return workoutLanding();
-    const a=state.active;
-    if(a.stage==='feedback')return feedbackView();
-    const tasks=buildTasks(a.session);
-    const group=fullRound(tasks,a.taskIndex);
+    const a=state.active;if(a.stage==='feedback')return feedbackView();
+    const tasks=buildTasks(a.session),group=fullRound(tasks,a.taskIndex);
     if(!group.items.length)return `<h2>Session ready</h2>${btn('Finish session','feedback','primary full')}`;
     if(a.stage==='rest')return restView(tasks,group.task);
-    const task=group.task;
-    const roundTotal=task.rounds;
-    const pair=task.pair;
-    const isSolo=group.items.length===1;
-    const done=a.logs.filter(Boolean).length;
-    const draft=a.drafts?.[group.start]||{};
-    return `<div class="row session-controls"><button type="button" class="quiet-link" data-action="back-round">← Back</button><button type="button" class="quiet-link" data-action="pause">Save & exit</button></div>
-      <div class="eyebrow">FULL BODY ${a.session} · ${isSolo?'SINGLE MOVEMENT':`SUPERSET ${esc(pair.id)}`}</div>
-      <h1 class="page-title compact">Round ${task.round} <span class="light-text">of ${roundTotal}</span></h1>
-      <div aria-label="${done} of ${tasks.length} completed sets">${miniProgress(tasks.length,done)}</div>
-      <p class="subhead">${isSolo?'Complete the set below.':`Complete both movements, then record them together.`} ${done}/${tasks.length} sets logged.</p>
-      <form id="roundForm" class="section stack">
-      ${group.items.map((t,i)=>{
-        const ex=t.ex,idx=t.index;
-        const prior=a.logs[idx]||exerciseLastSet(ex.id,a.logs.slice(0,group.start));
-        const weight=ex.load==='bodyweight'?'0':draft[`weight-${idx}`]??(prior?.weight??'');
-        const reps=draft[`reps-${idx}`]??(prior?.reps??ex.min);
-        const rir=draft[`rir-${idx}`]??(prior?.rir??2);
-        const best=bestByExercise([...allLogs(),...a.logs.slice(0,group.start)])[ex.id];
-        return `<section class="movement-entry"><div class="row"><span class="eyebrow">${isSolo?'MOVEMENT':`MOVEMENT ${i+1} OF ${group.items.length}`}</span><span class="label-tag">Set ${t.round} / ${ex.sets}</span></div>
-          <h2 class="movement-name">${esc(ex.name)}</h2><p class="subhead">${esc(ex.muscle)} · ${t.repLabel} reps · ${ex.load==='combined'?'combined dumbbell weight':ex.load==='single'?'single dumbbell':ex.load==='bodyweight'?'bodyweight':'optional added load'}</p>
-          ${best?`<div class="benchmark">${wreathIcon('small')}<div><span>PERSONAL BEST</span><strong>${esc(scoreLabel(best))}</strong></div></div>`:''}
-          <div class="form-grid mt16"><div class="field"><label for="weight-${idx}">Weight (kg)</label><input id="weight-${idx}" name="weight-${idx}" type="number" inputmode="decimal" step="0.5" min="0" ${ex.load==='bodyweight'?'disabled value="0"':`value="${esc(weight)}" placeholder="kg"`} ${ex.load==='bodyweight'||ex.load==='optional'?'':'required'}></div>
-          <div class="field"><label for="reps-${idx}">Completed reps</label><input id="reps-${idx}" name="reps-${idx}" type="number" inputmode="numeric" step="1" min="1" max="99" value="${esc(reps)}" required></div></div>
-          <div class="rir-row"><span>Reps left in reserve (RIR)</span><div class="rir-options">${[0,1,2,3,4,5].map(n=>`<label><input type="radio" name="rir-${idx}" value="${n}" ${Number(rir)===n?'checked':''}><span>${n===5?'5+':n}</span></label>`).join('')}</div></div>
-        </section>`;
-      }).join('')}
-      <button type="submit" class="btn primary full">${group.items.every(t=>a.logs[t.index])?'Update':'Log'} ${isSolo?'set':'superset round'} →</button>
-      </form>
-      ${card(`<div class="row"><div><strong>Rest comes next</strong><p class="subhead">${pair.restMin}–${pair.restMax} seconds after this ${isSolo?'set':'pair'}.</p></div><span class="label-tag">Automatic</span></div>`,'section subtle')}
-      <div class="section small-actions">${btn('Save & exit','pause','outline')}${btn('Discard workout','discard','text')}</div>
-    `;
+    const pair=group.task.pair,isSolo=group.items.length===1,done=a.logs.filter(Boolean).length,draft=a.drafts?.[group.start]||{},next=fullRound(tasks,group.end+1);
+    return `<div class="compact-workout"><div class="row workout-top-actions"><button type="button" class="quiet-link" data-action="back-round">← Back</button><details class="workout-menu"><summary>••• Options</summary><div class="menu-items">${btn('Save & exit','pause','outline full')}${btn('Discard workout','discard','text full')}</div></details></div>
+      <div class="eyebrow">${esc(planFor(a.session).name||'WORKOUT '+a.session)} · ${isSolo?'WORKING SET':'SUPERSET '+esc(pair.id)}</div>
+      <h1 class="page-title compact">Round ${group.task.round} <span class="light-text">of ${group.task.rounds}</span></h1>
+      ${miniProgress(Math.max(1,group.task.rounds),group.task.round-1)}
+      <form id="roundForm" class="round-form">${group.items.map((t,i)=>{const ex=t.ex,idx=t.index,prev=previousMatchingSet(ex.id,t.round),rec=recommend(ex,prev),logged=a.logs[idx],weight=draft[`weight-${idx}`]??(logged?.weight??rec.weight),reps=draft[`reps-${idx}`]??(logged?.reps??rec.reps),rir=draft[`rir-${idx}`]??(logged?.rir??''),editing=!!draft[`edit-${idx}`]||!!logged;
+        const value=ex.load==='bodyweight'?'BW':weight===''?'Choose weight':fmt(weight)+' kg';
+        return `<section class="movement-entry mini-exercise"><div class="mini-head"><div class="mini-title"><span class="eyebrow">${isSolo?'MOVEMENT':(i+1)+' OF '+group.items.length} · SET ${t.round}/${ex.sets}</span><h2>${esc(ex.name)}</h2><p class="tiny muted">${esc(ex.muscle)} · ${ex.min}–${ex.max} reps</p></div>${movementCue(ex)}</div>
+        <div class="mini-target"><div><span class="eyebrow">RECOMMENDED</span><strong>${value} × ${esc(reps)}</strong></div><button type="button" class="quiet-link" data-action="toggle-edit" data-index="${idx}" data-group="${group.start}">${editing?'Done':'✎ Edit'}</button></div>
+        <div class="mini-previous">${prev?'Previous set '+t.round+': '+esc(scoreLabel(prev))+' · '+(prev.rir??'—')+' RIR':'First benchmark · choose a weight using Edit'}</div>
+        <div class="form-grid compact-edit ${editing?'':'hidden-edit'}" data-edit-fields="${idx}"><div class="field"><label>Actual weight (kg)</label><input name="weight-${idx}" type="number" inputmode="decimal" min="0" step="0.5" value="${esc(weight)}" ${ex.load==='bodyweight'?'disabled':''}></div><div class="field"><label>Actual reps</label><input name="reps-${idx}" type="number" inputmode="numeric" min="1" max="99" value="${esc(reps)}" required></div></div>
+        <div class="rir-row"><span>Reps you had left (RIR)</span><div class="rir-options">${[0,1,2,3,4,5].map(n=>`<label><input type="radio" name="rir-${idx}" value="${n}" ${String(rir)===String(n)?'checked':''} required><span>${n===5?'5+':n}</span></label>`).join('')}</div></div></section>`;
+      }).join('')}<div class="up-next"><div><span class="eyebrow">UP NEXT</span><strong>${next.items.length?next.task.pair.id===pair.id?'Round '+next.task.round+' of '+next.task.rounds:next.items.map(t=>t.ex.name).join(' + '):'Finish workout'}</strong><span>${next.items.length?next.task.pair.id===pair.id?'Same exercises':'Prepare next movement(s)':'Review and save your session'}</span></div><div class="next-rest">${next.items.length?`Rest<strong>${pair.restMin}–${pair.restMax}s</strong>`:''}</div></div>
+      <button class="btn primary full round-log-button" type="submit">${group.items.some(t=>a.logs[t.index])?'Update':'Log'} ${isSolo?'set':'superset round'} →</button></form>
+      </div>`;
   }
-
   function restView(tasks,nextTask){
     const a=state.active;
     const remaining=Math.max(0,Math.ceil((a.restUntil-Date.now())/1000));
@@ -313,7 +416,7 @@
     const prs=Object.values(newBest).filter(l=>old[l.exId]&&score(l)>score(old[l.exId])+1e-8)
       .map(l=>({exId:l.exId,name:l.name,muscle:l.muscle,label:scoreLabel(l),old:scoreLabel(old[l.exId])}));
     const recovery=feeling==='tired'?72:48;
-    const finished={id:String(Date.now()),session:a.session,startedAt:a.startedAt,endedAt:new Date().toISOString(),logs,feeling,recovery,prs};
+    const finished={id:String(Date.now()),session:a.session,planId:a.planId,planVersion:a.planVersion,startedAt:a.startedAt,endedAt:new Date().toISOString(),logs,feeling,recovery,prs};
     state.history.push(finished);
     state.lastSummary=finished.id;state.next=nextLetter(a.session);state.active=null;
     save();page='summary';render();
@@ -356,43 +459,84 @@
       ${coords.map(pt=>`<circle class="chartdot" r="5.3" cx="${pt.x.toFixed(1)}" cy="${pt.y.toFixed(1)}"><title>${fmt(pt.value)}</title></circle>`).join('')}
       </svg><div class="row tiny muted"><span>${dateText(points[0].date)}</span><span>${dateText(points.at(-1).date)}</span></div></div>`;
   }
+  function workloadCard(history){const list=[...new Set(history.map(x=>x.session))];const filter=state.settings.volumeFilter||'all';const shown=history.filter(s=>filter==='all'||s.session===filter);const points=shown.map(s=>({date:s.endedAt,value:(s.logs||[]).reduce((a,l)=>a+Number(l.weight||0)*Number(l.reps||0),0)}));const first=points[0]?.value,last=points.at(-1)?.value;const suffix=filter==='all'?'All workout types (not directly comparable)':'Workout '+filter+' only';let description=shown.length<2?'Log at least two matching workouts to compare their workload.':first>0?`First: ${fmt(first)} kg lifted. Latest: ${fmt(last)} kg lifted (${last>=first?'+':''}${fmt((last/first-1)*100)}%). Changes in exercise choice or set count also affect this total.`:'This exercise selection has little recorded external weight; bodyweight effort is not included in kg lifted.';return card(`<div class="row"><h3>Training workload</h3><span class="label-tag">kg lifted</span></div><p class="subhead">Total external weight × reps across all completed sets — how much weighted work you did, <strong>not</strong> how strong you are.</p><div class="field mt12"><label>Compare matching workouts</label><select id="volumeFilter"><option value="all" ${filter==='all'?'selected':''}>All workouts (overview only)</option>${list.map(id=>`<option value="${esc(id)}" ${filter===id?'selected':''}>Workout ${esc(id)}</option>`).join('')}</select></div><p class="fineprint">${esc(suffix)} · excludes unweighted bodyweight exercise effort.</p>${drawChart(points)}<p class="notice">${esc(description)}</p>`,'section');}
   function progress(){
-    const stats=trainingMetrics(),index=athleteIndex();
-    const movements=allMovements();
-    const focus=movements.find(m=>m.key===state.settings.focusMovement)||movements[0];
-    const focusSeries=comparableSessions(focus),first=focusSeries[0],last=focusSeries.at(-1);
-    const history=state.history;
-    const volumeHistory=history.map(s=>({date:s.endedAt,value:(s.logs||[]).reduce((n,l)=>n+Number(l.weight||0)*l.reps,0)}));
-    const repsHistory=history.map(s=>({date:s.endedAt,value:(s.logs||[]).reduce((n,l)=>n+l.reps,0)}));
-    const rows=movements.map(m=>{const visits=comparableSessions(m);return {...m,visits,first:visits[0],last:visits.at(-1),change:visits.length>1?(visits.at(-1).performance/Math.max(.01,visits[0].performance)-1)*100:null};});
-    return `<div class="eyebrow">TRAINING ANALYTICS</div><h1 class="page-title">Progress.</h1><p class="lead">Your performance, records and training trends — without the noise.</p>
-      <div class="two-stat section"><div class="metric athlete"><div class="eyebrow">ATHLETE SCORE</div><div class="score-number">${index.value==null?'—':fmt(index.value)}</div><div class="stat-detail">100 = baseline · ${index.compared} repeat-tested movements</div></div><div class="metric"><div class="eyebrow">WORKOUTS</div><div class="score-number">${stats.workouts}</div><div class="stat-detail">${stats.sets} working sets</div></div></div>
-      ${card(`<div class="row"><h3>Muscle performance</h3><span class="label-tag">Since baseline</span></div>${musclePanel(false)}`,'section')}
-      ${card(`<div class="row"><h3>Movement trends</h3><span class="tiny muted">${focusSeries.length} visits</span></div><div class="field mt16"><label for="movementSelect">Choose a movement</label><select id="movementSelect">${movements.map(m=>`<option value="${esc(m.key)}" ${m.key===focus.key?'selected':''}>${m.day} · ${esc(m.name)}</option>`).join('')}</select></div>
-        <div class="movement-detail-summary mt16"><div><span>First completed session</span><strong>${first?esc(scoreLabel(bestSet(first.log))):'—'}</strong></div><div><span>Latest completed session</span><strong>${last?esc(scoreLabel(bestSet(last.log))):'—'}</strong></div></div>
-        <div class="mt16"><h3>Estimated performance trend</h3><p class="subhead">Comparable exercise score, calculated from your sets. Not a tested maximum.</p>${drawChart(focusSeries.map(x=>({date:x.date,value:x.performance})))}</div>
-        <div class="mt16"><h3>Weight per set</h3>${focus.load==='bodyweight'?'<p class="subhead">Bodyweight movement</p>':drawChart(focusSeries.map(x=>({date:x.date,value:x.load})))}</div>
-        <div class="mt16"><h3>Total reps per session</h3>${drawChart(focusSeries.map(x=>({date:x.date,value:x.reps})))}</div>`,'section')}
-      ${card(`<div class="row"><h3>Movement scorecard</h3><span class="label-tag">Actual lifts</span></div><p class="subhead">Actual weight and reps are shown. The change percentage estimates overall performance across comparable completed sets.</p>
-        <div class="movement-score-list mt16">${rows.map(m=>`<div class="movement-tile"><div class="row"><div><strong>${esc(m.day)} · ${esc(m.name)}</strong><p class="tiny muted">${esc(m.muscle)} · ${m.sets} planned sets · ${m.visits.length} visits</p></div><span class="${m.change==null?'label-tag':m.change>0?'change up':m.change<0?'change down':'change'}">${progressPct(m.change)}</span></div>
-          <div class="movement-comparison"><div><span>First</span><strong>${m.first?esc(scoreLabel(bestSet(m.first.log))):'—'}</strong></div><span class="comparison-arrow">→</span><div><span>Latest</span><strong>${m.last?esc(scoreLabel(bestSet(m.last.log))):'—'}</strong></div></div>
-          ${m.last?`<div class="best-footnote">All-time PB · ${esc(scoreLabel(personalBests(m.id)?.best||bestSet(m.last.log)))}</div>`:''}</div>`).join('')}</div>`,'section')}
-      ${card(`<h3>Training volume</h3><p class="subhead">Session-by-session weighted work, expressed as kg × repetitions.</p>${drawChart(volumeHistory.map(x=>({date:x.date,value:x.value})))}<div class="mt20"><h3>Completed reps</h3>${drawChart(repsHistory.map(x=>({date:x.date,value:x.value})))}</div>`,'section')}
-      ${card(`<div class="row"><h3>Workout history</h3><span class="label-tag">${history.length} sessions</span></div><div class="mt12">${historyList(30)}</div>`,'section')}
-    `;
+    const stats=trainingMetrics(),rating=athleteIndex(),movements=allMovements(),history=state.history;
+    const selected=profile().selectedMovements||[];
+    const chosen=movements.filter(m=>selected.includes(m.key));
+    const volume=history.map(s=>({date:s.endedAt,value:(s.logs||[]).reduce((a,l)=>a+(+l.weight||0)*l.reps,0)}));
+    return `<div class="eyebrow">TRAINING ANALYTICS</div><h1 class="page-title">Progress.</h1><p class="lead">Compare your movements and see what is genuinely improving.</p>
+      <div class="two-stat section"><div class="metric athlete"><div class="eyebrow">ATHLETE RATING</div><div class="score-number">${rating.value==null?'Calibrating':fmt(rating.value)}</div><div class="stat-detail">Best working set · ${rating.compared} repeat-tested movements</div></div><div class="metric"><div class="eyebrow">WORKOUTS</div><div class="score-number">${stats.workouts}</div><div class="stat-detail">${stats.sets} recorded sets</div></div></div>
+      ${card(`<h3>Muscle performance</h3>${musclePanel(false)}`,'section')}
+      ${card(`<div class="row"><h3>Movement trends</h3><span class="label-tag">${selected.length} selected</span></div><p class="subhead">Add as many movements as you like. Your selection is saved to this athlete profile.</p><div class="mt12 movement-picker">${movements.map(m=>`<button type="button" class="movement-option ${selected.includes(m.key)?'picked':''}" data-action="toggle-movement" data-id="${esc(m.key)}"><span>${esc(m.day)} · ${esc(m.name)}</span><strong>${selected.includes(m.key)?'✓':'+'}</strong></button>`).join('')}</div>
+        ${chosen.length?chosen.map(m=>{const series=comparableSessions(m),first=series[0],last=series.at(-1),pct=series.length>1?(last.performance/Math.max(.01,first.performance)-1)*100:null;return `<div class="trend-card"><div class="row"><h3>${esc(m.name)}</h3><button class="quiet-link" data-action="toggle-movement" data-id="${esc(m.key)}">✕</button></div><div class="movement-detail-summary mt12"><div><span>Starting</span><strong>${first?esc(scoreLabel(bestSet(first.log))):'—'}</strong></div><div><span>Latest</span><strong>${last?esc(scoreLabel(bestSet(last.log))):'—'}</strong></div><div><span>Change</span><strong>${progressPct(pct)}</strong></div></div>${drawChart(series.map(x=>({date:x.date,value:x.performance})))}<p class="fineprint">Best working set per session · estimated performance, not tested one-rep maximum.</p></div>`;}).join(''):'<p class="subhead mt16">Tap + beside movements to display their trends here.</p>'}`,'section')}
+      ${workloadCard(history)}
+      ${card(`<div class="row"><h3>Workout history</h3><span class="label-tag">${history.length} sessions</span></div><div class="mt12">${historyList(30)}</div>`,'section')}`;
   }
 
   function plan(){
-    return `<div class="eyebrow">TRAINING PREFERENCES</div><h1 class="page-title">My plan.</h1><p class="lead">A simple setup that stays out of your way.</p>
-      ${card(`<h3>Your focus</h3><p class="subhead">Your choices affect what RepRival highlights. Your current A/B/C programme remains based on the V5 spreadsheet.</p><form id="settingsForm" class="stack mt16"><div class="field"><label for="goal">Main goal</label><select id="goal" name="goal">${Object.entries(CHOICES).map(([id,label])=>`<option value="${id}" ${state.settings.goal===id?'selected':''}>${esc(label)}</option>`).join('')}</select></div><div class="field"><label for="spotlight">Spotlight muscle</label><select id="spotlight" name="spotlight">${MUSCLES.map(m=>`<option value="${m}" ${state.settings.spotlight===m?'selected':''}>${esc(m)}</option>`).join('')}</select></div><label class="checkbox-row"><input type="checkbox" name="running" ${state.settings.running?'checked':''}> I also run or do cardio</label><button class="btn primary full" type="submit">Save preferences</button></form>`,'section')}
-      ${card(`<div class="row"><h3>Your workouts</h3><span class="label-tag">A · B · C</span></div><p class="subhead">Follow the rotation in order rather than resetting every Monday.</p>${SESSION_ORDER.map(id=>`<div class="session-row"><div><strong>Full Body ${id}</strong><small>${PLAN[id].pairs.length} blocks · ${buildTasks(id).length} working sets</small></div><span class="label-tag">${state.next===id?'Next':'Scheduled'}</span></div>`).join('')}<p class="fineprint">Warm up 4–5 minutes. Allow recovery between sessions as needed; adjust leg training around running.</p>`,'section')}
-      ${card(`<h3>Historical references</h3><p class="subhead">Previous spreadsheet records are reference only and are not automatically treated as your current training targets.</p><details class="mt12"><summary>View older PBs</summary><div class="mt12">${(window.REPQUEST_HISTORICAL||[]).map(x=>`<div class="session-row"><div><strong>${esc(x.day)} · ${esc(x.movement)}</strong><small>${esc(x.benchmark)}</small></div></div>`).join('')}</div></details><div class="mt16">${btn('Import 17 Oct Workout A (18 sets)','import-v5','outline full')}</div>`,'section')}
-      ${card(`<h3>Keep your workout data</h3><p class="subhead">Training data is currently stored only in this browser. It does not sync automatically across your phone and PC.</p><div class="stack mt16">${btn('Export backup (JSON)','export','outline full')}<label class="btn outline full" for="backupFile" style="cursor:pointer">Import backup (JSON)</label><input id="backupFile" type="file" accept="application/json,.json" style="display:none">${btn('Clear local workout data','clear','text full')}</div>`,'section')}`;
+    const current=window.REPRIVAL_PLAN_LIBRARY.details[selectedPlan]||window.REPRIVAL_PLAN_LIBRARY.details.pump;
+    return `<div class="eyebrow">TRAINING PROGRAMME</div><h1 class="page-title">My plan.</h1><p class="lead">Edit your workouts or switch focus without losing historical training.</p>
+      ${card(`<div class="row"><h3>${esc(current.title)}</h3><span class="label-tag">ACTIVE</span></div><p class="subhead mt12">${esc(current.focus)} · ${esc(current.duration)} · ${esc(current.days)}</p><div class="stack mt16">${btn('Edit workouts','designer','primary full')}${btn('Browse training plans','library','outline full')}</div>`,'section')}
+      ${card(`<h3>Current rotation</h3>${SESSION_ORDER.map(id=>`<div class="session-row"><div><strong>${esc(planFor(id).name||'Workout '+id)}</strong><small>${planFor(id).pairs.length} blocks · ${buildTasks(id).length} working sets</small></div><span class="label-tag">${state.next===id?'Next':'Scheduled'}</span></div>`).join('')}`,'section')}
+      ${card(`<h3>Plan start & consistency target</h3><p class="subhead">The seven-day training week begins on your plan start date, not necessarily Monday.</p><form class="stack mt12" id="planTimingForm"><div class="form-grid"><div class="field"><label>Plan start date</label><input type="date" name="start" required value="${esc(tracking().start)}"></div><div class="field"><label>Workouts per 7 days</label><input type="number" name="goal" min="1" max="7" value="${tracking().weeklyGoal}" required></div></div><button class="btn outline full" type="submit">Update training schedule</button></form>`,'section')}
+      ${card(`<h3>Training focus</h3><p class="subhead">Your active programme defines the training goal and workouts. For a different focus, switch plans in the library. Running can fit around rest days but is not counted as a strength workout.</p><p class="fineprint">Previously saved Main Focus / Include Cardio preferences are retained in backups, but they did not change training recommendations; the unused controls have been removed.</p>`,'section')}
+      ${card(`<h3>Your local data</h3><p class="subhead">Workouts are stored on this device, separately for each profile. Export a backup before a major update or changing devices.</p><div class="stack mt16">${btn('Export complete backup (JSON)','export','outline full')}<label class="btn outline full" for="backupFile">Import backup (JSON)</label><input id="backupFile" type="file" accept="application/json,.json" style="display:none">${btn('Import 17 Oct Workout A baseline','import-v5','outline full')}</div>`,'section')}`;
+  }
+  function setupScreen(){return `<div class="eyebrow">WELCOME TO REPRIVAL</div><h1 class="page-title">Create your admin profile.</h1><p class="lead">Your existing workouts will be migrated to this profile. Measurements are optional and editable later.</p>
+    ${card(`<form id="setupForm" class="stack"><h3>1 · Login details</h3><div class="field"><label>Admin username</label><input name="username" minlength="2" maxlength="28" required autocomplete="off"></div><div class="form-grid"><div class="field"><label>4-digit PIN</label><input name="pin" type="password" pattern="[0-9]{4}" inputmode="numeric" maxlength="4" required></div><div class="field"><label>Confirm PIN</label><input name="confirm" type="password" pattern="[0-9]{4}" inputmode="numeric" maxlength="4" required></div></div><h3>2 · Personal measurements</h3>${bodyInputFields(profile().body)}<button class="btn primary full" type="submit">Create admin profile →</button></form>`,'section')}
+    <p class="fineprint">PINs are only a convenience on this device, not secure online authentication. You only enter the PIN when switching profiles.</p>`;}
+  function unlockScreen(){const target=manager.profiles[manager.pending];if(!target){page='home';return home();}return `<div class="eyebrow">SWITCH ATHLETE</div><h1 class="page-title">${esc(target.username)}</h1><p class="lead">Enter this athlete’s 4-digit PIN to switch profiles.</p>${card(`<form id="unlockForm" class="stack"><div class="field"><label>4-digit PIN</label><input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" required autofocus></div><button class="btn primary full" type="submit">Switch profile →</button>${btn('Cancel','cancel-switch','outline full')}</form>`,'section')}`;}
+  function profileTable(){return profileNames().map(id=>{const u=manager.profiles[id];return `<div class="session-row"><div><strong>${esc(u.username||'Setup needed')}</strong><small>${u.role==='admin'?'Administrator':'Athlete'} · ${u.training?.history?.length||0} workouts ${id===activeProfile?'· Active':''}</small></div>${id===activeProfile?'<span class="label-tag">Active</span>':`<button type="button" data-action="switch-profile" data-id="${esc(id)}" class="quiet-link">Switch →</button>`}</div>`;}).join('');}
+  function adminScreen(){if(profile().role!=='admin'){page='account';return accountScreen();}
+    return `<div class="eyebrow">PROFILE MANAGEMENT</div><h1 class="page-title">Admin.</h1><p class="lead">Create athletes, assign PINs and inspect their training. All data stays on this device.</p>
+      ${card(`<div class="row"><h3>Athletes</h3><span class="label-tag">${profileNames().length} profiles</span></div>${profileTable()}`,'section')}
+      ${card(`<h3>Create athlete</h3><form id="createProfileForm" class="stack mt12"><div class="field"><label>Username</label><input name="username" minlength="2" maxlength="28" required></div><div class="field"><label>4-digit PIN</label><input type="password" name="pin" pattern="[0-9]{4}" maxlength="4" inputmode="numeric" required></div><h3>Personal measurements · optional</h3>${bodyInputFields()}<button class="btn primary full" type="submit">Create athlete</button></form>`,'section')}
+      ${card(`<h3>Manage athletes</h3><p class="subhead">Reset a PIN or delete a demo athlete. Deletions require confirmation.</p>${profileNames().filter(id=>id!==activeProfile).map(id=>`<div class="session-row"><strong>${esc(manager.profiles[id].username)}</strong><div class="row"><button class="quiet-link" type="button" data-action="reset-pin" data-id="${esc(id)}">Reset PIN</button><button class="quiet-link" type="button" data-action="remove-profile" data-id="${esc(id)}">Delete</button></div></div>`).join('')}`,'section')}
+      ${card(`<h3>Demo athletes</h3><p class="subhead">Create 10 clearly labelled demo athletes, each with a month of training and weigh-ins. Every demo athlete uses PIN <strong>1234</strong>.</p>${btn('Generate 10 demo athletes','generate-demo','outline full')}<p class="fineprint">Demo profiles never join real leaderboards. Default demo PINs are displayed after generation.</p>`,'section')}
+      ${card(`<h3>My account</h3>${btn('Edit my body metrics','metrics','outline full')}${btn('Export all profiles','export','outline full')}`,'section')}`;
+  }
+  function accountScreen(){return `<div class="eyebrow">YOUR ACCOUNT</div><h1 class="page-title">${esc(profile().username)}</h1>${card(`<h3>Profile settings</h3><div class="stack mt12">${btn('My body metrics','metrics','outline full')}${btn('Switch athlete','switch-list','outline full')}${btn('Export backup','export','outline full')}</div>`,'section')}${card(`<h3>Other local profiles</h3>${profileTable()}`,'section')}`;}
+  function metricsScreen(){const b=profile().body,w=b.measurements||[],latest=w.at(-1),unit=b.unit||'kg';return `<div class="eyebrow">ATHLETE MEASUREMENTS</div><h1 class="page-title">Body metrics.</h1><p class="lead">Update your measurements at any time without losing old weigh-ins.</p>
+    ${card(`<h3>Your measurements & preferences</h3><form id="metricsForm" class="stack mt12">${bodyInputFields(b)}<button class="btn primary full" type="submit">Save body settings</button></form>`,'section')}
+    ${card(`<h3>Weigh in</h3><p class="subhead">Latest: ${latest?displayWeight(latest.kg):'Not recorded'}</p><form id="weighInForm" class="stack mt12"><div class="field"><label>${unit==='st'?'Weight in stone and pounds':`Weight (${unit})`}</label>${unit==='st'?`<div class="form-grid"><input name="stone" type="number" min="0" max="70" step="1" placeholder="Stone" required><input name="pounds" type="number" min="0" max="13.9" step="0.1" placeholder="Pounds" required></div>`:`<input name="weight" type="number" step="0.1" min="1" max="1400" required placeholder="${latest?+(chartWeight(latest.kg)).toFixed(1):'Your weight'}">`}</div><div class="form-grid"><div class="field"><label>Waist (${b.waistUnit||'cm'}) · optional</label><input name="waist" type="number" step="0.1" min="0"></div><div class="field"><label>Body fat % · optional</label><input name="bodyFat" type="number" step="0.1" min="0" max="80"></div></div><div class="field"><label>Date</label><input name="date" type="date" required value="${todayLocal()}"></div><button class="btn primary full" type="submit">Save weigh-in</button></form>`,'section')}
+    ${card(`<h3>Weigh-in history</h3>${w.length?[...w].reverse().slice(0,30).map(x=>`<div class="session-row"><strong>${esc(x.date)}</strong><strong>${displayWeight(x.kg)}</strong></div>`).join(''):'<p class="subhead">No weigh-ins yet.</p>'}`,'section')}`;}
+  function movementLibrary(){
+    const x=new Map();
+    Object.values(window.REPRIVAL_PLAN_LIBRARY.templates).forEach(p=>Object.values(p).forEach(w=>w.pairs.forEach(pair=>pair.exercises.forEach(e=>x.set(e.id,structuredClone(e))))));
+    return [...x.values()].sort((a,b)=>a.name.localeCompare(b.name));
+  }
+  function planSnapshot(){
+    state.planHistory=state.planHistory||[];
+    state.planHistory.push({savedAt:new Date().toISOString(),planId:selectedPlan,version:state.settings.planVersion||0,rotation:structuredClone(profile().plans[selectedPlan])});
+    if(state.planHistory.length>30)state.planHistory.shift();
+  }
+  function updatePlan(){state.settings.planVersion=(state.settings.planVersion||0)+1;save();render();}
+  function canEditPlan(){if(state.active){showToast('Finish or discard your current workout before changing its plan.');return false;}return true;}
+  function designerScreen(){const id=state.settings.editDay&&SESSION_ORDER.includes(state.settings.editDay)?state.settings.editDay:SESSION_ORDER[0],plan=planFor(id);
+    return `<div class="eyebrow">WORKOUT DESIGNER</div><h1 class="page-title">Edit programme.</h1><p class="lead">Changes affect future sessions only. Completed workout data is never rewritten.</p>
+      ${card(`<h3>Choose workout</h3><div class="row mt12" style="flex-wrap:wrap">${SESSION_ORDER.map(day=>`<button class="btn ${day===id?'primary':'outline'}" type="button" data-action="select-edit-day" data-id="${esc(day)}">${esc(day)}</button>`).join('')}</div><form id="workoutNameForm" class="stack mt16"><div class="field"><label>Workout name</label><input name="name" value="${esc(plan.name)}" required></div><button class="btn outline full" type="submit">Rename workout</button></form>`,'section')}
+      ${plan.pairs.map((pair,pi)=>card(`<div class="row"><h3>${pair.exercises.length>1?'Superset':'Block'} ${pi+1}</h3><span class="label-tag">Rest ${pair.restMin}–${pair.restMax}s</span></div>${pair.exercises.map((ex,ei)=>`<form class="editExerciseForm stack mt16" data-day="${esc(id)}" data-pair="${pi}" data-ex="${ei}"><strong>${esc(ex.name)}</strong><div class="field"><label>Replace movement</label><select name="replaceId">${movementLibrary().map(x=>`<option value="${esc(x.id)}" ${x.id===ex.id?'selected':''}>${esc(x.name)} — ${esc(x.muscle)}</option>`).join('')}</select></div><div class="form-grid"><div class="field"><label>Sets</label><input type="number" name="sets" min="1" max="10" value="${ex.sets}" required></div><div class="field"><label>Minimum reps</label><input type="number" name="min" min="1" max="99" value="${ex.min}" required></div><div class="field"><label>Maximum reps</label><input type="number" name="max" min="1" max="99" value="${ex.max}" required></div><div class="field"><label>Rest minimum (sec)</label><input type="number" name="restMin" min="15" max="300" value="${pair.restMin}" required></div></div><div class="row" style="flex-wrap:wrap"><button class="btn outline" type="submit">Save changes</button><button class="btn outline" type="button" data-action="move-exercise" data-day="${esc(id)}" data-pair="${pi}" data-ex="${ei}">Move to next block</button><button class="btn text" type="button" data-action="remove-exercise" data-day="${esc(id)}" data-pair="${pi}" data-ex="${ei}">Remove</button></div></form>`).join('')}`,'section')).join('')}
+      ${state.planHistory?.length?card(`<h3>Previous versions</h3><p class="subhead">Restore the last configuration if you change your mind.</p>${btn('Restore previous plan version','restore-plan','outline full')}`,'section'):''}
+      ${card(`<h3>Exercise library</h3><p class="subhead">Add a new movement as a solo block, or replace, move or remove an existing movement below.</p><form id="addExerciseForm" class="stack mt12"><input type="hidden" name="day" value="${esc(id)}"><div class="field"><label>Choose exercise</label><select name="exId">${movementLibrary().map(x=>`<option value="${esc(x.id)}">${esc(x.name)} — ${esc(x.muscle)}</option>`).join('')}</select></div><button type="submit" class="btn primary full">Add movement</button></form><p class="fineprint">Each save preserves the previous configuration in plan history for recovery.</p>${btn('Browse complete training plans','library','outline full')}`,'section')}`;
+  }
+  function libraryScreen(){const library=window.REPRIVAL_PLAN_LIBRARY;
+    return `<div class="eyebrow">WORKOUT LIBRARY</div><h1 class="page-title">Choose your focus.</h1><p class="lead">Six equipment-compatible programmes, including your original Pump Plan. Preview before switching.</p>
+      ${Object.entries(library.details).map(([id,d])=>card(`<div class="row"><div><h3>${esc(d.title)}</h3><span class="tiny muted">${esc(d.focus)}</span></div>${selectedPlan===id?'<span class="label-tag">ACTIVE</span>':''}</div><p class="subhead mt12">${esc(d.description)}</p><p class="fineprint">${esc(d.duration)} · ${esc(d.days)}</p><details class="mt12"><summary>View workouts</summary>${Object.entries(library.templates[id]).map(([day,w])=>`<div class="session-row"><div><strong>${esc(w.name||'Workout '+day)}</strong><small>${w.pairs.flatMap(p=>p.exercises).map(x=>x.name+' ('+x.sets+'×'+x.min+'–'+x.max+')').join(' · ')}</small></div></div>`).join('')}</details><div class="mt16">${selectedPlan===id?'<span class="subhead">Your current plan</span>':`<button class="btn primary full" data-action="activate-plan" data-id="${esc(id)}">Activate this plan</button>`}</div>`,'section')).join('')}`;
   }
 
+  function activateScreen(){const item=window.REPRIVAL_PLAN_LIBRARY.details[pendingPlan];if(!item){page='library';return libraryScreen();}const suggested=Number(String(item.days).match(/\d+/)?.[0])||3;return `<div class="eyebrow">START A NEW PLAN</div><h1 class="page-title">${esc(item.title)}</h1><p class="lead">Choose when your 7-day training week begins. Your previous workouts remain saved.</p>${card(`<form id="activatePlanForm" class="stack"><div class="field"><label>Plan start date</label><input type="date" name="start" value="${todayLocal()}" required></div><div class="field"><label>Weekly workout target</label><input type="number" name="goal" min="1" max="7" value="${suggested}" required></div><p class="fineprint">For example, a Saturday start means Saturday–Friday training weeks. Your history from earlier plans is preserved.</p><button class="btn primary full" type="submit">Activate plan →</button>${btn('Cancel','library','outline full')}</form>`,'section')}`;}
   function render(){
     let body='';
-    if(page==='home')body=home();
+    if(page==='setup')body=setupScreen();
+    else if(page==='unlock')body=unlockScreen();
+    else if(page==='admin')body=adminScreen();
+    else if(page==='account')body=accountScreen();
+    else if(page==='designer')body=designerScreen();
+    else if(page==='library')body=libraryScreen();
+    else if(page==='activate')body=activateScreen();
+    else if(page==='metrics')body=metricsScreen();
+    else if(page==='home')body=home();
     else if(page==='workout')body=workout();
     else if(page==='progress')body=progress();
     else if(page==='plan')body=plan();
@@ -466,15 +610,111 @@
     save();render();showToast('Imported 18 individual sets from V5');
   }
   function exportBackup(){
-    const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');a.href=url;a.download='reprival-backup-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
+    save();
+    const blob=new Blob([JSON.stringify(manager,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download='reprival-all-profiles-backup-'+new Date().toISOString().slice(0,10)+'.json';
+    document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
+  }
+  function demoProfiles(){
+    const archetypes=[['Alex','Rapid beginner',.74,.045],['Sam','Steady',.9,.023],['Jordan','Plateau',1.25,.003],['Charlie','Endurance',.8,.037],['Taylor','Inconsistent',.85,.008],['Morgan','Experienced',1.35,.012],['Jamie','Returning',.95,.03],['Casey','Upper-body focus',1.1,.02],['Riley','Consistent',1,.036],['Drew','Variable',1.05,.014]];
+    const today=new Date();let made=0;
+    archetypes.forEach(([username,kind,mult,progress],i)=>{
+      const id='demo-'+username.toLowerCase();if(manager.profiles[id])return;
+      const data=defaults();data.history=[];data.next='A';
+      const body={unit:i%3===0?'st':'kg',heightUnit:'cm',waistUnit:'cm',dob:`${1985+i%12}-03-12`,sex:i%2?'female':'male',height:165+i%14*2,measurements:[]};
+      for(let week=0;week<4;week++){
+        const dt=new Date(today);dt.setDate(dt.getDate()-(27-week*7));body.measurements.push({date:dateOnly(dt.toISOString()),kg:+(74+i*1.9-week*(i%4===0?0.15:0.05)).toFixed(2)});
+        for(let day=0;day<3;day++){
+          if(username==='Taylor'&&week===1&&day===1)continue;
+          const when=new Date(dt);when.setDate(when.getDate()+day*2);
+          const code=['A','B','C'][day],plan=PLAN[code],logs=[];
+          plan.pairs.forEach(pair=>pair.exercises.forEach(ex=>{
+            for(let round=1;round<=ex.sets;round++){
+              const w=ex.load==='bodyweight'?0:Math.max(2,Math.round((10+ex.min*.45+i*2.1)*mult*(1+week*progress)*2)/2);
+              const reps=Math.max(4,Math.min(ex.max,ex.min+1+Math.floor(week*progress*18)+(round===1?1:0)+(username==='Drew'?(week%2?1:-1):0)));
+              logs.push({exId:ex.id,name:ex.name,muscle:ex.muscle,weight:w,reps,rir:Math.max(0,Math.min(4,3-Math.floor(week/2))),load:ex.load,pair:pair.id,round,loggedAt:when.toISOString()});
+            }
+          }));
+          data.history.push({id:id+'-'+week+'-'+day,demo:true,session:code,startedAt:when.toISOString(),endedAt:when.toISOString(),logs,feeling:'normal',recovery:48,prs:[]});
+        }
+      }
+      data.next='A';manager.profiles[id]={username:username+' · Demo',pin:'1234',role:'athlete',demo:true,kind,training:data,body,planId:'pump',plans:{pump:structuredClone(PLAN)},selectedMovements:['A:low_incline_db_press','B:flat_db_bench_press']};made++;
+    });
+    save();return made;
+  }
+  function activatePlan(id,schedule){
+    const lib=window.REPRIVAL_PLAN_LIBRARY;
+    if(!lib.templates[id])return;
+    if(state.active){showToast('Save or finish the current session before changing plans.');return;}
+    if(!confirm(`Activate ${lib.details[id].title}? Your previous completed sessions and personal bests will remain saved.`))return;
+    profile().plans[id]=profile().plans[id]||structuredClone(lib.templates[id]);
+    profile().planId=id;selectedPlan=id;SESSION_ORDER=Object.keys(profile().plans[id]);state.next=SESSION_ORDER[0];profile().planTracking={planId:id,start:schedule.start,weeklyGoal:schedule.weeklyGoal};
+    state.settings.planVersion=(state.settings.planVersion||0)+1;
+    save();page='plan';render();showToast('Training plan activated');
   }
   document.addEventListener('click',e=>{
     const link=e.target.closest('[data-page]');
-    if(link){page=link.dataset.page;render();return;}
+    if(link){if(link.dataset.page==='workout'){startWorkout();}else{page=link.dataset.page;render();}return;}
     const el=e.target.closest('[data-action]');if(!el)return;
     const action=el.dataset.action;
+    if(['designer','library','metrics'].includes(action)){page=action;render();return;}
+    if(action==='weigh-in'){page='metrics';render();return;}
+    if(action==='cancel-switch'){manager.pending=null;page=profile().role==='admin'?'admin':'account';render();return;}
+    if(action==='switch-profile'){if(el.dataset.id===activeProfile)return;manager.pending=el.dataset.id;page='unlock';render();return;}
+    if(action==='switch-list'){page=profile().role==='admin'?'admin':'account';render();return;}
+    if(['move-exercise','remove-exercise'].includes(action)){
+      if(!canEditPlan())return;
+      const day=el.dataset.day,pi=+el.dataset.pair,ei=+el.dataset.ex;
+      const plan=profile().plans[selectedPlan]?.[day];if(!plan?.pairs?.[pi]?.exercises?.[ei])return;
+      const pair=plan.pairs[pi],ex=pair.exercises[ei];
+      if(action==='remove-exercise'&&!confirm(`Remove ${ex.name} from future workouts? Historical sets will remain saved.`))return;
+      if(action==='move-exercise'&&plan.pairs.length<=1){showToast('Add another block first');return;}
+      planSnapshot();pair.exercises.splice(ei,1);
+      if(action==='move-exercise'){
+        const next=pi+1<plan.pairs.length?pi+1:Math.max(0,pi-1);
+        plan.pairs[next].exercises.push(ex);
+      }
+      plan.pairs=plan.pairs.filter(x=>x.exercises.length);
+      if(!plan.pairs.length){planSnapshot();plan.pairs.push({id:'block-'+Date.now(),restMin:75,restMax:105,exercises:[structuredClone(movementLibrary()[0])]});}
+      updatePlan();showToast(action==='remove-exercise'?'Movement removed':'Movement moved');return;
+    }
+    if(action==='restore-plan'){
+      if(!canEditPlan())return;
+      const versions=state.planHistory||[],ix=versions.map(x=>x.planId).lastIndexOf(selectedPlan);
+      if(ix<0)return;
+      if(!confirm('Restore the previous version of this plan? Completed workouts stay unchanged.'))return;
+      const version=versions.splice(ix,1)[0];const prior=structuredClone(profile().plans[selectedPlan]);
+      profile().plans[selectedPlan]=version.rotation;state.settings.planVersion=(state.settings.planVersion||0)+1;
+      versions.push({savedAt:new Date().toISOString(),planId:selectedPlan,version:state.settings.planVersion,rotation:prior});
+      save();render();showToast('Previous plan restored');return;
+    }
+    if(action==='select-edit-day'){state.settings.editDay=el.dataset.id;save();render();return;}
+    if(action==='activate-plan'){pendingPlan=el.dataset.id;page='activate';render();return;}
+    if(action==='toggle-movement'){
+      const id=el.dataset.id,arr=profile().selectedMovements;
+      profile().selectedMovements=arr.includes(id)?arr.filter(x=>x!==id):[...arr,id];save();render();return;
+    }
+    if(action==='toggle-edit'&&state.active){
+      const idx=+el.dataset.index,g=+el.dataset.group;
+      state.active.drafts=state.active.drafts||{};const d=state.active.drafts[g]||{};
+      d[`edit-${idx}`]=!d[`edit-${idx}`];state.active.drafts[g]=d;save();render();return;
+    }
+    if(action==='generate-demo'){
+      if(!confirm('Add 10 fictional demo-only athlete profiles? All demo PINs will be 1234. Existing profiles will be kept.'))return;
+      const n=demoProfiles();render();showToast(n?`${n} demo athletes added · PIN 1234`:'Demo athletes already exist');return;
+    }
+    if(action==='reset-pin'){
+      const id=el.dataset.id,u=manager.profiles[id];if(!u)return;
+      const pin=prompt('Enter a NEW 4-digit PIN for '+u.username);if(pin==null)return;
+      if(!/^\d{4}$/.test(pin)){showToast('PIN must be exactly 4 digits');return;}
+      u.pin=pin;save();render();showToast('PIN updated');return;
+    }
+    if(action==='remove-profile'){
+      const id=el.dataset.id,u=manager.profiles[id];if(!u||id===activeProfile||id==='admin')return;
+      if(!confirm(`Permanently delete ${u.username} and their local workouts? Export a backup first.`))return;
+      delete manager.profiles[id];save();render();showToast('Profile removed');return;
+    }
     if(action==='home'||action==='progress'){page=action;render();}
     if(action==='start')startWorkout();
     if(action==='begin')startWorkout();
@@ -489,7 +729,7 @@
     if(action==='review-session'){const id=el.dataset.id; if(id){state.lastSummary=id; page='summary'; render();}}
     if(action==='export')exportBackup();
     if(action==='import-v5')importV5Baseline();
-    if(action==='clear'&&confirm('Clear all locally saved RepRival workouts and settings? This cannot be undone unless you have exported a backup.')){localStorage.removeItem(STORAGE_KEY);state=defaults();page='home';render();}
+    if(action==='clear'){showToast('Export your backup before clearing data in browser settings.');}
   });
   document.addEventListener('input',e=>{
     if(e.target.form?.id==='roundForm'&&state.active){
@@ -500,16 +740,74 @@
     }
   });
   document.addEventListener('submit',e=>{
+    const id=e.target.id;
+    if(id==='setupForm'){
+      e.preventDefault();const f=new FormData(e.target),username=String(f.get('username')).trim(),pin=String(f.get('pin'));
+      if(username.length<2||!/^\d{4}$/.test(pin)||pin!==f.get('confirm')){showToast('Check username and matching four-digit PINs');return;}
+      profile().username=username;profile().pin=pin;profile().body=readBodyForm(f,profile().body,true);manager.setupPending=false;save();page='home';render();return;
+    }
+    if(id==='planTimingForm'){
+      e.preventDefault();const f=new FormData(e.target),start=String(f.get('start')),goal=Number(f.get('goal'));if(!/^\d{4}-\d\d-\d\d$/.test(start)||goal<1||goal>7)return;profile().planTracking={planId:selectedPlan,start,weeklyGoal:goal};save();render();showToast('Training week updated');return;
+    }
+    if(id==='activatePlanForm'){
+      e.preventDefault();const f=new FormData(e.target),start=String(f.get('start')),goal=Number(f.get('goal'));if(!/^\d{4}-\d\d-\d\d$/.test(start)||goal<1||goal>7||!pendingPlan)return;
+      activatePlan(pendingPlan,{start,weeklyGoal:goal});pendingPlan=null;return;
+    }
+    if(id==='unlockForm'){
+      e.preventDefault();const target=manager.pending,valid=manager.profiles[target];
+      if(!valid||String(new FormData(e.target).get('pin'))!==valid.pin){showToast('Incorrect PIN');return;}
+      manager.pending=null;switchTo(target);return;
+    }
+    if(id==='createProfileForm'){
+      e.preventDefault();if(profile().role!=='admin')return;
+      const f=new FormData(e.target),username=String(f.get('username')).trim(),pin=String(f.get('pin'));
+      if(profileNames().some(k=>manager.profiles[k].username.toLowerCase()===username.toLowerCase())){showToast('Username is already in use');return;}
+      if(!/^\d{4}$/.test(pin)||username.length<2){showToast('Use a username and 4-digit PIN');return;}
+      const pid=newProfileId();manager.profiles[pid]={username,pin,role:'athlete',training:defaults(),planId:'pump',plans:{pump:structuredClone(PLAN)},selectedMovements:[],body:readBodyForm(f,{unit:'kg',heightUnit:'cm',waistUnit:'cm',measurements:[]},true)};
+      save();render();showToast('Athlete created');return;
+    }
+    if(id==='metricsForm'){
+      e.preventDefault();const f=new FormData(e.target);profile().body=readBodyForm(f,profile().body,false);save();render();showToast('Measurements saved');return;
+    }
+    if(id==='weighInForm'){
+      e.preventDefault();const f=new FormData(e.target),b=profile().body,value=b.unit==='st'?(Number(f.get('stone'))+Number(f.get('pounds'))/14):Number(f.get('weight')),date=String(f.get('date'));
+      if(!value||value<=0||!/^\d{4}-\d\d-\d\d$/.test(date)){showToast('Enter weight and a valid date');return;}
+      const kg=weightKg(value,b.unit||'kg');b.measurements=b.measurements||[];
+      b.measurements=b.measurements.filter(x=>x.date!==date);b.measurements.push({date,kg,waistCm:f.get('waist')?Number(f.get('waist'))*(b.waistUnit==='in'?2.54:1):null,bodyFat:f.get('bodyFat')?Number(f.get('bodyFat')):null});b.measurements.sort((a,b)=>a.date.localeCompare(b.date));save();render();showToast('Weigh-in saved');return;
+    }
+    if(id==='addExerciseForm'){
+      e.preventDefault();if(!canEditPlan())return;
+      const f=new FormData(e.target),day=String(f.get('day')),ex=movementLibrary().find(x=>x.id===f.get('exId'));
+      if(!ex||!profile().plans[selectedPlan][day])return;
+      planSnapshot();const plan=profile().plans[selectedPlan][day];
+      plan.pairs.push({id:'block-'+Date.now().toString(36),restMin:75,restMax:105,exercises:[structuredClone(ex)]});
+      updatePlan();showToast('Movement added');return;
+    }
+    if(id==='workoutNameForm'){
+      e.preventDefault();const day=state.settings.editDay||SESSION_ORDER[0],val=String(new FormData(e.target).get('name')).trim();
+      if(!val)return;if(!canEditPlan())return;planSnapshot();profile().plans[selectedPlan][day].name=val;state.settings.planVersion=(state.settings.planVersion||0)+1;save();render();return;
+    }
+    if(e.target.classList.contains('editExerciseForm')){
+      e.preventDefault();const form=e.target,day=form.dataset.day,pi=+form.dataset.pair,ei=+form.dataset.ex;
+      const plan=profile().plans[selectedPlan][day],pair=plan?.pairs[pi],ex=pair?.exercises[ei];if(!ex)return;
+      if(state.active){showToast('Finish or discard your current session before editing the plan');return;}
+      const f=new FormData(form),sets=+f.get('sets'),min=+f.get('min'),max=+f.get('max'),rest=+f.get('restMin');
+      if(!(sets>=1&&sets<=10&&min>=1&&max>=min&&max<=99&&rest>=15&&rest<=300)){showToast('Check sets, rep range and rest');return;}
+      const choice=String(f.get('replaceId'));
+      const template=movementLibrary().find(x=>x.id===choice);
+      if(!template){showToast('Choose a valid movement');return;}
+      planSnapshot();
+      if(choice!==ex.id){pair.exercises[ei]={...structuredClone(template),sets,min,max};}
+      else {ex.sets=sets;ex.min=min;ex.max=max;}
+      pair.restMin=rest;pair.restMax=Math.max(pair.restMax,rest);
+      updatePlan();showToast('Future workouts updated');return;
+    }
     if(e.target.id==='roundForm'){e.preventDefault();submitSet(e.target);}
     if(e.target.id==='feedbackForm'){e.preventDefault();const f=new FormData(e.target);completeWorkout(f.get('feel')||'normal');}
-    if(e.target.id==='settingsForm'){
-      e.preventDefault();const f=new FormData(e.target);
-      state.settings.goal=Object.hasOwn(CHOICES,f.get('goal'))?f.get('goal'):'muscle';
-      state.settings.spotlight=MUSCLES.includes(f.get('spotlight'))?f.get('spotlight'):'Chest';
-      state.settings.running=!!f.get('running');save();render();showToast('Preferences saved');
-    }
   });
   document.addEventListener('change',async e=>{
+    if(e.target.matches('[data-unit]')){const form=e.target.closest('form');if(form)syncBodyFields(form,e.target.dataset.unit);return;}
+    if(e.target.id==='volumeFilter'){state.settings.volumeFilter=e.target.value;save();render();return;}
     if(e.target.id==='movementSelect'){
       state.settings.focusMovement=e.target.value;save();render();return;
     }
@@ -517,9 +815,15 @@
     const file=e.target.files?.[0];if(!file)return;
     try{
       const data=JSON.parse(await file.text());
-      if(!Array.isArray(data.history)||typeof data.settings!=='object'||data.version!==1)throw Error('Not a RepRival backup');
-      if(!confirm('Replace all your locally saved data with this backup?'))return;
-      localStorage.setItem(STORAGE_KEY,JSON.stringify(data));state=loadState();page='home';render();showToast('Backup imported');
+      if(data.version===12&&data.profiles&&Object.keys(data.profiles).length){
+        if(!confirm('Replace ALL local RepRival profiles with this backup? Export your current data first.'))return;
+        localStorage.setItem(PROFILE_KEY,JSON.stringify(data));manager=data;activeProfile=data.last in data.profiles?data.last:Object.keys(data.profiles)[0];ensureTraining();page='home';render();showToast('Profiles restored');return;
+      }
+      if(data.version===1&&Array.isArray(data.history)&&data.settings){
+        if(!confirm('Import this old workout backup into your CURRENT profile, replacing that profile’s sessions?'))return;
+        profile().training=data;state=data;save();page='home';render();showToast('Old workout backup imported');return;
+      }
+      throw Error('Unrecognised backup');
     } catch(err){showToast('Could not import that backup.');}
   });
   function tick(){
@@ -537,5 +841,5 @@
   }
   render();
   // Small surface for local smoke tests. No production backend or data transfer.
-  window.RepRivalTest={getState:()=>structuredClone(state),buildTasks,score,calcRest,version:'0.3',comparableSessions,muscleChange};
+  window.RepRivalTest={getState:()=>structuredClone(state),buildTasks,score,calcRest,version:'1.3',comparableSessions,muscleChange};
 })();

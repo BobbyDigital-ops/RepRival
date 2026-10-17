@@ -10,3 +10,52 @@
 @media(max-width:590px){.shell{padding:16px 14px calc(119px + env(safe-area-inset-bottom))}.topbar{padding-bottom:24px}.brand{font-size:29px}.version-chip{font-size:9px}.card{padding:17px;border-radius:18px}.two-stat{gap:8px}.metric{padding:14px}.score-number{font-size:35px}.movement-entry{padding:16px}.movement-tile{padding:13px}.tabnav{bottom:7px}.tabnav button{min-width:59px;padding:6px 8px}.timer{font-size:75px}.three-stat{gap:6px}.three-stat .metric{padding:10px}.three-stat .metric strong{font-size:23px}}
 @media(max-width:350px){.form-grid{gap:7px}.field input{padding:9px;font-size:17px}.rir-options{gap:3px}.rir-options span{min-height:36px}.tabnav button{min-width:53px}.version-chip{max-width:120px}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* RepRival 1.2: focused controls, selected trends and dashboard */
+.recommendation-box {background:#eff4f7;border:1px solid #d7e0e6;padding:17px;border-radius:14px;margin-top:13px}
+.recommendation-box h2 {font-size:1.8rem;margin:8px 0 4px;font-family:Georgia,serif;letter-spacing:-.035em;color:#173043}
+.recommendation-box .eyebrow {font-size:.67rem}
+.hidden-edit {display:none!important}
+.movement-picker {display:grid;grid-template-columns:1fr;gap:7px;max-height:340px;overflow:auto;padding-right:2px}
+.movement-option {background:#fff;border:1px solid #d9e0e6;border-radius:10px;padding:11px 13px;display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;color:#203340;font-size:.9rem;cursor:pointer}
+.movement-option strong {width:26px;height:26px;display:grid;place-items:center;background:#edf2f5;border-radius:7px;font-size:1.15rem}
+.movement-option.picked {border-color:#8ea4b0;background:#eef4f7}
+.trend-card {border-top:1px solid #dce4e9;padding:20px 0;margin-top:16px}
+.trend-card .movement-detail-summary{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.trend-card .movement-detail-summary strong {font-size:.85rem;overflow-wrap:anywhere}
+@media(max-width:390px){.trend-card .movement-detail-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:650px){.movement-picker {grid-template-columns:1fr 1fr}}
+.tabnav button {min-width:0;padding-inline:3px}
+.tabnav button .ico {font-size:1.23rem}
+
+/* RepRival 1.3 — condensed workout and actionable analytics */
+[hidden]{display:none!important}
+.body-fields{display:flex;flex-direction:column;gap:12px}
+.week-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.week-day{min-width:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;border:1px solid #e3e8e8;border-radius:10px;background:#f5f7f6;padding:6px 1px;font-size:11px;color:#667d88;min-height:55px}
+.week-day b{font-size:13px;color:#253942}.week-day.trained{background:#e2eff1;border-color:#9fb8c0;color:#30596b}.week-day.trained b{color:#17455b}
+.rating-explain{border-top:2px solid #d6e5e9;padding-top:4px}.rating-explain h3{font-size:17px}
+.compact-workout{display:flex;flex-direction:column;gap:7px;max-width:660px;margin:0 auto}
+.compact-workout .page-title.compact{margin:3px 0 0;font-size:32px}
+.compact-workout .progress-row{margin:5px 0 7px}
+.workout-top-actions{margin:0 0 9px}.workout-menu{position:relative}.workout-menu summary{list-style:none;cursor:pointer;font-weight:700;color:#547082;font-size:12px;padding:6px}.workout-menu summary::-webkit-details-marker{display:none}.workout-menu .menu-items{position:absolute;right:0;top:100%;z-index:30;width:210px;padding:10px;background:#fff;border:1px solid #d7e1e2;border-radius:14px;box-shadow:0 15px 32px #26384025}.workout-menu .btn{margin-bottom:6px}
+.round-form{display:flex;flex-direction:column;gap:9px}
+.movement-entry.mini-exercise{box-shadow:0 6px 20px #26384008;border-radius:18px;padding:13px 15px 14px}
+.mini-head{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:76px}
+.mini-title{min-width:0;flex:1}.mini-title h2{font:500 clamp(18px,4vw,22px)/1.2 Georgia,serif;letter-spacing:-.4px;margin:4px 0}
+.mini-title p{font-size:11px;line-height:1.35;margin:0}
+.exercise-cue{flex:0 0 92px;width:92px;height:74px;opacity:.92;background:#f4f8f8;border-radius:11px;padding:5px}
+.mini-target{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;background:#edf4f8;border:1px solid #d8e3e9;border-radius:12px;margin-top:7px}
+.mini-target>div{min-width:0;display:flex;flex-direction:column;gap:1px}.mini-target strong{font:600 clamp(21px,5vw,27px)/1.24 Georgia,serif;color:#1d4660;letter-spacing:-.5px;overflow-wrap:anywhere}
+.mini-target .quiet-link{flex-shrink:0;min-height:34px}
+.mini-previous{margin-top:6px;padding:7px 11px;border:1px solid #ece8de;border-radius:10px;background:#f7f6f0;font-size:11px;color:#51666f}
+.compact-edit{margin-top:8px}
+.compact-edit input{min-height:44px;font-size:16px}
+.mini-exercise .rir-row{margin-top:10px}.mini-exercise .rir-row>span{margin-bottom:6px;font-size:11px}
+.mini-exercise .rir-options span{min-height:39px;font-size:12px}
+.up-next{display:flex;align-items:center;justify-content:space-between;gap:14px;background:#f2f6f8;border:1px solid #dae4e9;border-radius:15px;padding:10px 14px}
+.up-next>div:first-child{display:flex;flex-direction:column;gap:1px;min-width:0}
+.up-next strong{font-size:14px;color:#243b47}.up-next span:not(.eyebrow){font-size:11px;color:#647a83}
+.next-rest{flex-shrink:0;display:flex;flex-direction:column;font-size:10px;color:#72818a}.next-rest strong{font-size:13px}
+.round-log-button{min-height:52px;border-radius:13px;box-shadow:0 6px 16px #21343e14}
+@media(max-width:590px){.compact-workout{gap:4px}.topbar:has(+ .compact-workout){padding-bottom:13px}.compact-workout .movement-entry.mini-exercise{padding:11px 12px 12px}.mini-head{min-height:58px}.exercise-cue{width:76px;height:63px;flex-basis:76px}.mini-exercise .rir-options span{min-height:39px}.up-next{padding:9px 12px}.round-log-button{position:sticky;bottom:calc(12px + env(safe-area-inset-bottom));z-index:15}.shell:has(.compact-workout){padding-bottom:calc(32px + env(safe-area-inset-bottom))}.shell:has(.compact-workout) .topbar{padding-bottom:16px}}
+@media(max-width:350px){.exercise-cue{width:62px;height:55px;flex-basis:62px}.mini-title h2{font-size:17px}.mini-target strong{font-size:20px}.mini-previous{font-size:10px}.mini-exercise .rir-options{gap:3px}}
