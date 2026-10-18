@@ -161,3 +161,38 @@
 @media(max-width:360px){.tabnav button{font-size:9px;padding:6px 1px}.tabnav button .ico{font-size:17px}.league-stats>div{padding:10px 6px}.league-stats span{font-size:9px}}
 
 .league-expand>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:19px}.league-expand>summary::-webkit-details-marker{display:none}.league-expand>summary strong{display:block;font-weight:750}.league-expand>summary small{display:block;font-size:11px;color:#829095;margin-top:3px}.league-expand>summary>span:last-child{color:#647b86;font-size:23px}.league-expand[open]>summary>span:last-child{transform:rotate(180deg)}
+/* v1.5.0 — quiet, mobile-first preparation and equipment browsing */
+.preworkout-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:18px}
+.preworkout-metrics>div{background:#f1f5f5;border-radius:13px;padding:14px 5px;text-align:center;min-width:0}
+.preworkout-metrics strong{display:block;font:600 25px/1.2 Georgia,serif;color:#28434c}
+.preworkout-metrics span{display:block;margin-top:4px;color:#78878d;font-size:11px}
+.preworkout-rotation{border-top:1px solid var(--edge);padding-top:14px}
+.preworkout-rotation>strong,.preworkout-rotation>span{display:block}
+.preworkout-rotation>strong{font-size:13px}.preworkout-rotation>span{font-size:12px;color:var(--sub);margin-top:3px}
+.session-choices{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap}
+.session-choices button{border:1px solid #d7e0e0;background:#f6f8f8;border-radius:12px;min-width:42px;min-height:38px;padding:6px 13px;font-weight:700;color:#4c6773}
+.session-choices button.chosen{background:#29454d;border-color:#29454d;color:white}
+.preworkout-active{margin-top:15px;background:#edf4f3;border:1px solid #dbe8e6;border-radius:12px;padding:12px;color:#436b64;font-size:13px}
+.preworkout-block{border-top:1px solid var(--edge);padding:15px 0 6px}
+.preworkout-block:first-of-type{margin-top:12px}
+.preworkout-block-header{display:flex;gap:10px;justify-content:space-between;align-items:center;font-size:10px;color:#809098;letter-spacing:1.1px;font-weight:750}
+.preworkout-block-header span:last-child{font-size:11px;letter-spacing:0;font-weight:500}
+.preworkout-ex{display:flex;justify-content:space-between;gap:12px;align-items:start;margin-top:12px}
+.preworkout-ex strong,.preworkout-ex small{display:block}
+.preworkout-ex strong{font-size:13px;color:#2b3b42}.preworkout-ex small{font-size:11px;color:#76858b;margin-top:3px}
+.preworkout-sets{font-size:11px;white-space:nowrap;color:#5b7279;background:#f3f6f6;border-radius:20px;padding:5px 8px}
+.preworkout-actions{margin-top:20px}
+.equipment-group{min-width:0;padding:13px 14px 9px;border-radius:15px;border:1px solid #dce5e5}
+.equipment-group legend{font-size:11px;font-weight:750;letter-spacing:.65px;color:#607780;padding:0 8px}
+.equipment-choice{display:flex;gap:11px;align-items:center;min-height:37px;font-size:13px;color:#31464e;padding:6px 0}
+.equipment-choice+.equipment-choice{border-top:1px solid #f0f2f2}
+.equipment-choice input{width:18px;height:18px;accent-color:#2a505a;flex-shrink:0}
+.programme-day{display:flex;flex-direction:column;gap:5px;padding:12px 0;border-bottom:1px solid var(--edge)}
+.programme-day strong{font-size:13px;color:#334a54}.programme-day span{font-size:11px;color:#75858c;line-height:1.45}
+.exercise-result{display:flex;gap:10px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--edge);padding:13px 0}
+.exercise-result-main{min-width:0;flex:1}.exercise-result-main strong,.exercise-result-main small,.exercise-result-main span{display:block}
+.exercise-result-main strong{font-size:13px;color:#344c55}.exercise-result-main small{font-size:11px;color:#667982;margin-top:4px}
+.exercise-result-main span{font-size:10px;color:#96a2a5;margin-top:4px;line-height:1.4}
+.exercise-result .btn{flex-shrink:0;font-size:11px;padding:9px 13px;min-width:58px}
+.exercise-result .btn:disabled{opacity:.35;cursor:not-allowed}
+@media(max-width:420px){.preworkout-metrics strong{font-size:23px}.preworkout-metrics span{font-size:10px}}

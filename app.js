@@ -4,7 +4,7 @@
   const STORAGE_KEY = 'repquest-prototype-v01'; // Read-only legacy fallback
   const PROFILE_KEY='reprival-athletes-v12'; // Existing profile storage format preserved
   let SESSION_ORDER = ['A', 'B', 'C'];
-  const MUSCLES = ['Chest','Back','Biceps','Triceps','Side delts','Rear delts','Quads','Hamstrings','Core'];
+  const MUSCLES = ['Chest','Back','Biceps','Triceps','Side delts','Rear delts','Quads','Hamstrings','Glutes','Calves','Core'];
   const CHOICES = {
     fitness:'Feel fitter & look more toned',
     muscle:'Build muscle',
@@ -25,6 +25,7 @@
   let selectedPlan='pump';
   let manager=null;
   let pendingPlan=null;
+  let catalogueFilter={muscle:'All',kit:'owned',search:''};
   let activeProfile=null;
   let clock = null;
   let toastUntil = null;
@@ -70,6 +71,7 @@
     if(!state.settings)state.settings=defaults().settings;
     if(!profile().body)profile().body={unit:'kg',heightUnit:'cm',waistUnit:'cm',measurements:[]};
     if(!profile().selectedMovements)profile().selectedMovements=[];
+    if(!Array.isArray(profile().equipment))profile().equipment=(activeProfile==='admin'&&!profile().demo)?[...window.REPRIVAL_EXERCISE_LIBRARY.ownerDefault]:[];
     if(!profile().planId)profile().planId='pump';
     if(!profile().plans)profile().plans={pump:structuredClone(PLAN)};
     selectedPlan=profile().planId;
@@ -265,11 +267,11 @@
   function miniProgress(n,done){return `<div class="progress-row">${Array.from({length:n},(_,i)=>`<span class="${i<done?'done':i===done?'current':''}"></span>`).join('')}</div>`;}
   function dateText(iso){return new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
   function shortPeriod(start,end){const a=new Date(start+'T12:00:00'),b=new Date(end+'T12:00:00');const month=d=>d.toLocaleDateString('en-GB',{month:'short'});if(a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth())return `${a.getDate()}–${b.getDate()} ${month(b)} ${b.getFullYear()}`;return `${a.getDate()} ${month(a)} – ${b.getDate()} ${month(b)} ${b.getFullYear()}`;}
-  function title(){return `<header class="topbar"><span class="brand">RepRival</span><span class="version-chip">LEAGUE SANDBOX · 1.4.9</span></header>`;}
+  function title(){return `<header class="topbar"><span class="brand">RepRival</span><span class="version-chip">LEAGUE SANDBOX · 1.5.0</span></header>`;}
 
   function bottomNav(){
     const links=[['home','⌂','Home'],['workout','◫','Workout'],['leagues','♜','Leagues'],['progress','▥','Progress'],['plan','⚙','My plan'],[profile().role==='admin'?'admin':'account','♙',profile().role==='admin'?'Admin':'Account']];
-    return `<nav class="tabnav" aria-label="Main navigation">${links.map(([id,ico,label])=>`<button type="button" class="${page===id?'active':''}" data-page="${id}" aria-label="${label}"><span class="ico">${ico}</span>${label}</button>`).join('')}</nav>`;
+    return `<nav class="tabnav" aria-label="Main navigation">${links.map(([id,ico,label])=>`<button type="button" class="${(page===id||(id==='workout'&&page==='workout-intro'))?'active':''}" data-page="${id}" aria-label="${label}"><span class="ico">${ico}</span>${label}</button>`).join('')}</nav>`;
   }
 
 
@@ -453,7 +455,6 @@
         <div class="plan-next-row"><span class="next-indicator">${a?'IN PROGRESS':'NEXT'}</span><strong>${esc(planFor(session).name||('Workout '+session))}</strong><span class="next-arrow" aria-hidden="true">→</span></div>
         ${recoveryIndicator()}
       </section>
-      <button class="league-home-link section" type="button" data-page="leagues"><span><strong>Movement leagues</strong><small>10,000 simulated rivals · 24h promotion</small></span><span aria-hidden="true">↗</span></button>
       <div class="section two-stat overview-stats"><div class="metric athlete"><div class="eyebrow">ATHLETE RATING</div><div class="score-number">${rating.value==null?'Calibrating':fmt(leagueRating.adjusted)}</div><div class="stat-detail">${rating.value==null?`${SESSION_ORDER.length-missing.length} of ${SESSION_ORDER.length} initial workouts`:leagueRating.status==='active'?`Based on ${rating.compared} repeat-tested movements`:'Inactivity adjustment · train to restore'}</div></div><div class="metric"><div class="eyebrow">THIS TRAINING WEEK</div><div class="score-number">${c.done} / ${c.goal}</div><div class="stat-detail">${c.percentage}% consistency · ${shortPeriod(c.since,c.through)}</div></div></div>
       ${card(`<div class="row"><h3>Muscle performance</h3><span class="label-tag">All groups</span></div>${musclePanel(false)}`,'section')}
       ${card(`<div class="row"><h3>Body weight</h3>${btn('Weigh in +','weigh-in','outline')}</div><div class="row mt12"><h2 class="weight-current">${ws.length?displayWeight(ws.at(-1).kg):'No weigh-ins yet'}</h2><span class="label-tag ${weigh.due?'weight-due':''}">${esc(weightInfo)}</span></div>${days.length>1?`<div class="compact-weight-chart">${drawChart(days)}</div>`:'<p class="subhead">Your weight trend appears after two weigh-ins.</p>'}<p class="fineprint">${weigh.enabled?`Scheduled: ${weighSchedule().days.map(i=>WEEKDAYS[i]).join(', ')} · `:''}Edit your reminder days in Body metrics. The chart uses ${weightUnitLabel()}.</p>`,'section')}
@@ -462,6 +463,21 @@
       ${!state.history.length?card(`<h3>Bring in your first session</h3><p class="subhead">Import your 17 October Workout A baseline as 18 individual sets.</p>${btn('Import V5 baseline','import-v5','outline full')}`,'section'):''}`;
   }
 
+
+  function workoutLanding(){
+    const a=state.active,day=a?.session||state.next,session=planFor(day),pairs=session.pairs||[];
+    const exercises=pairs.flatMap(p=>p.exercises),sets=exercises.reduce((n,e)=>n+e.sets,0);
+    const estimate=Math.max(20,Math.ceil((sets*1.6+pairs.length*1.5)/5)*5);
+    const completed=a?.logs?.filter(Boolean).length||0;
+    const groups=pairs.map((p,i)=>`<div class="preworkout-block"><div class="preworkout-block-header"><span>${p.exercises.length>1?'SUPERSET':'BLOCK'} ${i+1}</span><span>${p.restMin}–${p.restMax}s rest</span></div>${p.exercises.map(ex=>`<div class="preworkout-ex"><div><strong>${esc(ex.name)}</strong><small>${esc(ex.muscle)} · ${esc(ex.min)}–${esc(ex.max)} ${esc(ex.unit||'reps')} ${esc(ex.suffix||'')}</small></div><span class="preworkout-sets">${ex.sets} sets</span></div>`).join('')}</div>`).join('');
+    return `<div class="eyebrow">${a?'SAVED SESSION':'UPCOMING WORKOUT'} · ${esc(window.REPRIVAL_PLAN_LIBRARY.details[selectedPlan]?.title||'YOUR PLAN')}</div><h1 class="page-title">${esc(session.name||'Workout '+day)}.</h1>
+      <p class="lead">${a?'Pick up exactly where you left off. No workout is restarted or lost.':'Review the session before starting. The workout clock and logging begin only when you press Begin.'}</p>
+      ${card(`<div class="preworkout-metrics"><div><strong>${exercises.length}</strong><span>Movements</span></div><div><strong>${sets}</strong><span>Working sets</span></div><div><strong>~${estimate}m</strong><span>Estimated time</span></div></div>
+        ${a?`<div class="preworkout-active">${completed} of ${buildTasks(day).length} working sets recorded · safe to resume</div>`:`<div class="preworkout-rotation"><strong>Session ${esc(day)}</strong><span>Choose another workout if you prefer</span><div class="session-choices">${SESSION_ORDER.map(id=>`<button type="button" class="${id===day?'chosen':''}" data-action="choose-session" data-id="${esc(id)}">${esc(id)}</button>`).join('')}</div></div>`}`,
+        'section')}
+      ${card(`<div class="row"><h3>Session breakdown</h3><span class="label-tag">${pairs.length} blocks</span></div>${groups}`,'section')}
+      <div class="preworkout-actions"><button class="btn primary full" type="button" data-action="begin">${a?'Resume workout':'Begin workout'} →</button></div>`;
+  }
 
   function startWorkout(){
     if(!state.active){
@@ -536,10 +552,10 @@
       ${miniProgress(Math.max(1,group.task.rounds),group.task.round-1)}
       <form id="roundForm" class="round-form">${group.items.map((t,i)=>{const ex=t.ex,idx=t.index,prev=previousMatchingSet(ex.id,t.round),rec=recommend(ex,prev),logged=a.logs[idx],weight=draft[`weight-${idx}`]??(logged?.weight??rec.weight),reps=draft[`reps-${idx}`]??(logged?.reps??rec.reps),rir=draft[`rir-${idx}`]??(logged?.rir??''),editing=!!draft[`edit-${idx}`]||!!logged;
         const value=ex.load==='bodyweight'?'BW':weight===''?'Choose weight':fmt(weight)+' kg';
-        return `<section class="movement-entry mini-exercise"><div class="mini-head"><div class="mini-title"><span class="eyebrow">${isSolo?'MOVEMENT':(i+1)+' OF '+group.items.length} · SET ${t.round}/${ex.sets}</span><h2>${esc(ex.name)}</h2><p class="tiny muted">${esc(ex.muscle)} · ${ex.min}–${ex.max} reps</p></div>${`<div class="cue-stack">${movementCue(ex)}${personalBests(ex.id)?.best?`<span class="mini-pb">🏆 Best ${esc(scoreLabel(personalBests(ex.id).best))}</span>`:"<span class=\"mini-pb empty-pb\">Setting baseline</span>"}</div>`}</div>
+        return `<section class="movement-entry mini-exercise"><div class="mini-head"><div class="mini-title"><span class="eyebrow">${isSolo?'MOVEMENT':(i+1)+' OF '+group.items.length} · SET ${t.round}/${ex.sets}</span><h2>${esc(ex.name)}</h2><p class="tiny muted">${esc(ex.muscle)} · ${ex.min}–${ex.max} ${esc(ex.unit||'reps')}</p></div>${`<div class="cue-stack">${movementCue(ex)}${personalBests(ex.id)?.best?`<span class="mini-pb">🏆 Best ${esc(scoreLabel(personalBests(ex.id).best))}</span>`:"<span class=\"mini-pb empty-pb\">Setting baseline</span>"}</div>`}</div>
         <div class="mini-target"><div><span class="eyebrow">RECOMMENDED</span><strong>${value} × ${esc(reps)}</strong></div><button type="button" class="quiet-link" data-action="toggle-edit" data-index="${idx}" data-group="${group.start}">${editing?'Done':'✎ Edit'}</button></div>
         <div class="mini-previous">${prev?'Previous set '+t.round+': '+esc(scoreLabel(prev))+' · '+(prev.rir??'—')+' RIR':'First benchmark · choose a weight using Edit'}</div>
-        <div class="form-grid compact-edit ${editing?'':'hidden-edit'}" data-edit-fields="${idx}"><div class="field"><label>Actual weight (kg)</label><input name="weight-${idx}" type="number" inputmode="decimal" min="0" step="0.5" value="${esc(weight)}" ${ex.load==='bodyweight'?'disabled':''}></div><div class="field"><label>Actual reps</label><input name="reps-${idx}" type="number" inputmode="numeric" min="1" max="99" value="${esc(reps)}" required></div></div>
+        <div class="form-grid compact-edit ${editing?'':'hidden-edit'}" data-edit-fields="${idx}"><div class="field"><label>Actual weight (kg)</label><input name="weight-${idx}" type="number" inputmode="decimal" min="0" step="0.5" value="${esc(weight)}" ${ex.load==='bodyweight'?'disabled':''}></div><div class="field"><label>Actual ${esc(ex.unit||'reps')}</label><input name="reps-${idx}" type="number" inputmode="numeric" min="1" max="99" value="${esc(reps)}" required></div></div>
         <div class="rir-row"><span>Reps you had left (RIR)</span><div class="rir-options">${[0,1,2,3,4,5].map(n=>`<label><input type="radio" name="rir-${idx}" value="${n}" ${String(rir)===String(n)?'checked':''} required><span>${n===5?'5+':n}</span></label>`).join('')}</div></div></section>`;
       }).join('')}<div class="up-next"><div><span class="eyebrow">UP NEXT</span><strong>${next.items.length?next.task.pair.id===pair.id?'Round '+next.task.round+' of '+next.task.rounds:next.items.map(t=>t.ex.name).join(' + '):'Finish workout'}</strong><span>${next.items.length?next.task.pair.id===pair.id?'Same exercises':'Prepare next movement(s)':'Review and save your session'}</span></div><div class="next-rest">${next.items.length?`Rest<strong>${pair.restMin}–${pair.restMax}s</strong>`:''}</div></div>
       <button class="btn primary full round-log-button" type="submit">${group.items.some(t=>a.logs[t.index])?'Update':'Log'} ${isSolo?'set':'superset round'} →</button></form>
@@ -712,7 +728,7 @@
   function plan(){
     const current=window.REPRIVAL_PLAN_LIBRARY.details[selectedPlan]||window.REPRIVAL_PLAN_LIBRARY.details.pump;
     return `<div class="eyebrow">TRAINING PROGRAMME</div><h1 class="page-title">My plan.</h1><p class="lead">Edit your workouts or switch focus without losing historical training.</p>
-      ${card(`<div class="row"><h3>${esc(current.title)}</h3><span class="label-tag">ACTIVE</span></div><p class="subhead mt12">${esc(current.focus)} · ${esc(current.duration)} · ${esc(current.days)}</p><div class="stack mt16">${btn('Edit workouts','designer','primary full')}${btn('Browse training plans','library','outline full')}</div>`,'section')}
+      ${card(`<div class="row"><h3>${esc(current.title)}</h3><span class="label-tag">ACTIVE</span></div><p class="subhead mt12">${esc(current.focus)} · ${esc(current.duration)} · ${esc(current.days)}</p><div class="stack mt16">${btn('Edit workouts','designer','primary full')}${btn('Browse training plans','library','outline full')}${btn('Your equipment','equipment','outline full')}${btn('Explore 146 movements','exercises','outline full')}</div>`,'section')}
       ${card(`<h3>Current rotation</h3>${SESSION_ORDER.map(id=>`<div class="session-row"><div><strong>${esc(planFor(id).name||'Workout '+id)}</strong><small>${planFor(id).pairs.length} blocks · ${buildTasks(id).length} working sets</small></div><span class="label-tag">${state.next===id?'Next':'Scheduled'}</span></div>`).join('')}`,'section')}
       ${card(`<h3>Plan start & consistency target</h3><p class="subhead">The seven-day training week begins on your plan start date, not necessarily Monday.</p><form class="stack mt12" id="planTimingForm"><div class="form-grid"><div class="field"><label>Plan start date</label><input type="date" name="start" required value="${esc(tracking().start)}"></div><div class="field"><label>Workouts per 7 days</label><input type="number" name="goal" min="1" max="7" value="${tracking().weeklyGoal}" required></div></div><button class="btn outline full" type="submit">Update training schedule</button></form>`,'section')}
       ${card(`<h3>Recovery countdown</h3><p class="subhead">A planning guide counted from the end of your most recent completed workout, not a measurement of muscle readiness. The automatic setting uses 48 hours after most sessions, or 72 hours when you mark one as tiring.</p><form id="recoverySettingsForm" class="stack mt12"><div class="field"><label>Recovery window</label><select name="recoveryHours"><option value="auto" ${![24,36,48,72].includes(Number(profile().recoveryHours))?'selected':''}>Automatic (48h / 72h if tired)</option>${[24,36,48,72].map(h=>`<option value="${h}" ${Number(profile().recoveryHours)===h?'selected':''}>${h} hours</option>`).join('')}</select></div><button class="btn outline full" type="submit">Save recovery preference</button></form>`,'section')}
@@ -739,9 +755,27 @@
     ${weighScheduleSection()}
     ${card(`<h3>Weigh-in history</h3>${w.length?[...w].reverse().slice(0,30).map(x=>`<div class="session-row"><strong>${esc(x.date)}</strong><strong>${displayWeight(x.kg)}</strong></div>`).join(''):'<p class="subhead">No weigh-ins yet.</p>'}`,'section')}`;}
   function movementLibrary(){
-    const x=new Map();
-    Object.values(window.REPRIVAL_PLAN_LIBRARY.templates).forEach(p=>Object.values(p).forEach(w=>w.pairs.forEach(pair=>pair.exercises.forEach(e=>x.set(e.id,structuredClone(e))))));
-    return [...x.values()].sort((a,b)=>a.name.localeCompare(b.name));
+    const lib=window.REPRIVAL_EXERCISE_LIBRARY,owned=profile().equipment||[],by=new Map();
+    lib.entries.filter(e=>lib.compatible(e,owned)).forEach(e=>by.set(e.id,structuredClone(e)));
+    Object.values(profile().plans||{}).forEach(p=>Object.values(p).forEach(w=>w.pairs.forEach(pair=>pair.exercises.forEach(e=>{if(!by.has(e.id))by.set(e.id,structuredClone(e));}))));
+    return [...by.values()].sort((a,b)=>a.name.localeCompare(b.name));
+  }
+  function gearName(id){return window.REPRIVAL_EXERCISE_LIBRARY.gear[id]?.name||id;}
+  function equipmentScreen(){
+    const lib=window.REPRIVAL_EXERCISE_LIBRARY,owned=profile().equipment||[];
+    const groups=[...new Set(Object.values(lib.gear).map(x=>x.group))];
+    return `<div class="eyebrow">YOUR TRAINING SETUP</div><h1 class="page-title">Your equipment.</h1><p class="lead">Choose what you can actually use. Plans and the exercise catalogue will adapt to your kit; past sessions and your current plan are never automatically rewritten.</p>
+      ${card(`<div class="row"><h3>Available at your location</h3><span class="label-tag">${owned.length} selected</span></div><form id="equipmentForm" class="stack mt12">${groups.map(group=>`<fieldset class="equipment-group"><legend>${esc(group)}</legend>${Object.entries(lib.gear).filter(([,g])=>g.group===group).map(([id,g])=>`<label class="equipment-choice"><input type="checkbox" name="equipment" value="${esc(id)}" ${owned.includes(id)?'checked':''}><span>${esc(g.name)}</span></label>`).join('')}</fieldset>`).join('')}<button class="btn primary full" type="submit">Save my equipment</button></form><p class="fineprint">Bodyweight-only movements are always available. Your original profile is pre-filled with your known equipment; the low-row station is inferred from your current workouts, so untick it if that setup isn't available. Selection is private to this profile.</p>`,'section')}
+      ${card(`<h3>What becomes available?</h3><p class="subhead">With this kit, ${lib.entries.filter(e=>lib.compatible(e,owned)).length} of ${lib.entries.length} exercises can be used and ${Object.keys(window.REPRIVAL_PLAN_LIBRARY.details).filter(id=>window.REPRIVAL_PLAN_LIBRARY.build(id,owned).compatible).length} plan templates are compatible.</p><div class="stack mt12">${btn('Explore available movements','exercises','outline full')}${btn('Browse compatible programmes','library','outline full')}</div>`,'section')}`;
+  }
+  function exerciseBrowser(){
+    const lib=window.REPRIVAL_EXERCISE_LIBRARY,owned=profile().equipment||[],f=catalogueFilter;
+    const muscles=['All',...new Set(lib.entries.map(e=>e.muscle))];
+    const matches=lib.entries.filter(e=>(f.muscle==='All'||e.muscle===f.muscle)&&(f.kit!=='owned'||lib.compatible(e,owned))&&(!f.search||(e.name+' '+e.muscle+' '+e.details).toLowerCase().includes(f.search.toLowerCase())));
+    const day=state.settings.editDay&&SESSION_ORDER.includes(state.settings.editDay)?state.settings.editDay:state.next;
+    return `<div class="eyebrow">MOVEMENT EXPLORER</div><h1 class="page-title">Find your next exercise.</h1><p class="lead">${lib.entries.length} curated exercises and variations. Find movements that match your equipment, then add them to a future workout.</p>
+      ${card(`<div class="row"><h3>Filter movements</h3>${btn('Edit equipment','equipment','outline')}</div><div class="form-grid mt12"><div class="field"><label>Muscle group</label><select id="exerciseMuscle">${muscles.map(m=>`<option ${m===f.muscle?'selected':''} value="${esc(m)}">${esc(m)}</option>`).join('')}</select></div><div class="field"><label>Equipment</label><select id="exerciseKit"><option value="owned" ${f.kit==='owned'?'selected':''}>My equipment</option><option value="all" ${f.kit==='all'?'selected':''}>All equipment</option></select></div></div><div class="field mt12"><label>Search by name or movement</label><input id="exerciseSearch" type="search" placeholder="e.g. split squat, curl, row" value="${esc(f.search)}"></div><div class="field mt12"><label>Add new exercises to</label><select id="exerciseDay">${SESSION_ORDER.map(id=>`<option value="${esc(id)}" ${id===day?'selected':''}>${esc(planFor(id).name||'Workout '+id)}</option>`).join('')}</select></div><p class="fineprint">${matches.length} matching exercises · the current programme is not changed until you press Add.</p>`,'section')}
+      ${card(`<div class="row"><h3>Exercises</h3><span class="label-tag">${matches.length}</span></div>${matches.length?matches.map(e=>{const ok=lib.compatible(e,owned),req=e.equipment.map(gearName).join(' + ')||'Bodyweight';return `<div class="exercise-result"><div class="exercise-result-main"><strong>${esc(e.name)}</strong><small>${esc(e.muscle)} · ${esc(e.sets)} × ${esc(e.min)}–${esc(e.max)} ${esc(e.suffix)}</small><span>${esc(req)}${!ok?' · NOT OWNED':''}</span></div><button class="btn outline" data-action="catalogue-add" data-id="${esc(e.id)}" ${(!ok||state.active)?'disabled':''}>Add +</button></div>`;}).join(''):'<p class="subhead mt12">No movement matches those filters. Try All equipment or clear your search.</p>'}${state.active?'<p class="fineprint">Finish or discard the active workout before editing future sessions.</p>':''}`,'section')}`;
   }
   function planSnapshot(){
     state.planHistory=state.planHistory||[];
@@ -757,12 +791,17 @@
       ${state.planHistory?.length?card(`<h3>Previous versions</h3><p class="subhead">Restore the last configuration if you change your mind.</p>${btn('Restore previous plan version','restore-plan','outline full')}`,'section'):''}
       ${card(`<h3>Exercise library</h3><p class="subhead">Add a new movement as a solo block, or replace, move or remove an existing movement below.</p><form id="addExerciseForm" class="stack mt12"><input type="hidden" name="day" value="${esc(id)}"><div class="field"><label>Choose exercise</label><select name="exId">${movementLibrary().map(x=>`<option value="${esc(x.id)}">${esc(x.name)} — ${esc(x.muscle)}</option>`).join('')}</select></div><button type="submit" class="btn primary full">Add movement</button></form><p class="fineprint">Each save preserves the previous configuration in plan history for recovery.</p>${btn('Browse complete training plans','library','outline full')}`,'section')}`;
   }
-  function libraryScreen(){const library=window.REPRIVAL_PLAN_LIBRARY;
-    return `<div class="eyebrow">WORKOUT LIBRARY</div><h1 class="page-title">Choose your focus.</h1><p class="lead">Six equipment-compatible programmes, including your original Pump Plan. Preview before switching.</p>
-      ${Object.entries(library.details).map(([id,d])=>card(`<div class="row"><div><h3>${esc(d.title)}</h3><span class="tiny muted">${esc(d.focus)}</span></div>${selectedPlan===id?'<span class="label-tag">ACTIVE</span>':''}</div><p class="subhead mt12">${esc(d.description)}</p><p class="fineprint">${esc(d.duration)} · ${esc(d.days)}</p><details class="mt12"><summary>View workouts</summary>${Object.entries(library.templates[id]).map(([day,w])=>`<div class="session-row"><div><strong>${esc(w.name||'Workout '+day)}</strong><small>${w.pairs.flatMap(p=>p.exercises).map(x=>x.name+' ('+x.sets+'×'+x.min+'–'+x.max+')').join(' · ')}</small></div></div>`).join('')}</details><div class="mt16">${selectedPlan===id?'<span class="subhead">Your current plan</span>':`<button class="btn primary full" data-action="activate-plan" data-id="${esc(id)}">Activate this plan</button>`}</div>`,'section')).join('')}`;
+  function libraryScreen(){
+    const library=window.REPRIVAL_PLAN_LIBRARY,owned=profile().equipment||[];
+    const list=Object.entries(library.details).map(([id,d])=>({id,d,build:library.build(id,owned)}));
+    const available=list.filter(x=>x.build.compatible),locked=list.filter(x=>!x.build.compatible);
+    const makeCard=({id,d,build})=>card(`<div class="row"><div><div class="eyebrow">${esc(d.split)}</div><h3 class="mt8">${esc(d.title)}</h3></div>${selectedPlan===id?'<span class="label-tag">ACTIVE</span>':build.compatible?'<span class="label-tag">AVAILABLE</span>':'<span class="label-tag">NEEDS KIT</span>'}</div><p class="subhead mt12">${esc(d.description)}</p><p class="fineprint">${esc(d.duration)} · ${esc(d.days)} · ${Object.keys(build.days).length} workouts</p>${!build.compatible?`<p class="fineprint"><strong>Missing:</strong> ${esc(build.missing.map(gearName).join(', '))} · <a href="#" data-action="equipment">Update your equipment</a></p>`:''}
+      <details class="mt12"><summary>View exercises & workout structure</summary>${Object.values(build.days).map(w=>`<div class="programme-day"><strong>${esc(w.name)}</strong>${w.pairs.flatMap(p=>p.exercises).map(e=>`<span>${esc(e.name)} · ${e.sets}×${e.min}–${e.max}</span>`).join('')}</div>`).join('')}</details><div class="mt16">${selectedPlan===id?'<span class="subhead">Your current plan</span>':`<button class="btn ${build.compatible?'primary':'outline'} full" data-action="activate-plan" data-id="${esc(id)}" ${(!build.compatible||state.active)?'disabled':''}>${build.compatible?'Choose this programme':'Equipment needed'}</button>`}</div>`,'section');
+    return `<div class="eyebrow">WORKOUT LIBRARY</div><h1 class="page-title">Programmes for your kit.</h1><p class="lead">${list.length} distinct programme templates, including push/pull/legs, upper/lower and a five-day bro split. Each workout has its own exercise selection.</p>
+      ${card(`<div class="row"><h3>Based on your equipment</h3><span class="label-tag">${available.length} available</span></div><p class="subhead">Equipment is saved per athlete. Adding a new piece of kit unlocks more exercises and programmes.</p><div class="stack mt12">${btn('Change my equipment','equipment','outline full')}${btn('Browse all 146 movements','exercises','outline full')}</div>`,'section')}
+      ${available.map(makeCard).join('')}${locked.length?`<div class="eyebrow section">MORE PROGRAMMES · NEED ADDITIONAL KIT</div>${locked.map(makeCard).join('')}`:''}`;
   }
-
-  function activateScreen(){const item=window.REPRIVAL_PLAN_LIBRARY.details[pendingPlan];if(!item){page='library';return libraryScreen();}const suggested=Number(String(item.days).match(/\d+/)?.[0])||3;return `<div class="eyebrow">START A NEW PLAN</div><h1 class="page-title">${esc(item.title)}</h1><p class="lead">Choose when your 7-day training week begins. Your previous workouts remain saved.</p>${card(`<form id="activatePlanForm" class="stack"><div class="field"><label>Plan start date</label><input type="date" name="start" value="${todayLocal()}" required></div><div class="field"><label>Weekly workout target</label><input type="number" name="goal" min="1" max="7" value="${suggested}" required></div><p class="fineprint">For example, a Saturday start means Saturday–Friday training weeks. Your history from earlier plans is preserved.</p><button class="btn primary full" type="submit">Activate plan →</button>${btn('Cancel','library','outline full')}</form>`,'section')}`;}
+  function activateScreen(){const item=window.REPRIVAL_PLAN_LIBRARY.details[pendingPlan];if(!item){page='library';return libraryScreen();}const suggested=item.weekly||3;return `<div class="eyebrow">START A NEW PLAN</div><h1 class="page-title">${esc(item.title)}</h1><p class="lead">Choose when your 7-day training week begins. Your previous workouts remain saved.</p>${card(`<form id="activatePlanForm" class="stack"><div class="field"><label>Plan start date</label><input type="date" name="start" value="${todayLocal()}" required></div><div class="field"><label>Weekly workout target</label><input type="number" name="goal" min="1" max="7" value="${suggested}" required></div><p class="fineprint">For example, a Saturday start means Saturday–Friday training weeks. Your history from earlier plans is preserved.</p><button class="btn primary full" type="submit">Activate plan →</button>${btn('Cancel','library','outline full')}</form>`,'section')}`;}
   function render(){
     let body='';
     if(page==='setup')body=setupScreen();
@@ -771,9 +810,12 @@
     else if(page==='account')body=accountScreen();
     else if(page==='designer')body=designerScreen();
     else if(page==='library')body=libraryScreen();
+    else if(page==='equipment')body=equipmentScreen();
+    else if(page==='exercises')body=exerciseBrowser();
     else if(page==='activate')body=activateScreen();
     else if(page==='metrics')body=metricsScreen();
     else if(page==='home')body=home();
+    else if(page==='workout-intro')body=workoutLanding();
     else if(page==='workout')body=workout();
     else if(page==='progress')body=progress();
     else if(page==='leagues')body=leaguesScreen();
@@ -878,16 +920,18 @@
           data.history.push({id:id+'-'+week+'-'+day,demo:true,session:code,startedAt:when.toISOString(),endedAt:when.toISOString(),logs,feeling:'normal',recovery:48,prs:[]});
         }
       }
-      data.next='A';manager.profiles[id]={username:username+' · Demo',pin:'1234',role:'athlete',demo:true,kind,training:data,body,planId:'pump',plans:{pump:structuredClone(PLAN)},selectedMovements:['A:low_incline_db_press','B:flat_db_bench_press']};made++;
+      data.next='A';manager.profiles[id]={username:username+' · Demo',pin:'1234',role:'athlete',demo:true,kind,training:data,body,planId:'pump',plans:{pump:structuredClone(PLAN)},selectedMovements:['A:low_incline_db_press','B:flat_db_bench_press'],equipment:[...window.REPRIVAL_EXERCISE_LIBRARY.ownerDefault]};made++;
     });
     save();return made;
   }
   function activatePlan(id,schedule){
     const lib=window.REPRIVAL_PLAN_LIBRARY;
-    if(!lib.templates[id])return;
+    if(!lib.details[id])return;
     if(state.active){showToast('Save or finish the current session before changing plans.');return;}
+    const generated=lib.build(id,profile().equipment||[]);
+    if(!generated.compatible){showToast('Choose the required equipment before activating this plan.');return;}
     if(!confirm(`Activate ${lib.details[id].title}? Your previous completed sessions and personal bests will remain saved.`))return;
-    profile().plans[id]=profile().plans[id]||structuredClone(lib.templates[id]);
+    profile().plans[id]=profile().plans[id]||structuredClone(generated.days);
     profile().planId=id;selectedPlan=id;SESSION_ORDER=Object.keys(profile().plans[id]);state.next=SESSION_ORDER[0];profile().planTracking={planId:id,start:schedule.start,weeklyGoal:schedule.weeklyGoal};
     state.settings.planVersion=(state.settings.planVersion||0)+1;
     save();page='plan';render();showToast('Training plan activated');
@@ -897,11 +941,18 @@
     const nav=e.target.closest('[data-nav]');
     if(nav){page=nav.dataset.nav;render();return;}
     const link=e.target.closest('[data-page]');
-    if(link){if(link.dataset.page==='workout'){startWorkout();}else{page=link.dataset.page;render();}return;}
+    if(link){page=link.dataset.page==='workout'?'workout-intro':link.dataset.page;render();return;}
     const el=e.target.closest('[data-action]');if(!el)return;
     const action=el.dataset.action;
-    if(['designer','library','metrics'].includes(action)){page=action;render();return;}
-    if(action==='league-to-workout'){startWorkout();return;}
+    if(['designer','library','metrics','equipment','exercises'].includes(action)){page=action;render();return;}
+    if(action==='league-to-workout'){page='workout-intro';render();return;}
+    if(action==='catalogue-add'){
+      if(!canEditPlan())return;const lib=window.REPRIVAL_EXERCISE_LIBRARY,ex=lib.byId[el.dataset.id],owned=profile().equipment||[];
+      const day=state.settings.editDay&&SESSION_ORDER.includes(state.settings.editDay)?state.settings.editDay:state.next;
+      if(!lib.compatible(ex,owned)||!profile().plans[selectedPlan]?.[day]){showToast('This movement needs equipment you have not selected.');return;}
+      planSnapshot();profile().plans[selectedPlan][day].pairs.push({id:'block-'+Date.now().toString(36),restMin:75,restMax:105,exercises:[structuredClone(ex)]});
+      updatePlan();page='exercises';render();showToast('Added to '+planFor(day).name);return;
+    }
     if(action==='league-focus'){leagueStore().focus=el.dataset.id;save();page='leagues';render();return;}
     if(action==='weigh-in'){page='metrics';render();return;}
     if(action==='view-art'){
@@ -946,6 +997,7 @@
       versions.push({savedAt:new Date().toISOString(),planId:selectedPlan,version:state.settings.planVersion,rotation:prior});
       save();render();showToast('Previous plan restored');return;
     }
+    if(action==='choose-session'&&!state.active&&SESSION_ORDER.includes(el.dataset.id)){state.next=el.dataset.id;save();render();return;}
     if(action==='select-edit-day'){state.settings.editDay=el.dataset.id;save();render();return;}
     if(action==='activate-plan'){pendingPlan=el.dataset.id;page='activate';render();return;}
     if(action==='toggle-movement'){
@@ -973,7 +1025,7 @@
       delete manager.profiles[id];save();render();showToast('Profile removed');return;
     }
     if(action==='home'||action==='progress'){page=action;render();}
-    if(action==='start')startWorkout();
+    if(action==='start'){page='workout-intro';render();}
     if(action==='begin')startWorkout();
     if(action==='rest-skip')restSkip();
     if(action==='back-set'||action==='back-round')backSet();
@@ -991,6 +1043,7 @@
     if(action==='clear'){showToast('Export your backup before clearing data in browser settings.');}
   });
   document.addEventListener('input',e=>{
+    if(e.target.id==='exerciseSearch'){catalogueFilter.search=e.target.value;const start=e.target.selectionStart;render();const field=document.querySelector('#exerciseSearch');if(field){field.focus();if(start!=null)field.setSelectionRange(start,start);}return;}
     if(e.target.form?.id==='roundForm'&&state.active){
       const group=fullRound(buildTasks(state.active.session),state.active.taskIndex);
       state.active.drafts=state.active.drafts||{};
@@ -1019,6 +1072,10 @@
       if(username.length<2||!/^\d{4}$/.test(pin)||pin!==f.get('confirm')){showToast('Check username and matching four-digit PINs');return;}
       profile().username=username;profile().pin=pin;profile().body=readBodyForm(f,profile().body,true);manager.setupPending=false;save();page='home';render();return;
     }
+    if(id==='equipmentForm'){
+      e.preventDefault();const lib=window.REPRIVAL_EXERCISE_LIBRARY,items=[...new Set(new FormData(e.target).getAll('equipment').map(String))];
+      profile().equipment=items.filter(id=>lib.gear[id]);save();render();showToast('Your equipment has been saved');return;
+    }
     if(id==='recoverySettingsForm'){
       e.preventDefault();const val=String(new FormData(e.target).get('recoveryHours'));
       if(!['auto','24','36','48','72'].includes(val))return;
@@ -1042,7 +1099,7 @@
       const f=new FormData(e.target),username=String(f.get('username')).trim(),pin=String(f.get('pin'));
       if(profileNames().some(k=>manager.profiles[k].username.toLowerCase()===username.toLowerCase())){showToast('Username is already in use');return;}
       if(!/^\d{4}$/.test(pin)||username.length<2){showToast('Use a username and 4-digit PIN');return;}
-      const pid=newProfileId();manager.profiles[pid]={username,pin,role:'athlete',training:defaults(),planId:'pump',plans:{pump:structuredClone(PLAN)},selectedMovements:[],body:readBodyForm(f,{unit:'kg',heightUnit:'cm',waistUnit:'cm',measurements:[]},true)};
+      const pid=newProfileId();manager.profiles[pid]={username,pin,role:'athlete',training:defaults(),planId:'pump',plans:{pump:structuredClone(PLAN)},selectedMovements:[],equipment:[],body:readBodyForm(f,{unit:'kg',heightUnit:'cm',waistUnit:'cm',measurements:[]},true)};
       save();render();showToast('Athlete created');return;
     }
     if(id==='metricsForm'){
@@ -1091,6 +1148,9 @@
   });
   document.addEventListener('change',async e=>{
     if(e.target.matches('[data-unit]')){const form=e.target.closest('form');if(form)syncBodyFields(form,e.target.dataset.unit);return;}
+    if(e.target.id==='exerciseMuscle'){catalogueFilter.muscle=e.target.value;render();return;}
+    if(e.target.id==='exerciseKit'){catalogueFilter.kit=e.target.value;render();return;}
+    if(e.target.id==='exerciseDay'){state.settings.editDay=e.target.value;save();render();return;}
     if(e.target.id==='leagueMovement'){leagueStore().focus=e.target.value;save();render();return;}
     if(e.target.id==='leagueArea'){leagueStore().area=e.target.value;save();render();return;}
     if(e.target.id==='journeyPeriod'||e.target.id==='journeyWorkout'){state.settings[e.target.id]=e.target.value;save();render();return;}
