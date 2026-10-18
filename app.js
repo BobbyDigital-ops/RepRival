@@ -2,7 +2,7 @@
 (function () {
   const PLAN = window.REPQUEST_PROGRAM;
   const STORAGE_KEY = 'repquest-prototype-v01'; // Read-only legacy fallback
-  const PROFILE_KEY='reprival-athletes-v12';
+  const PROFILE_KEY='reprival-athletes-v12'; // Existing profile storage format preserved
   let SESSION_ORDER = ['A', 'B', 'C'];
   const MUSCLES = ['Chest','Back','Biceps','Triceps','Side delts','Rear delts','Quads','Hamstrings','Core'];
   const CHOICES = {
@@ -265,11 +265,99 @@
   function miniProgress(n,done){return `<div class="progress-row">${Array.from({length:n},(_,i)=>`<span class="${i<done?'done':i===done?'current':''}"></span>`).join('')}</div>`;}
   function dateText(iso){return new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
   function shortPeriod(start,end){const a=new Date(start+'T12:00:00'),b=new Date(end+'T12:00:00');const month=d=>d.toLocaleDateString('en-GB',{month:'short'});if(a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth())return `${a.getDate()}–${b.getDate()} ${month(b)} ${b.getFullYear()}`;return `${a.getDate()} ${month(a)} – ${b.getDate()} ${month(b)} ${b.getFullYear()}`;}
-  function title(){return `<header class="topbar"><span class="brand">RepRival</span><span class="version-chip">PERSONAL PREVIEW · 1.4.7</span></header>`;}
+  function title(){return `<header class="topbar"><span class="brand">RepRival</span><span class="version-chip">LEAGUE SANDBOX · 1.4.9</span></header>`;}
 
   function bottomNav(){
-    const links=[['home','⌂','Home'],['workout','◫','Workout'],['progress','▥','Progress'],['plan','⚙','My plan'],[profile().role==='admin'?'admin':'account','♙',profile().role==='admin'?'Admin':'Account']];
+    const links=[['home','⌂','Home'],['workout','◫','Workout'],['leagues','♜','Leagues'],['progress','▥','Progress'],['plan','⚙','My plan'],[profile().role==='admin'?'admin':'account','♙',profile().role==='admin'?'Admin':'Account']];
     return `<nav class="tabnav" aria-label="Main navigation">${links.map(([id,ico,label])=>`<button type="button" class="${page===id?'active':''}" data-page="${id}" aria-label="${label}"><span class="ico">${ico}</span>${label}</button>`).join('')}</nav>`;
+  }
+
+
+  // LEAGUE SANDBOX: independent movement ladders, generated on demand.
+  // Competition metadata is stored inside the current local athlete profile;
+  // the existing workouts and legacy profile key are not modified.
+  const LEAGUES=window.RepRivalLeagues;
+  function leagueStore(){
+    const athlete=profile();
+    if(!athlete.leagueSim||athlete.leagueSim.version!==1)athlete.leagueSim={version:1,area:'United Kingdom',records:{},focus:null};
+    return athlete.leagueSim;
+  }
+  function leagueWorkoutTime(){
+    const now=Date.now();
+    const dates=state.history.map(s=>Date.parse(s.endedAt||s.startedAt||'')).filter(n=>Number.isFinite(n)&&n<=now);
+    return dates.length?Math.max(...dates):null;
+  }
+  function leagueInactivity(){
+    const last=leagueWorkoutTime(),days=last==null?Infinity:Math.max(0,(Date.now()-last)/86400000);
+    const base=athleteIndex().value;
+    return {last,days,status:last==null?'new':days>=30?'inactive':days>=14?'decaying':'active',base,adjusted:base==null?null:Math.round(base*Math.pow(.99,Math.max(0,days-14))*10)/10};
+  }
+  function leagueMovementOptions(){
+    const seen=new Map();
+    for(const ex of allMovements())if(ex.id&&!seen.has(ex.id))seen.set(ex.id,ex);
+    return [...seen.values()];
+  }
+  function leagueBest(exId){return bestByExercise(allLogs())[exId]||null;}
+  function syncLeagues(){
+    const st=leagueStore(),now=Date.now(),latest=leagueWorkoutTime(),rating=athleteIndex().value;
+    const movements=leagueMovementOptions(),out=[],area=LEAGUES.LOCATIONS[st.area]?st.area:'United Kingdom';
+    let changed=false,justPromoted=[];
+    for(const ex of movements){
+      const best=leagueBest(ex.id);
+      if(!best){out.push({ex,best:null,league:null});continue;}
+      const previous=st.records[ex.id];
+      const result=LEAGUES.update(previous,ex.id,score(best),rating,activeProfile,now,area,latest);
+      if(!previous||result.changed){st.records[ex.id]=result.entry;changed=true;}
+      if(result.promoted)justPromoted.push(ex.name);
+      out.push({ex,best,league:result});
+    }
+    if(!st.focus||!movements.some(x=>x.id===st.focus)){
+      st.focus=out.find(x=>x.best)?.ex.id||movements[0]?.id||null;changed=true;
+    }
+    if(changed)save();
+    return {items:out,focus:st.focus,area,inactivity:leagueInactivity(),promoted:justPromoted};
+  }
+  function leagueTime(ms){
+    const minutes=Math.max(0,Math.ceil(ms/60000)),h=Math.floor(minutes/60),m=minutes%60;
+    return h?`${h}h ${String(m).padStart(2,'0')}m`:`${m}m`;
+  }
+  function leaguesScreen(){
+    const data=syncLeagues(),st=leagueStore();
+    const qualified=data.items.filter(x=>x.best),paused=data.inactivity.status==='inactive';
+    const selected=data.items.find(x=>x.ex.id===data.focus)||qualified[0]||data.items[0];
+    const status=data.inactivity.status==='new'?'Ready to compete':paused?'Competition paused':data.inactivity.status==='decaying'?'Rating decreasing':'Active competitor';
+    const rating=data.inactivity.adjusted;
+    const areaOptions=Object.keys(LEAGUES.LOCATIONS).map(area=>`<option value="${esc(area)}" ${data.area===area?'selected':''}>${esc(area)}</option>`).join('');
+    const statusText=data.inactivity.status==='new'?'Complete your first workout to establish benchmarks and join movement leagues.':paused?'Your active league places have been released. Complete a new workout to re-enter; your records and previous best divisions are preserved.':data.inactivity.status==='decaying'?'Your Athlete Rating is slowly decreasing after 14 days without a completed workout. Promotions resume when you train again.':'Keep training to improve your position. Hold first place continuously for 24 hours to earn promotion.';
+    const section=`<div class="eyebrow">SIMULATED COMPETITION · LOCAL PREVIEW</div><div class="row league-headline"><h1 class="page-title">Movement leagues.</h1><span class="label-tag">SIMULATION</span></div>
+      <p class="lead">A world of ${LEAGUES.POPULATION.toLocaleString('en-GB')} fictional athletes. Every exercise has its own ladder, and your real sets determine your rank. Nobody else can see these standings.</p>
+      ${card(`<div class="row"><div><div class="eyebrow">ATHLETE STATUS</div><h3 class="mt8">${status}</h3></div><div class="league-rating">${rating==null?'—':fmt(rating)}<small>ATHLETE RATING</small></div></div><p class="subhead">${statusText}</p>
+      <div class="league-stats"><div><strong>${qualified.length}</strong><span>Ranked movements</span></div><div><strong>${qualified.filter(x=>x.league?.status==='active'&&x.league.standings.rank===1).length}</strong><span>Currently leading</span></div><div><strong>${qualified.filter(x=>x.league?.entry?.promotions).reduce((a,x)=>a+x.league.entry.promotions,0)}</strong><span>Total promotions</span></div></div>
+      <p class="fineprint">${data.inactivity.status==='new'?'Your first logged set starts your competition.':paused?'Return with a saved workout to rejoin.':data.inactivity.status==='decaying'?'Training restores your full base rating.':'No inactivity penalty for the first 14 days; league exit after 30 days.'} Historical PBs never decay.</p>`,'section')}
+      ${card(`<div class="row"><h3>Find your movement</h3><span class="label-tag">${qualified.length} recorded benchmarks</span></div><div class="field mt12"><label for="leagueMovement">Exercise league</label><select id="leagueMovement" aria-label="Exercise league">${data.items.map(({ex,best})=>`<option value="${esc(ex.id)}" ${data.focus===ex.id?'selected':''}>${esc(ex.name)}${best?'':' · not yet ranked'}</option>`).join('')}</select></div>`,'section')}`;
+    if(!selected)return section+card('<h3>No movements available</h3><p class="subhead">Add a training plan to browse movement leagues.</p>','section');
+    if(!selected.best)return section+card(`<div class="row"><h3>${esc(selected.ex.name)}</h3><span class="label-tag">Unranked</span></div><p class="subhead mt12">Record a set for this movement to unlock a mini league matched to your performance.</p>${btn('Go to workout','league-to-workout','outline full mt16')}`,'section')+leagueFooter(areaOptions);
+    const res=selected.league,entry=res.entry,s=res.standings,person=s.rows.find(x=>x.player),first=s.rows[0];
+    const inFirst=s.rank===1,hold=entry.firstSince==null?0:Math.min(LEAGUES.HOLD,Date.now()-entry.firstSince),ready=inFirst&&entry.division===1;
+    const label=paused?'PAUSED':res.status==='decaying'?'RATING DECAY':inFirst?(ready?'TOP DIVISION':'PROMOTION CHALLENGE'):'CLIMB THE LEADERBOARD';
+    const promotionHtml=paused?`<p class="subhead mt8">This mini league is paused. Rejoin after a completed workout to claim a new place among active competitors.</p>`:
+      res.status==='decaying'?`<p class="subhead mt8">Promotion is paused until your next completed workout.</p>`:
+      ready?`<p class="subhead mt8">You're leading the highest division for this movement.</p>`:
+      inFirst?`<div class="row mt12"><strong>${leagueTime(LEAGUES.HOLD-hold)} remaining</strong><span class="tiny muted">${Math.round(hold/LEAGUES.HOLD*100)}% / 24h</span></div>${bar(hold,LEAGUES.HOLD)}<p class="fineprint">Hold first place continuously. A rival overtaking you resets the challenge.</p>`:
+      `<p class="subhead mt8">${fmt(s.gap)} performance points behind ${esc(first.name)}. Reach #1 to start your 24-hour promotion countdown.</p>`;
+    const visibleRows=paused?s.rows.filter(r=>!r.player):s.rows;
+    const rankingRows=visibleRows.map((r,i)=>`<div class="league-row ${r.player?'mine':''}"><span class="league-position">${i+1}</span><div class="league-who"><strong>${esc(r.name)} ${r.player?'<span class="league-you">YOU</span>':''}</strong><small>${r.player?'Your recorded performance':esc(r.town)+' · simulated'}</small></div><span class="league-points">${fmt(r.score)}</span></div>`).join('');
+    return section+card(`<div class="row league-detail-head"><div><div class="eyebrow">${esc(selected.ex.muscle||'MOVEMENT').toUpperCase()}</div><h3 class="mt8">${esc(selected.ex.name)}</h3><p class="subhead">${paused?'Previously Division '+entry.division+' · exited active standings':'Division '+entry.division+' · '+s.rows.length+' athletes · your rank #'+s.rank}</p></div><div class="league-rank-number">${paused?'—':'#'+s.rank}</div></div>
+       <div class="league-promo"><div class="row"><span class="eyebrow">${label}</span><span class="label-tag">${entry.division===1?'Elite':'To division '+(entry.division-1)}</span></div>${promotionHtml}</div>
+       <div class="league-list-head"><span>POSITION / ATHLETE</span><span>PERFORMANCE</span></div><div class="league-list">${rankingRows}</div>
+       <p class="fineprint">Your performance: ${esc(scoreLabel(selected.best))}. Weighted movements use an estimated maximum (kg); bodyweight movements use reps. Fictional rivals have simulated comparable scores; these aren't verified strength claims.</p>`,'section')+
+       card(`<details class="league-expand"><summary><span><strong>Your movement ladders</strong><small>${qualified.length} ranked · view all exercises</small></span><span aria-hidden="true">⌄</span></summary><div class="league-quick-list">${data.items.map(x=>`<button class="league-shortcut ${x.ex.id===selected.ex.id?'selected':''}" type="button" data-action="league-focus" data-id="${esc(x.ex.id)}"><span><strong>${esc(x.ex.name)}</strong><small>${x.best?`Division ${x.league.entry.division} · ${x.league.status==='inactive'?'Paused':'#'+x.league.standings.rank}`:'Awaiting first set'}</small></span><span class="league-chevron">›</span></button>`).join('')}</div></details>`,'section')+leagueFooter(areaOptions);
+  }
+  function leagueFooter(areaOptions){
+    const area=leagueStore().area;
+    return card(`<h3>Competition settings</h3><p class="subhead">Choose a town for a local flavour. Matchmaking still uses ability across the simulated UK pool; this does not store a postcode or location coordinates.</p>
+      <div class="field mt12"><label for="leagueArea">Display location</label><select id="leagueArea">${areaOptions}</select></div>
+      <p class="fineprint">This is an offline prototype with ${LEAGUES.POPULATION.toLocaleString('en-GB')} generated fictional identities. There are no real accounts, public rankings or background notifications. Countdown progress is checked using elapsed time when the app runs; it is not tamper-proof.</p>`,'section');
   }
 
   function shell(body){$app.innerHTML=`<main class="shell">${title()}${body}</main>${(page==='workout'&&state.active)||page==='setup'||page==='unlock'?'':bottomNav()}<div id="toast" aria-live="polite"></div>`;}
@@ -321,8 +409,30 @@
     return {best,previous};
   }
   function consistencyCard(){const c=consistency();const from=c.since,days=Array.from({length:7},(_,i)=>{const date=dayAt(from,i),count=state.history.filter(s=>dateOnly(s.startedAt||s.endedAt)===date&&(s.planId?s.planId===tracking().planId:tracking().planId==='pump')).length;return {date,name:new Date(date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short'}),count};});return card(`<div class="row"><h3>Training consistency</h3><span class="label-tag">Week ${c.week+1}</span></div><p class="subhead mt8">${dateText(c.since)} – ${dateText(c.through)} · target ${c.goal} sessions</p><div class="row mt12"><h2 class="feature-title">${c.done} / ${c.goal} workouts</h2><strong>${c.percentage}% over recent training weeks</strong></div>${bar(Math.min(c.done,c.goal),c.goal)}<div class="week-days mt12">${days.map(d=>`<div class="week-day ${d.count?'trained':''}"><small>${esc(d.name)}</small><b>${d.date.slice(-2)}</b>${d.count?'✓':''}</div>`).join('')}</div><p class="fineprint">Training weeks are consecutive 7-day blocks anchored to when you started this plan. Rest days do not count against your goal. Extra sessions never push the percentage over 100%.</p>`,'section');}
+  function recoveryWindow(){
+    const completed=state.history
+      .map(s=>({session:s,when:Date.parse(s.endedAt||s.startedAt||'')}))
+      .filter(x=>Number.isFinite(x.when)&&x.when<=Date.now())
+      .sort((x,y)=>y.when-x.when)[0];
+    if(!completed)return {hasWorkout:false,remaining:0,hours:48};
+    const override=Number(profile().recoveryHours)||0;
+    const hours=[24,36,48,72].includes(override)?override:
+      ([24,36,48,72].includes(Number(completed.session.recovery))?Number(completed.session.recovery):48);
+    const remaining=Math.max(0,completed.when+hours*3600000-Date.now());
+    return {hasWorkout:true,remaining,hours};
+  }
+  function recoveryText(remaining){
+    if(remaining<=0)return 'Window reached';
+    const mins=Math.ceil(remaining/60000);
+    const h=Math.floor(mins/60),m=mins%60;
+    return h?`${h}h${m?' '+String(m).padStart(2,'0')+'m':''} remaining`:`${m}m remaining`;
+  }
+  function recoveryIndicator(){
+    const r=recoveryWindow();
+    return `<div class="plan-recovery" aria-label="Recovery planning timer"><span class="plan-recovery-icon" aria-hidden="true">◷</span><div class="plan-recovery-content"><strong>Recovery guide</strong><span data-recovery-countdown>${r.hasWorkout?recoveryText(r.remaining):'Starts after your first workout'}</span></div>${r.hasWorkout?`<span class="recovery-hours">${r.hours}h window</span>`:''}</div>`;
+  }
   function home(){
-    const a=state.active,missing=workoutsUntilCalibration(),rating=athleteIndex(),c=consistency();
+    const a=state.active,missing=workoutsUntilCalibration(),rating=athleteIndex(),c=consistency(),leagueRating=leagueInactivity();
     const session=a?.session||state.next;
     const all=allLogs(),latest=state.history.at(-1),bests=Object.values(bestByExercise(all)).sort((x,y)=>new Date(y.loggedAt)-new Date(x.loggedAt));
     const bm=profile().body,ws=[...(bm.measurements||[])].sort((x,y)=>x.date.localeCompare(y.date));
@@ -331,20 +441,20 @@
     const insight=!state.history.length?'Your first workout will establish your baseline.':gains.length?`${gains[0].m.muscle} is your most improved muscle group (${progressPct(gains[0].change.change)} versus baseline).`:'Complete another session for the same movement to reveal a meaningful training insight.';
     const weigh=scheduledWeighStatus(), weightInfo=weigh.enabled?(weigh.due?'Weigh-in due today':weigh.done?'Weighed in today':weigh.next?'Next: '+dateText(weigh.next):'Schedule on'):'Optional weigh-ins';
     const planMeta=window.REPRIVAL_PLAN_LIBRARY.details[selectedPlan]||{};
+    const currentIndex=Math.max(0,SESSION_ORDER.indexOf(session)),rotationCount=SESSION_ORDER.length;
     return `<div class="eyebrow">${esc(profile().username||'YOUR TRAINING')} / OVERVIEW</div><h1 class="page-title overview-title">Overview</h1>
-      <section class="current-plan-card section" role="button" tabindex="0" data-nav="plan">
-        <div class="current-plan-top"><div class="eyebrow">CURRENT TRAINING PLAN</div><span class="label-tag subtle-pill">${a?'IN PROGRESS':'ACTIVE'}</span></div>
-        <div class="current-plan-main">
-          <div>
-            <h2>${esc(planMeta.title||'Training plan')}</h2>
-            <p class="subhead">Up next</p>
-            <strong class="next-workout">${esc(planFor(session).name||('Workout '+session))}</strong>
-            <p class="fineprint">${tracking().weeklyGoal} workouts every 7 days · tap to view plan</p>
-          </div>
-          <div class="plan-badge">${esc(session)}</div>
+      <section class="current-plan-card section" role="button" tabindex="0" data-nav="plan" aria-label="View ${esc(planMeta.title||'training plan')} and rotation progress">
+        <div class="current-plan-top"><span class="eyebrow">CURRENT TRAINING PLAN</span><span class="plan-view-hint">View plan <span aria-hidden="true">›</span></span></div>
+        <h2 class="plan-name">${esc(planMeta.title||'Training plan')}</h2>
+        <div class="rotation-caption"><span>Rotation progress</span><strong>${currentIndex} of ${rotationCount}</strong></div>
+        <div class="rotation-track" role="progressbar" aria-label="Completed workouts in current rotation" aria-valuemin="0" aria-valuemax="${rotationCount}" aria-valuenow="${currentIndex}">
+          ${SESSION_ORDER.map((id,i)=>`<span class="rotation-segment ${i<currentIndex?'complete':i===currentIndex?'next':''}" title="${esc(planFor(id).name||'Workout '+id)}"></span>`).join('')}
         </div>
+        <div class="plan-next-row"><span class="next-indicator">${a?'IN PROGRESS':'NEXT'}</span><strong>${esc(planFor(session).name||('Workout '+session))}</strong><span class="next-arrow" aria-hidden="true">→</span></div>
+        ${recoveryIndicator()}
       </section>
-      <div class="section two-stat overview-stats"><div class="metric athlete"><div class="eyebrow">ATHLETE RATING</div><div class="score-number">${rating.value==null?'Calibrating':fmt(rating.value)}</div><div class="stat-detail">${rating.value==null?`${SESSION_ORDER.length-missing.length} of ${SESSION_ORDER.length} initial workouts`:`Based on ${rating.compared} repeat-tested movements`}</div></div><div class="metric"><div class="eyebrow">THIS TRAINING WEEK</div><div class="score-number">${c.done} / ${c.goal}</div><div class="stat-detail">${c.percentage}% consistency · ${shortPeriod(c.since,c.through)}</div></div></div>
+      <button class="league-home-link section" type="button" data-page="leagues"><span><strong>Movement leagues</strong><small>10,000 simulated rivals · 24h promotion</small></span><span aria-hidden="true">↗</span></button>
+      <div class="section two-stat overview-stats"><div class="metric athlete"><div class="eyebrow">ATHLETE RATING</div><div class="score-number">${rating.value==null?'Calibrating':fmt(leagueRating.adjusted)}</div><div class="stat-detail">${rating.value==null?`${SESSION_ORDER.length-missing.length} of ${SESSION_ORDER.length} initial workouts`:leagueRating.status==='active'?`Based on ${rating.compared} repeat-tested movements`:'Inactivity adjustment · train to restore'}</div></div><div class="metric"><div class="eyebrow">THIS TRAINING WEEK</div><div class="score-number">${c.done} / ${c.goal}</div><div class="stat-detail">${c.percentage}% consistency · ${shortPeriod(c.since,c.through)}</div></div></div>
       ${card(`<div class="row"><h3>Muscle performance</h3><span class="label-tag">All groups</span></div>${musclePanel(false)}`,'section')}
       ${card(`<div class="row"><h3>Body weight</h3>${btn('Weigh in +','weigh-in','outline')}</div><div class="row mt12"><h2 class="weight-current">${ws.length?displayWeight(ws.at(-1).kg):'No weigh-ins yet'}</h2><span class="label-tag ${weigh.due?'weight-due':''}">${esc(weightInfo)}</span></div>${days.length>1?`<div class="compact-weight-chart">${drawChart(days)}</div>`:'<p class="subhead">Your weight trend appears after two weigh-ins.</p>'}<p class="fineprint">${weigh.enabled?`Scheduled: ${weighSchedule().days.map(i=>WEEKDAYS[i]).join(', ')} · `:''}Edit your reminder days in Body metrics. The chart uses ${weightUnitLabel()}.</p>`,'section')}
       ${bests.length?card(`<div class="row"><h3>Latest milestone</h3><span class="label-tag">PB</span></div><p class="subhead mt12"><strong>${esc(bests[0].name)}</strong> · ${esc(scoreLabel(bests[0]))}</p>`,'section'):''}
@@ -605,6 +715,7 @@
       ${card(`<div class="row"><h3>${esc(current.title)}</h3><span class="label-tag">ACTIVE</span></div><p class="subhead mt12">${esc(current.focus)} · ${esc(current.duration)} · ${esc(current.days)}</p><div class="stack mt16">${btn('Edit workouts','designer','primary full')}${btn('Browse training plans','library','outline full')}</div>`,'section')}
       ${card(`<h3>Current rotation</h3>${SESSION_ORDER.map(id=>`<div class="session-row"><div><strong>${esc(planFor(id).name||'Workout '+id)}</strong><small>${planFor(id).pairs.length} blocks · ${buildTasks(id).length} working sets</small></div><span class="label-tag">${state.next===id?'Next':'Scheduled'}</span></div>`).join('')}`,'section')}
       ${card(`<h3>Plan start & consistency target</h3><p class="subhead">The seven-day training week begins on your plan start date, not necessarily Monday.</p><form class="stack mt12" id="planTimingForm"><div class="form-grid"><div class="field"><label>Plan start date</label><input type="date" name="start" required value="${esc(tracking().start)}"></div><div class="field"><label>Workouts per 7 days</label><input type="number" name="goal" min="1" max="7" value="${tracking().weeklyGoal}" required></div></div><button class="btn outline full" type="submit">Update training schedule</button></form>`,'section')}
+      ${card(`<h3>Recovery countdown</h3><p class="subhead">A planning guide counted from the end of your most recent completed workout, not a measurement of muscle readiness. The automatic setting uses 48 hours after most sessions, or 72 hours when you mark one as tiring.</p><form id="recoverySettingsForm" class="stack mt12"><div class="field"><label>Recovery window</label><select name="recoveryHours"><option value="auto" ${![24,36,48,72].includes(Number(profile().recoveryHours))?'selected':''}>Automatic (48h / 72h if tired)</option>${[24,36,48,72].map(h=>`<option value="${h}" ${Number(profile().recoveryHours)===h?'selected':''}>${h} hours</option>`).join('')}</select></div><button class="btn outline full" type="submit">Save recovery preference</button></form>`,'section')}
       ${card(`<h3>Training focus</h3><p class="subhead">Your active programme defines the training goal and workouts. For a different focus, switch plans in the library. Running can fit around rest days but is not counted as a strength workout.</p><p class="fineprint">Previously saved Main Focus / Include Cardio preferences are retained in backups, but they did not change training recommendations; the unused controls have been removed.</p>`,'section')}
       ${card(`<h3>Your local data</h3><p class="subhead">Workouts are stored on this device, separately for each profile. Export a backup before a major update or changing devices.</p><div class="stack mt16">${btn('Export complete backup (JSON)','export','outline full')}<label class="btn outline full" for="backupFile">Import backup (JSON)</label><input id="backupFile" type="file" accept="application/json,.json" style="display:none">${btn('Import 17 Oct Workout A baseline','import-v5','outline full')}</div>`,'section')}`;
   }
@@ -665,6 +776,7 @@
     else if(page==='home')body=home();
     else if(page==='workout')body=workout();
     else if(page==='progress')body=progress();
+    else if(page==='leagues')body=leaguesScreen();
     else if(page==='plan')body=plan();
     else if(page==='summary')body=summary();
     else if(page==='edit-history')body=editHistoryScreen();
@@ -789,6 +901,8 @@
     const el=e.target.closest('[data-action]');if(!el)return;
     const action=el.dataset.action;
     if(['designer','library','metrics'].includes(action)){page=action;render();return;}
+    if(action==='league-to-workout'){startWorkout();return;}
+    if(action==='league-focus'){leagueStore().focus=el.dataset.id;save();page='leagues';render();return;}
     if(action==='weigh-in'){page='metrics';render();return;}
     if(action==='view-art'){
       const src=el.querySelector('img')?.getAttribute('src');
@@ -905,6 +1019,12 @@
       if(username.length<2||!/^\d{4}$/.test(pin)||pin!==f.get('confirm')){showToast('Check username and matching four-digit PINs');return;}
       profile().username=username;profile().pin=pin;profile().body=readBodyForm(f,profile().body,true);manager.setupPending=false;save();page='home';render();return;
     }
+    if(id==='recoverySettingsForm'){
+      e.preventDefault();const val=String(new FormData(e.target).get('recoveryHours'));
+      if(!['auto','24','36','48','72'].includes(val))return;
+      profile().recoveryHours=val==='auto'?null:Number(val);
+      save();render();showToast('Recovery preference updated');return;
+    }
     if(id==='planTimingForm'){
       e.preventDefault();const f=new FormData(e.target),start=String(f.get('start')),goal=Number(f.get('goal'));if(!/^\d{4}-\d\d-\d\d$/.test(start)||goal<1||goal>7)return;profile().planTracking={planId:selectedPlan,start,weeklyGoal:goal};save();render();showToast('Training week updated');return;
     }
@@ -971,6 +1091,8 @@
   });
   document.addEventListener('change',async e=>{
     if(e.target.matches('[data-unit]')){const form=e.target.closest('form');if(form)syncBodyFields(form,e.target.dataset.unit);return;}
+    if(e.target.id==='leagueMovement'){leagueStore().focus=e.target.value;save();render();return;}
+    if(e.target.id==='leagueArea'){leagueStore().area=e.target.value;save();render();return;}
     if(e.target.id==='journeyPeriod'||e.target.id==='journeyWorkout'){state.settings[e.target.id]=e.target.value;save();render();return;}
     if(e.target.id==='volumeFilter'){state.settings.volumeFilter=e.target.value;save();render();return;}
     if(e.target.id==='movementSelect'){
@@ -991,7 +1113,15 @@
       throw Error('Unrecognised backup');
     } catch(err){showToast('Could not import that backup.');}
   });
+  let recoveryClockLastMinute=-1;
+  let leagueMinuteLast=Math.floor(Date.now()/60000);
   function tick(){
+    if(page==='leagues' && Math.floor(Date.now()/60000)!==leagueMinuteLast){leagueMinuteLast=Math.floor(Date.now()/60000);render();}
+    if(page==='home' && Math.floor(Date.now()/60000)!==recoveryClockLastMinute){
+      recoveryClockLastMinute=Math.floor(Date.now()/60000);
+      const indicator=document.querySelector('[data-recovery-countdown]');
+      if(indicator){const r=recoveryWindow();indicator.textContent=r.hasWorkout?recoveryText(r.remaining):'Starts after your first workout';}
+    }
     if(!state.active||state.active.stage!=='rest')return;
     if(Date.now()>=state.active.restUntil){restSkip();return;}
     if(page==='workout'){
@@ -1006,5 +1136,5 @@
   }
   render();
   // Small surface for local smoke tests. No production backend or data transfer.
-  window.RepRivalTest={getState:()=>structuredClone(state),buildTasks,score,calcRest,version:'1.4.7',comparableSessions,muscleChange};
+  window.RepRivalTest={getState:()=>structuredClone(state),buildTasks,score,calcRest,version:'1.4.9',league:()=>({store:structuredClone(leagueStore()),inactivity:leagueInactivity()}),comparableSessions,muscleChange};
 })();
