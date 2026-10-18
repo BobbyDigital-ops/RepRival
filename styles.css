@@ -632,3 +632,133 @@ button:focus-visible,[role="button"]:focus-visible{outline:2px solid #ff997f!imp
 .rr161-management{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:14px}
 .rr161-management .btn{font-size:11px;min-height:42px;padding:8px 4px}.rr161-management .btn:first-child{grid-column:1/-1}
 @media(max-width:350px){.rr161-check-grid{grid-template-columns:1fr}.rr161-wizard-progress span{font-size:8px}.rr161-checkin{font-size:9px}}
+
+/* RepRival v1.6.2 — uncluttered Progress with a dedicated movement deep dive. */
+.rr162-trend-link{display:flex;align-items:center;text-align:left;gap:13px;width:100%;margin:18px 0 0;padding:17px 16px;border:1px solid #5c453e;border-radius:16px;background:linear-gradient(135deg,#282321,#1a1c1d 78%);color:#f4e9e2;box-shadow:0 12px 30px #0003;cursor:pointer}
+.rr162-trend-link:active{transform:scale(.995)}.rr162-trend-link:focus-visible,.rr162-back:focus-visible,.rr162-mini-button:focus-visible{outline:2px solid #f68e73;outline-offset:3px}
+.rr162-trend-icon{display:grid;place-items:center;width:42px;height:42px;flex-shrink:0;border-radius:12px;border:1px solid #7e4a3b;background:#36251f;color:#f98c6a}
+.rr162-trend-icon svg{width:24px;height:24px}.rr162-trend-copy{flex:1;min-width:0;display:grid;gap:4px}.rr162-trend-copy strong{font:600 17px/1.2 Georgia,'Times New Roman',serif;letter-spacing:-.1px}.rr162-trend-copy small{color:#c7b3a9;font-size:11px;line-height:1.4}.rr162-trend-arrow{font-size:22px;color:#f58d6d;padding-left:4px}
+.rr162-back{border:0;background:transparent;color:#e2ae9c;padding:0 0 16px;font-size:13px;font-weight:650}
+.rr162-trend-toolbar{display:flex;justify-content:space-between;align-items:center;gap:14px;margin:20px 0 13px;padding:0 1px;color:#c6b6ae;font-size:13px}
+.rr162-trend-toolbar .btn{min-width:95px}
+.rr162-trend-list{display:grid;gap:16px}.rr162-movement-card{background:linear-gradient(160deg,#222121,#181a1a);border:1px solid #433b37;border-radius:17px;padding:17px 15px 13px;box-shadow:0 14px 35px #0003;min-width:0}
+.rr162-movement-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.rr162-movement-head h3{color:#f7ece6;font-size:18px;line-height:1.27}.rr162-movement-head span{display:block;margin-top:4px;color:#b9aaa2;font-size:11px}
+.rr162-pin-label{font-size:10px!important;color:#f9a082!important;border:1px solid #96533d;padding:5px 7px;border-radius:6px;white-space:nowrap;margin:0!important}
+.rr162-movement-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:15px}.rr162-movement-metrics>div{border-radius:9px;padding:10px 9px;background:#302a27;border:1px solid #493a35;min-width:0}
+.rr162-movement-metrics small{display:block;color:#bdada3;font-size:10px;margin-bottom:5px}.rr162-movement-metrics strong{display:block;color:#f8ebe3;font-size:12px;line-height:1.3;overflow-wrap:anywhere}
+.rr162-chart{margin-top:15px;border-top:1px solid #403a36;padding-top:13px;min-width:0}.rr162-chart svg{display:block;width:100%;height:auto;max-height:175px;overflow:visible}
+.rr162-chart-caption{display:flex;align-items:center;justify-content:space-between;gap:9px;color:#d0bdb2;font-size:10.5px}.rr162-chart-caption span:last-child{text-align:right;color:#aa9d95}
+.rr162-chart-empty{padding:24px 8px;text-align:center;color:#ad9f97;font-size:12px;line-height:1.5;border-top:1px solid #403a36;margin-top:14px}
+.rr162-movement-note{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;border-top:1px solid #403a36;padding-top:12px;margin-top:7px}
+.rr162-movement-note strong{color:#f5a085;font-size:12px}.rr162-movement-note span{color:#afa49e;font-size:10.5px;text-align:right;max-width:53%}
+.rr162-history{border-top:1px solid #403a36;margin-top:12px;padding-top:11px}.rr162-history summary{color:#dccdc4;font-size:12px;cursor:pointer;list-style:none;display:flex;justify-content:space-between}.rr162-history summary::-webkit-details-marker{display:none}
+.rr162-history>div{margin-top:10px}.rr162-history>div>div{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #373331;font-size:12px}.rr162-history>div>div span{color:#a89d96}.rr162-history>div>div strong{color:#eaddd5}
+.rr162-movement-actions{display:flex;gap:8px;margin-top:12px}.rr162-movement-actions>*{flex:1}
+.rr162-empty{border:1px dashed #5d4941;border-radius:15px;padding:24px 18px;color:#e5d5cc;text-align:center}.rr162-empty p{color:#bca9a1;font-size:12px;margin-top:8px}
+.rr162-trend-edit{padding:16px 14px;margin:0 0 20px;background:#222021;border:1px solid #5b4138;border-radius:16px}.rr162-trend-edit h3{font-size:17px}.rr162-trend-search-label{display:block;margin:14px 0 5px;font-size:11px;color:#c8afa2;font-weight:650}
+#trendSearch{width:100%;min-height:43px;padding:10px 12px;background:#111416;border:1px solid #62483e;border-radius:9px;color:#fff;outline-color:#fb997b}
+.rr162-trend-choices{margin-top:10px;max-height:290px;overflow-y:auto;padding-right:3px}.rr162-trend-choice{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid #393433}.rr162-trend-choice[hidden],.rr162-trend-empty-search[hidden]{display:none!important}.rr162-trend-choice>span{display:grid;gap:3px;font-size:12px;color:#e5d6cd;min-width:0}.rr162-trend-choice>span small{font-size:10px;color:#988980}
+.rr162-trend-choice>div{display:flex;gap:5px;flex-shrink:0}.rr162-mini-button{font-size:11px;color:#d9b8a9;background:#312b28;border:1px solid #61483d;border-radius:8px;padding:7px 8px;min-height:33px;min-width:35px}.rr162-mini-button.on,.rr162-mini-button.pinned{background:#643a2d;border-color:#d57757;color:#ffdfcf}
+.rr162-trend-empty-search{font-size:12px;color:#b49d94;padding-top:12px}
+@media(max-width:380px){.rr162-movement-metrics strong{font-size:11px}.rr162-movement-metrics>div{padding:9px 7px}.rr162-chart-caption{font-size:9.5px}}
+
+
+/* RepRival v1.6.3 — clear, purpose-driven Progress tabs */
+.rr163-progress-screen{display:grid;gap:0;max-width:100%;min-width:0}
+.rr163-progress-intro{margin:5px 0 18px!important;font-size:13px!important;line-height:1.5!important;color:#c6aea2!important}
+.rr163-progress-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;padding:4px;border:1px solid #5c3d36;background:#141719;border-radius:13px;box-shadow:inset 0 1px 4px #0008}
+.rr163-progress-tabs button{border:0;border-radius:10px;padding:13px 2px;font-size:12.5px;font-weight:700;letter-spacing:.05px;background:transparent;color:#bdb0a8;cursor:pointer;min-width:0}
+.rr163-progress-tabs button.active{background:linear-gradient(165deg,#f6eee8,#dfd7d2);color:#252123;box-shadow:inset 0 1px 0 #fff9,0 3px 10px #0008}
+.rr163-progress-tabs button:focus-visible,.rr163-period-buttons button:focus-visible,.rr163-explore-card:focus-visible{outline:2px solid #f88160;outline-offset:3px}
+.rr163-progress-guide{font-size:11.5px;line-height:1.55;color:#c0afa5;margin:10px 2px 19px;min-height:35px}
+.rr163-tab-content{display:grid;gap:15px;min-width:0}
+.rr163-section-heading h2{font:normal 25px/1.14 Georgia,'Times New Roman',serif;letter-spacing:-.65px;color:#f7ede7;margin:5px 0 7px}
+.rr163-section-heading p{font-size:12px;line-height:1.5;color:#c3aaa0;margin:0}
+.rr163-glance{border:1px solid #6b4439;border-radius:17px;background:radial-gradient(ellipse at right top,#5b30273d,transparent 60%),linear-gradient(155deg,#242122,#151819);padding:18px 15px 15px;box-shadow:0 13px 30px #0004,inset 0 1px 0 #ffffff16}
+.rr163-glance-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:17px}
+.rr163-stat{background:#151718;border:1px solid #4a3b36;border-radius:11px;padding:13px 9px 12px;min-width:0;display:flex;flex-direction:column;gap:6px}
+.rr163-stat small{font-size:10px;letter-spacing:.1px;color:#e2cdc1}
+.rr163-stat strong{font:normal clamp(23px,5vw,35px)/1 Georgia,'Times New Roman',serif;color:#fff0e8;white-space:nowrap}
+.rr163-stat:nth-child(3) strong{color:#fa8667}
+.rr163-stat span{font-size:10px;line-height:1.4;color:#ad9e96}
+.rr163-metric-note{font-size:11px;line-height:1.55;color:#b8a59a;margin:12px 2px 0}
+.rr163-negative{color:#c4a69e!important}
+.rr163-overview-links{display:grid;gap:9px}
+.rr163-explore-card{display:flex;align-items:center;gap:13px;text-align:left;border:1px solid #57433b;border-radius:13px;background:linear-gradient(120deg,#302623,#191c1e 85%);padding:15px 13px;color:#f5e9e2;cursor:pointer;width:100%}
+.rr163-link-icon{border:1px solid #824c3d;background:#422b25;color:#f3815f;width:42px;height:42px;display:grid;place-items:center;border-radius:11px;font-size:21px;flex:0 0 42px}
+.rr163-explore-card>span:nth-child(2){display:flex;flex-direction:column;gap:5px;flex:1;min-width:0}
+.rr163-explore-card strong{font-size:14px}.rr163-explore-card small{font-size:11px;line-height:1.4;color:#baa9a1}
+.rr163-explore-card b{color:#fa8969;font-size:23px;font-weight:400}
+.rr163-overview-history{border:1px solid #4d3b36;background:#1b1d1e;border-radius:16px;padding:17px 15px;margin-bottom:8px}
+.rr163-recent-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:15px 0 9px}
+.rr163-recent-stats>div{border:1px solid #493933;background:#242122;border-radius:9px;display:grid;gap:3px;padding:10px 7px;text-align:center}
+.rr163-recent-stats strong{color:#ffae91;font:normal 26px/1.2 Georgia,serif}.rr163-recent-stats span{font-size:10px;color:#b7a69c}
+.rr163-history .session-row{border-bottom:1px solid #443a36}
+.rr163-muscles{display:grid;gap:15px;min-width:0}
+.rr163-muscles>.rr-heat-full{margin-top:0}
+.rr163-muscles .rr-heat-heading>div>h2,.rr163-muscles .rr-heat-heading>div>p{display:none}
+.rr163-muscles .rr-heat-heading{padding-top:0}
+.rr163-muscles .rr-heat-heading .rr-heat-kicker{display:none}
+.rr163-strength-section{border:1px solid #644639;background:linear-gradient(155deg,#252222,#17191a);border-radius:17px;padding:17px 15px 16px}
+.rr163-period-buttons{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;background:#111415;border:1px solid #52403a;border-radius:10px;padding:4px;margin:17px 0 14px}
+.rr163-period-buttons button{border:0;background:transparent;color:#b6a69e;border-radius:7px;padding:10px 3px;font-size:11px;font-weight:700;cursor:pointer}
+.rr163-period-buttons button.active{background:linear-gradient(145deg,#f2e7e0,#d6c9c2);color:#2b2320}
+.rr163-strength-rows{display:grid;gap:2px}
+.rr163-group-row{border-bottom:1px solid #443933;padding:10px 1px}
+.rr163-group-row summary{list-style:none;cursor:pointer;display:grid;gap:7px}
+.rr163-group-row summary::-webkit-details-marker{display:none}
+.rr163-group-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.rr163-group-top strong{font-size:13px;color:#eee1d9}
+.rr163-group-top span{font-size:13px;font-weight:750;color:#fa9575;font-variant-numeric:tabular-nums}
+.rr163-strength-track{height:8px;border-radius:12px;background:#38383a;overflow:hidden}
+.rr163-strength-track span{display:block;height:100%;border-radius:12px;background:linear-gradient(90deg,#b94e3c,#f8835f);transition:width .2s}
+.rr163-group-row summary>small{color:#bba79b;font-size:10.5px;line-height:1.4}
+.rr163-group-expanded{display:grid;gap:9px;padding:12px 10px;margin:10px 0 2px;background:#151718;border-radius:9px;border:1px solid #413733}
+.rr163-group-expanded>div{display:flex;gap:10px;justify-content:space-between;font-size:11px;color:#c9b6ab}.rr163-group-expanded>div strong{color:#f09a82;flex-shrink:0}
+.rr163-group-expanded p{font-size:10px;line-height:1.5;color:#9f9088;margin:4px 0 0}
+.rr163-movement-picker{border:1px solid #594138;background:#242222;border-radius:13px;padding:15px 13px;margin-bottom:2px;display:grid;gap:8px}
+.rr163-movement-picker label{font-size:13px;color:#f4e3dc;font-weight:700}.rr163-movement-picker select{width:100%;min-width:0;background:#15181a;color:#fff1ea;border:1px solid #765245;border-radius:10px;padding:12px 10px;font-size:14px}
+.rr163-movement-picker p{font-size:11px;color:#b8a49b;line-height:1.5;margin:0}
+@media(max-width:365px){.rr163-stat{padding:11px 6px}.rr163-stat span{font-size:9px}.rr163-stat strong{font-size:23px}.rr163-progress-tabs button{font-size:11px}.rr163-explore-card{padding:12px 10px}.rr163-section-heading h2{font-size:22px}}
+
+/* v1.6.4: weight on Overview, fixed-reference strength bars, compact trends and spotlight */
+.rr163-progress-tabs{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.5fr)}
+.rr163-progress-tabs button{font-size:12px;white-space:nowrap;letter-spacing:-.1px}
+.rr164-weight-card,.rr164-trends{background:linear-gradient(145deg,#252222,#181b1c);border:1px solid #594037;border-radius:16px;padding:16px 14px;min-width:0;display:grid;gap:14px}
+.rr164-weight-card{margin:0 0 15px}
+.rr164-weight-card .rr163-section-heading{display:flex;align-items:flex-start;gap:10px;justify-content:space-between}
+.rr164-log-weight{background:#382c27;color:#ffc7b2;border:1px solid #98604d;border-radius:9px;padding:9px 10px;font-size:11px;font-weight:750;flex-shrink:0;cursor:pointer}
+.rr164-body-summary,.rr164-spotlight-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.rr164-body-summary>div,.rr164-spotlight-metrics>div{display:flex;flex-direction:column;gap:5px;border-radius:9px;border:1px solid #544039;background:#141718;padding:12px 8px;min-width:0}
+.rr164-body-summary small,.rr164-spotlight-metrics small{font-size:10px;color:#d5bdb1}
+.rr164-body-summary strong{font:normal clamp(17px,4.4vw,25px)/1.2 Georgia,serif;color:#fff0e7;white-space:nowrap}
+.rr164-body-summary>div:nth-child(2) strong{color:#ff9b7e}
+.rr164-body-summary span{font-size:9.5px;line-height:1.4;color:#b8a79c}
+.rr164-down{color:#a9cfb3!important}
+.rr164-periods,.rr164-periods{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;background:#131617;border:1px solid #59453f;padding:4px;border-radius:10px}
+.rr164-periods button{padding:10px 2px;border:0;color:#c2b2a9;background:none;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer}
+.rr164-periods button.active{background:linear-gradient(140deg,#f5ebe4,#d7c8bf);color:#292424}
+.rr164-empty,.rr164-spark-empty{color:#b8a7a0;font-size:12px;line-height:1.55;text-align:center;padding:22px 8px;border:1px dashed #675046;border-radius:9px}
+.rr164-spark-empty{padding:12px 2px;border:0;font-size:10px}
+.rr164-weight-chart .rr162-chart{margin:0;border:0;padding:0}
+.rr164-weight-chart .rr162-chart svg{max-height:200px}
+.rr164-trends-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;color:#c5b1a8;font-size:12px}
+.rr164-period-label{font-size:10px;letter-spacing:1px;font-weight:800;color:#d4b4a6}
+.rr164-trend-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.rr164-trend-tile{display:grid;gap:7px;text-align:left;background:#17191a;color:#f3e4dc;border:1px solid #594238;border-radius:12px;padding:12px 10px;cursor:pointer;min-width:0}
+.rr164-trend-tile.selected{border-color:#ff9979;background:linear-gradient(150deg,#3c2c29,#1b1d1e);box-shadow:inset 0 0 0 1px #a55a47}
+.rr164-tile-heading{display:flex;justify-content:space-between;gap:8px;align-items:start;min-height:34px}
+.rr164-tile-heading strong{font-size:12px;line-height:1.3;overflow-wrap:anywhere}.rr164-tile-heading span{color:#efaa87}
+.rr164-trend-tile small{font-size:9.5px;color:#bca59a;line-height:1.35}
+.rr164-trend-tile svg{width:100%;height:auto;display:block;min-height:48px}
+.rr164-tile-bottom{display:flex;align-items:baseline;justify-content:space-between;gap:4px}
+.rr164-tile-bottom b{color:#ff9d7e;font-size:16px}.rr164-tile-bottom span{font-size:9px;color:#bbaba1}
+.rr164-spotlight{margin-top:8px;padding:15px 12px;border-radius:13px;background:linear-gradient(135deg,#372923,#17191b 73%);border:1px solid #80503f;display:grid;gap:13px;min-width:0}
+.rr164-spotlight-metrics strong{font-size:12px;color:#ffe9df;overflow-wrap:anywhere}
+.rr164-spotlight .rr163-section-heading h2{font-size:23px}
+.rr164-big-chart{min-width:0}.rr164-big-chart .rr162-chart{margin:0}
+.rr164-spotlight-summary{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+.rr164-spotlight-summary strong{font-size:16px;color:#ff967b}.rr164-spotlight-summary span{font-size:11px;color:#c2ada3}
+.rr163-muscles{gap:15px}.rr163-muscles .rr163-strength-section{order:0}.rr163-muscles>.rr163-section-heading{order:1}.rr163-muscles>.rr-heat-full{order:2}
+.rr164-weight-card .rr163-section-heading h2{font-size:24px}
+@media(max-width:350px){.rr163-progress-tabs button{font-size:10.5px}.rr164-body-summary strong{font-size:16px}.rr164-body-summary>div{padding:10px 5px}.rr164-trend-tile{padding:10px 7px}.rr164-tile-bottom b{font-size:14px}.rr164-spotlight-metrics strong{font-size:11px}}

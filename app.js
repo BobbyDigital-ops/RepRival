@@ -25,7 +25,9 @@
   let selectedPlan='pump';
   let manager=null;
   let pendingPlan=null;
+  let progressTab='overview';
   let trendEditing=false;
+  let trendSearchQuery='';
   const ADAPT=window.RepRivalAdaptive;
   const ADAPT_ID='adaptive';
   let adaptiveDraft=null;
@@ -222,7 +224,7 @@
     const neglect=recentEnough?top.filter(g=>g.keys.some(k=>data[k].ever)&&g.keys.every(k=>(!data[k].last||Date.now()-data[k].last>14*86400000))).sort((a,b)=>a.score-b.score)[0]:null;
     const totalSets=state.history.filter(s=>Date.now()-Date.parse(s.endedAt||s.startedAt||'')<period*86400000).reduce((n,s)=>n+(s.logs||[]).length,0);
     const figures=`<div class="rr-figures"><div class="rr-body"><div class="rr-figure-wrap">${window.RepRivalBodyMap.figure('front',scores)}</div><span>FRONT</span></div><div class="rr-body"><div class="rr-figure-wrap">${window.RepRivalBodyMap.figure('back',scores)}</div><span>BACK</span></div></div>`;
-    if(compact)return `<div class="rr-heat-compact">${figures}<div class="rr-heat-compact-side"><div class="rr-heat-kicker">THIS WEEK</div><strong class="rr-heat-big">${active}<small> / 9</small></strong><span>groups activated</span><div class="rr-heat-compact-lines">${top.slice(0,4).map(m=>heatBar(m.name,m.score)).join('')}</div></div></div><div class="rr-heat-legend"><span>LESS RECENT WORK</span><i></i><span>MORE</span></div><p class="rr-heat-note">Red shows recent logged training, not measured muscle growth.</p><button type="button" data-page="progress" class="rr-heat-link">Explore muscle map <span>↗</span></button>`;
+    if(compact)return `<div class="rr-heat-compact">${figures}<div class="rr-heat-compact-side"><div class="rr-heat-kicker">THIS WEEK</div><strong class="rr-heat-big">${active}<small> / 9</small></strong><span>groups activated</span><div class="rr-heat-compact-lines">${top.slice(0,4).map(m=>heatBar(m.name,m.score)).join('')}</div></div></div><div class="rr-heat-legend"><span>LESS RECENT WORK</span><i></i><span>MORE</span></div><p class="rr-heat-note">Red shows recent logged training, not measured muscle growth.</p><button type="button" data-action="progress-tab" data-tab="muscles" class="rr-heat-link">Explore muscle map <span>↗</span></button>`;
     return `<div class="rr-heat-full"><div class="rr-heat-heading"><div><div class="rr-heat-kicker">PERFORMANCE · TRAINING EXPOSURE</div><h2>Muscle map</h2><p>A visual guide to the muscles you have trained recently. Tap any coloured area for details.</p></div><div><label class="sr-only" for="heatPeriod">Muscle map timeframe</label><select id="heatPeriod" aria-label="Muscle map timeframe"><option value="7" ${period===7?'selected':''}>This week</option><option value="28" ${period===28?'selected':''}>Last 28 days</option></select></div></div><div class="rr-heat-atlas">${figures}<div class="rr-heat-details">${top.map(m=>heatBar(m.name,m.score)).join('')}</div></div><div class="rr154-muscle-key"><span><b class="neutral"></b>Neutral</span><span><b class="red"></b>Recent work</span><span><b class="blue"></b>Reduced stimulus</span></div><div class="rr-heat-meta"><div><strong>${active} / 9</strong><span>groups with recent stimulus</span></div><div><strong>${totalSets}</strong><span>logged sets · ${period} days</span></div></div>${neglect?`<div class="rr-heat-alert"><span aria-hidden="true">◷</span><div><strong>${esc(neglect.name)} haven't been trained recently</strong><p>Your logs show over 14 days without work for this area. Consider it when planning your next session.</p></div></div>`:!state.history.length?`<div class="rr-heat-alert"><span aria-hidden="true">◇</span><div><strong>Your map starts neutral</strong><p>Log a workout to see the muscles you trained turn red.</p></div></div>`:''}<p class="rr-heat-disclaimer">Relative estimate from completed working sets and their age; secondary muscle involvement is approximate. Blue indicates possible undertraining, not measured muscle loss. Colours cannot determine growth, recovery or muscle mass.</p></div>`;
   }
 
@@ -232,7 +234,7 @@
     const chosen=named.filter(x=>data[x]),points=chosen.length?Math.round(chosen.reduce((n,x)=>n+data[x].score,0)/chosen.length):0;
     const last=chosen.map(x=>data[x].last).filter(Boolean).sort((a,b)=>b-a)[0]||null;
     const related=state.history.flatMap(s=>(s.logs||[]).filter(l=>named.includes(l.muscle)).map(l=>({...l,when:s.endedAt||s.startedAt}))).sort((a,b)=>Date.parse(b.when)-Date.parse(a.when)).slice(0,8);
-    return `<div class="eyebrow">PERFORMANCE · MUSCLE DETAILS</div><h1 class="page-title">${esc(m)}</h1>${card(`<div class="row"><h3>Recent stimulus</h3><span class="label-tag">LAST 28 DAYS</span></div><h2 class="rr154-muscle-score">${points}%</h2>${heatBar(m,points)}<p class="subhead mt12">Last trained: ${last?dateText(new Date(last).toISOString()):'No recorded session'}. Red represents recent training; blue means less activity than your previous training, not proven muscle loss.</p>`,'section')}${card(`<h3>Recent recorded sets</h3>${related.length?related.map(l=>`<div class="rr154-checkin-history"><strong>${esc(l.name||l.exId)}</strong><span>${esc(String(l.reps||0))} reps · ${esc(String(l.weight??'BW'))} ${l.weight==='bodyweight'?'':'kg'} · ${esc(dateOnly(l.when))}</span></div>`).join(''):'<p class="subhead mt8">No matching training sessions recorded yet.</p>'}`,'section')}<button class="btn outline full" type="button" data-page="progress">Back to muscle map</button>`;
+    return `<div class="eyebrow">PERFORMANCE · MUSCLE DETAILS</div><h1 class="page-title">${esc(m)}</h1>${card(`<div class="row"><h3>Recent stimulus</h3><span class="label-tag">LAST 28 DAYS</span></div><h2 class="rr154-muscle-score">${points}%</h2>${heatBar(m,points)}<p class="subhead mt12">Last trained: ${last?dateText(new Date(last).toISOString()):'No recorded session'}. Red represents recent training; blue means less activity than your previous training, not proven muscle loss.</p>`,'section')}${card(`<h3>Recent recorded sets</h3>${related.length?related.map(l=>`<div class="rr154-checkin-history"><strong>${esc(l.name||l.exId)}</strong><span>${esc(String(l.reps||0))} reps · ${esc(String(l.weight??'BW'))} ${l.weight==='bodyweight'?'':'kg'} · ${esc(dateOnly(l.when))}</span></div>`).join(''):'<p class="subhead mt8">No matching training sessions recorded yet.</p>'}`,'section')}<button class="btn outline full" type="button" data-action="progress-tab" data-tab="muscles">Back to muscle map</button>`;
   }
 
   function muscleTrendPanel(){
@@ -327,7 +329,7 @@
   function miniProgress(n,done){return `<div class="progress-row">${Array.from({length:n},(_,i)=>`<span class="${i<done?'done':i===done?'current':''}"></span>`).join('')}</div>`;}
   function dateText(iso){return new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
   function shortPeriod(start,end){const a=new Date(start+'T12:00:00'),b=new Date(end+'T12:00:00');const month=d=>d.toLocaleDateString('en-GB',{month:'short'});if(a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth())return `${a.getDate()}–${b.getDate()} ${month(b)} ${b.getFullYear()}`;return `${a.getDate()} ${month(a)} – ${b.getDate()} ${month(b)} ${b.getFullYear()}`;}
-  function title(){return `<header class="topbar"><span class="brand">RepRival</span><span class="rr153-wordmark-detail">TRAIN <span>·</span> COMPETE <span>·</span> IMPROVE</span><span class="version-chip">1.6.1</span></header>`;}
+  function title(){return `<header class="topbar"><span class="brand">RepRival</span><span class="rr153-wordmark-detail">TRAIN <span>·</span> COMPETE <span>·</span> IMPROVE</span><span class="version-chip">1.6.4</span></header>`;}
 
   function bottomNav(){
     const paths={
@@ -340,7 +342,7 @@
       account:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'
     };
     const links=[['home','Home'],['workout','Workout'],['leagues','Leagues'],['progress','Progress'],['plan','My plan'],[profile().role==='admin'?'admin':'account',profile().role==='admin'?'Admin':'Account']];
-    return `<nav class="tabnav" aria-label="Main navigation">${links.map(([id,label])=>`<button type="button" class="${(page===id||(id==='workout'&&page==='workout-intro'))?'active':''}" data-page="${id}" aria-label="${label}"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[id]}</svg></span>${label}</button>`).join('')}</nav>`;
+    return `<nav class="tabnav" aria-label="Main navigation">${links.map(([id,label])=>`<button type="button" class="${(page===id||(id==='progress'&&page==='movement-trends')||(id==='workout'&&page==='workout-intro'))?'active':''}" data-page="${id}" aria-label="${label}"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[id]}</svg></span>${label}</button>`).join('')}</nav>`;
   }
 
 
@@ -557,7 +559,7 @@
     const pbTotal=state.history.reduce((n,s)=>n+(s.prs||[]).length,0);
     return `<section class="rr153-home-hero">
         <div class="rr153-waves" aria-hidden="true"></div>
-        <div class="rr153-greeting"><span class="eyebrow">A HIGHER STANDARD. EVERY DAY.</span><h1>Good morning,<br><em>${greeting}.</em></h1><span class="rr153-discipline">Your progress is the competition.</span><button type="button" class="rr161-checkin" data-action="readiness">${todayReadiness()?"✓ Check-in saved · edit":"＋ Daily check-in"}</button></div>
+        <div class="rr153-greeting"><span class="eyebrow">A HIGHER STANDARD. EVERY DAY.</span><h1>${new Date().getHours()<12&&new Date().getHours()>=5?'Good morning':new Date().getHours()<18&&new Date().getHours()>=12?'Good afternoon':'Good evening'},<br><em>${greeting}.</em></h1><span class="rr153-discipline">Your progress is the competition.</span><button type="button" class="rr161-checkin" data-action="readiness">${todayReadiness()?"✓ Check-in saved · edit":"＋ Daily check-in"}</button></div>
         <div class="rr153-score-inset"><span>ATHLETE SCORE</span><div class="rr153-score-value">${displayRating}<i class="rr153-score-ring" aria-hidden="true"></i></div><small>${rating.value==null?'Establishing baseline':leagueRating.status==='active'?'Keep climbing':'Return to restore rating'}</small></div>
         <div class="rr160-hero-quick"><button type="button" data-page="workout-intro" class="rr160-next-pill"><small>${a?'RESUME WORKOUT':'NEXT WORKOUT'}</small><strong>${nextName}</strong><span aria-hidden="true">→</span></button><div class="rr160-recovery-pill">${recoveryIndicator()}</div></div>
       </section>
@@ -845,30 +847,253 @@
       </svg><div class="row tiny muted"><span>${dateText(points[0].date)}</span><span>${dateText(points.at(-1).date)}</span></div></div>`;
   }
   function workloadCard(history){const list=[...new Set(history.map(x=>x.session))];const filter=state.settings.volumeFilter||'all';const shown=history.filter(s=>filter==='all'||s.session===filter);const points=shown.map(s=>({date:s.endedAt,value:(s.logs||[]).reduce((a,l)=>a+Number(l.weight||0)*Number(l.reps||0),0)}));const first=points[0]?.value,last=points.at(-1)?.value;const suffix=filter==='all'?'All workout types (not directly comparable)':'Workout '+filter+' only';let description=shown.length<2?'Log at least two matching workouts to compare their workload.':first>0?`First: ${fmt(first)} kg lifted. Latest: ${fmt(last)} kg lifted (${last>=first?'+':''}${fmt((last/first-1)*100)}%). Changes in exercise choice or set count also affect this total.`:'This exercise selection has little recorded external weight; bodyweight effort is not included in kg lifted.';return card(`<div class="row"><h3>Training workload</h3><span class="label-tag">kg lifted</span></div><p class="subhead">Total external weight × reps across all completed sets — how much weighted work you did, <strong>not</strong> how strong you are.</p><div class="field mt12"><label>Compare matching workouts</label><select id="volumeFilter"><option value="all" ${filter==='all'?'selected':''}>All workouts (overview only)</option>${list.map(id=>`<option value="${esc(id)}" ${filter===id?'selected':''}>Workout ${esc(id)}</option>`).join('')}</select></div><p class="fineprint">${esc(suffix)} · excludes unweighted bodyweight exercise effort.</p>${drawChart(points)}<p class="notice">${esc(description)}</p>`,'section');}
-  function simpleMovementTrends(){
-    const movements=allMovements(),over=profile().trendOverrides||{added:[],hidden:[]},cutoff=Date.now()-7*86400000;
-    const recentIds=new Set(state.history.filter(s=>Date.parse(s.endedAt||s.startedAt||'')>=cutoff).flatMap(s=>(s.logs||[]).map(l=>l.exId)));
-    const lookup=key=>movements.find(m=>m.key===key)?.id||key;
-    const saved=new Set([...(over.added||[]).map(lookup),...(profile().selectedMovements||[]).map(lookup)]);
-    const hidden=new Set((over.hidden||[]).map(lookup));
-    const unique=[...new Map(movements.map(m=>[m.id,m])).values()];
-    const chosen=unique.filter(m=>(recentIds.has(m.id)||saved.has(m.id))&&!hidden.has(m.id));
-    return card(`<div class="row"><div><h3>Movement trends</h3><p class="subhead">Recent exercises appear automatically</p></div><button type="button" class="btn outline sm" data-action="modify-trends">${trendEditing?'Done':'Modify'}</button></div>
-      ${trendEditing?`<div class="rr161-trend-choices"><p class="subhead">Select exercises to follow. Tap again to remove.</p>${unique.map(m=>`<button type="button" data-action="trend-select" data-id="${esc(m.id)}" class="rr161-trend-choice ${chosen.some(x=>x.id===m.id)?'selected':''}"><span>${esc(m.name)}</span><b>${chosen.some(x=>x.id===m.id)?'✓':'+'}</b></button>`).join('')}</div>`:''}
-      <div class="rr161-trend-list">${chosen.length?chosen.map(m=>{const a=comparableSessions(m),first=a[0],last=a.at(-1);const pct=a.length>1?Math.round((last.performance/Math.max(.01,first.performance)-1)*100):null;
-        return `<div class="rr161-trend-row"><div><strong>${esc(m.name)}</strong><small>${a.length>1?esc(scoreLabel(bestSet(first.log)))+' → '+esc(scoreLabel(bestSet(last.log))):last?'Latest: '+esc(scoreLabel(bestSet(last.log))):'No completed record yet'}</small></div><span class="rr161-change ${pct!=null&&pct>0?'positive':''}">${pct==null?'Baseline':(pct>0?'+':'')+pct+'%'}</span></div>`;}).join(''):'<p class="subhead">Complete a workout to see your exercises here, or use Modify to add one.</p>'}</div>
-      <p class="fineprint">Change compares your first and latest best recorded set for each exercise. It is an estimate, not measured muscle growth.</p>`,'section');
+  // Movement Trends uses the same athlete-local exercise history as the workout logger.
+  // Exercise selection is automatic for the past seven days; pinned/added/hidden IDs
+  // are kept only in this athlete's existing trendOverrides preference object.
+  function trendCollection(){
+    const over=profile().trendOverrides||{added:[],hidden:[],pinned:[]};
+    const universe=[...new Map(allMovements().map(m=>[m.id,m])).values()];
+    const normalize=key=>universe.find(m=>m.key===key)?.id||key;
+    const hidden=new Set((over.hidden||[]).map(normalize));
+    const pinned=new Set((over.pinned||[]).map(normalize));
+    const added=new Set([...(over.added||[]),...(profile().selectedMovements||[])].map(normalize));
+    const cutoff=Date.now()-7*86400000;
+    const recent=new Map();
+    for(const session of state.history){
+      const date=Date.parse(session.endedAt||session.startedAt||'');
+      if(!Number.isFinite(date)||date<cutoff||date>Date.now())continue;
+      for(const log of session.logs||[])if(log.exId){recent.set(log.exId,Math.max(date,recent.get(log.exId)||0));}
+    }
+    const selected=universe.filter(m=>!hidden.has(m.id)&&(recent.has(m.id)||added.has(m.id)||pinned.has(m.id)))
+      .sort((a,b)=>Number(pinned.has(b.id))-Number(pinned.has(a.id)) || (recent.get(b.id)||0)-(recent.get(a.id)||0) || a.name.localeCompare(b.name));
+    return {universe,selected,hidden,pinned,added,recent};
   }
-  function progress(){
-    const stats=trainingMetrics(),rating=athleteIndex(),history=state.history;
-    const last30=history.filter(s=>Date.now()-Date.parse(s.endedAt||s.startedAt||'')<30*86400000),pbs=last30.reduce((a,s)=>a+(s.prs||[]).length,0);
-    const lastSession=history.at(-1),lastDate=lastSession?dateText(lastSession.endedAt||lastSession.startedAt):'No workouts yet';
-    return `<div class="eyebrow">TRAINING ANALYTICS</div><h1 class="page-title">Progress.</h1><p class="lead">A clear picture of your training — no confusing graph scales.</p>
-      <div class="two-stat section"><div class="metric athlete"><div class="eyebrow">ATHLETE SCORE</div><div class="score-number">${rating.value==null?'Calibrating':fmt(rating.value)}</div><div class="stat-detail">Personal progress rating</div></div><div class="metric"><div class="eyebrow">WORKOUTS</div><div class="score-number">${stats.workouts}</div><div class="stat-detail">${stats.sets} working sets</div></div></div>
+  function movementTrendsShortcut(){
+    const all=trendCollection(),recent=all.selected.filter(m=>all.recent.has(m.id)).length;
+    return `<button type="button" class="rr162-trend-link" data-action="progress-tab" data-tab="movements" aria-label="Explore exercise-by-exercise progress charts">
+      <span class="rr162-trend-icon" aria-hidden="true"><svg viewBox="0 0 36 36" fill="none"><path d="M4 26 L12 19 L18 22 L26 9 L32 13" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="26" cy="9" r="2.5" fill="currentColor"/></svg></span>
+      <span class="rr162-trend-copy"><strong>Movement Trends</strong><small>${recent?recent+' movement'+(recent===1?'':'s')+' trained in the last 7 days':all.selected.length?all.selected.length+' saved movements':'Explore exercise-by-exercise progress'}</small></span>
+      <span class="rr162-trend-arrow" aria-hidden="true">↗</span></button>`;
+  }
+  function trendChart(series,bodyweight,kind='strength'){
+    if(series.length===0)return `<div class="rr162-chart-empty">No recorded measurements in this period.</div>`;
+    const last=series,values=last.map(s=>s.performance).filter(Number.isFinite);
+    if(values.length===0)return `<div class="rr162-chart-empty">No recorded results in this period.</div>`;
+    const width=346,height=152,left=45,right=10,top=16,bottom=30;
+    const actualLow=Math.min(...values),actualHigh=Math.max(...values);
+    const spread=Math.max(actualHigh-actualLow,Math.abs(actualHigh)*.08,bodyweight?2:1);
+    const low=Math.max(0,actualLow-spread*.28),high=actualHigh+spread*.28;
+    const x=i=>last.length===1?(left+width-right)/2:left+i*(width-left-right)/(last.length-1);
+    const y=v=>top+(height-top-bottom)*(1-(v-low)/(high-low));
+    const pts=last.map((v,i)=>({x:x(i),y:y(v.performance),label:v.performance,day:v.date}));
+    const fmtPt=p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`;
+    const path=pts.map((p,i)=>(i?'L':'M')+fmtPt(p)).join(' ');
+    const fill=pts.length>1?path+` L${pts.at(-1).x.toFixed(1)},${height-bottom} L${left},${height-bottom} Z`:'';
+    const unit=kind==='weight'?(profile().body.unit||'kg'):bodyweight?'reps':'kg';
+    const ticks=[0,.5,1].map(f=>{const val=high-f*(high-low),yy=top+f*(height-top-bottom);return `<line x1="${left}" y1="${yy.toFixed(1)}" x2="${width-right}" y2="${yy.toFixed(1)}" stroke="#615451" stroke-opacity=".5" stroke-dasharray="3 5"/><text x="${left-7}" y="${(yy+3).toFixed(1)}" text-anchor="end" fill="#c8b4a9" font-size="10.5">${fmt(val)}</text>`;}).join('');
+    const dots=pts.map((p,i)=>`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${i===pts.length-1?4.2:3.2}" fill="#f68060" stroke="#161819" stroke-width="1.6"><title>${fmt(p.label)} ${unit} · ${dateText(p.day)}</title></circle>`).join('');
+    return `<div class="rr162-chart"><div class="rr162-chart-caption"><span>${kind==='weight'?'Recorded body weight':bodyweight?'Best reps per workout':'Estimated strength from your best set'}</span><span>${last.length} measurements${kind==='weight'?'':' / sessions'}</span></div>
+      <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${kind==='weight'?'Body weight':bodyweight?'Repetitions':'Estimated strength'} over ${last.length} recorded points, from ${fmt(last[0].performance)} to ${fmt(last.at(-1).performance)} ${unit}">
+      <defs><linearGradient id="rr162-chart-fill" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#ee7559" stop-opacity=".3"/><stop offset="1" stop-color="#ee7559" stop-opacity="0"/></linearGradient></defs>
+      ${ticks}<path d="${fill}" fill="url(#rr162-chart-fill)"/><path d="${path}" fill="none" stroke="#f17c5d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>${dots}
+      <text x="${left}" y="${height-6}" fill="#bba79f" font-size="10.5">${esc(dateText(last[0].date))}</text><text x="${width-right}" y="${height-6}" text-anchor="end" fill="#bba79f" font-size="10.5">${esc(dateText(last.at(-1).date))}</text></svg></div>`;
+  }
+  function trendMovementCard(movement,pinned){
+    const series=comparableSessions(movement),first=series[0],last=series.at(-1);
+    const best=series.length?series.reduce((record,s)=>s.performance>record.performance?s:record,series[0]):null;
+    const percent=series.length>=2&&first.performance>0?(last.performance/first.performance-1)*100:null;
+    const isBW=last?bestSet(last.log)?.load==='bodyweight'||(bestSet(last.log)?.load==='optional'&&!bestSet(last.log)?.weight):movement.load==='bodyweight';
+    const setText=s=>s?scoreLabel(bestSet(s.log)):'—';
+    const recent=series.slice(-4).reverse();
+    return `<section class="rr162-movement-card"><div class="rr162-movement-head"><div><h3>${esc(movement.name)}</h3><span>${esc(movement.muscle||'Exercise')} · ${series.length} logged session${series.length===1?'':'s'}</span></div>${pinned?'<span class="rr162-pin-label">Pinned</span>':''}</div>
+      <div class="rr162-movement-metrics"><div><small>First</small><strong>${esc(setText(first))}</strong></div><div><small>Latest</small><strong>${esc(setText(last))}</strong></div><div><small>Best ever</small><strong>${esc(setText(best))}</strong></div></div>
+      ${trendChart(series,isBW)}
+      <div class="rr162-movement-note"><strong>${percent==null?'Building your baseline':(percent>0?'+':'')+fmt(percent)+'% since first log'}</strong><span>${isBW?'Compared by best recorded reps':'Trend uses estimated strength from weight and reps'}</span></div>
+      ${recent.length?`<details class="rr162-history"><summary>Recorded sets and dates <span>⌄</span></summary><div>${recent.map(s=>`<div><span>${esc(dateText(s.date))}</span><strong>${esc(setText(s))}</strong></div>`).join('')}</div></details>`:''}
+      ${trendEditing?`<div class="rr162-movement-actions"><button type="button" class="btn outline sm" data-action="trend-pin" data-id="${esc(movement.id)}">${pinned?'Unpin':'Pin to Trends'}</button><button type="button" class="btn outline sm" data-action="trend-select" data-id="${esc(movement.id)}">Remove</button></div>`:''}</section>`;
+  }
+  // Three focused Progress destinations; headings explain why each exists.
+  const PROGRESS_TABS=[
+    ['overview','Overview','The big picture: your rating, consistency and recent achievements.'],
+    ['muscles','Muscles','Where you have trained, and how each group is getting stronger.'],
+    ['movements','Movement Trends','Recent exercises, all-time performance charts, and one detailed spotlight.']
+  ];
+  const PROGRESS_GROUP_NAMES=['Chest','Back','Shoulders','Arms','Legs','Core'];
+  const PROGRESS_PERIODS=[['4w','4 weeks',28],['12w','12 weeks',84],['6m','6 months',183],['all','All time',null]];
+
+  function progressGroupChanges(period='12w'){
+    const days=PROGRESS_PERIODS.find(x=>x[0]===period)?.[2]??null;
+    const cutoff=days==null?-Infinity:Date.now()-days*86400000;
+    const sessions=[...state.history].sort((a,b)=>Date.parse(a.endedAt||a.startedAt||'')-Date.parse(b.endedAt||b.startedAt||''));
+    const groups={};for(const group of PROGRESS_GROUP_NAMES)groups[group]=new Map();
+    for(const session of sessions){
+      const when=Date.parse(session.endedAt||session.startedAt||'');
+      if(!Number.isFinite(when)||when<cutoff||when>Date.now()+86400000)continue;
+      for(const m of sessionMovements(session)){
+        const group=leagueGroupFor(m.muscle);
+        if(!group||!groups[group])continue;
+        const value=score(m.best);
+        if(!Number.isFinite(value)||value<=0)continue;
+        const row=groups[group].get(m.id)||{id:m.id,name:m.name,unit:m.best.load==='bodyweight'?'reps':'est. kg',samples:[]};
+        row.samples.push({value,when});groups[group].set(m.id,row);
+      }
+    }
+    return PROGRESS_GROUP_NAMES.map(name=>{
+      const movements=[...groups[name].values()].map(m=>{
+        const a=m.samples[0],b=m.samples.at(-1);
+        const comparable=m.samples.length>=2&&a.value>0;
+        const change=comparable?Math.max(-70,Math.min(150,(b.value/a.value-1)*100)):null;
+        return {...m,change};
+      });
+      const qualified=movements.filter(x=>x.change!=null);
+      // Median across comparable exercises avoids one outlier controlling a whole muscle group.
+      const sorted=qualified.map(x=>x.change).sort((a,b)=>a-b),mid=Math.floor(sorted.length/2);
+      const change=sorted.length?(sorted.length%2?sorted[mid]:(sorted[mid-1]+sorted[mid])/2):null;
+      return {name,change,qualified:qualified.length,recorded:movements.length,movements};
+    });
+  }
+  function progressPercent(n){if(n==null)return '—';return `${n>0?'+':''}${Math.round(n)}%`;}
+  function progressTabs(){
+    return `<div class="rr163-progress-tabs" role="tablist" aria-label="Progress sections">${PROGRESS_TABS.map(([id,title])=>`<button type="button" role="tab" aria-selected="${id===progressTab}" class="${id===progressTab?'active':''}" data-action="progress-tab" data-tab="${id}">${title}</button>`).join('')}</div>
+      <p class="rr163-progress-guide" id="progressTabDesc">${PROGRESS_TABS.find(x=>x[0]===progressTab)[2]}</p>`;
+  }
+  function progressWeightPeriod(){return PROGRESS_PERIODS.some(x=>x[0]===state.settings.progressWeightPeriod)?state.settings.progressWeightPeriod:'all';}
+  function progressWeightData(period){
+    const body=profile().body||{},all=(body.measurements||[]).filter(m=>Number.isFinite(Number(m.kg))&&Number(m.kg)>0&&/^\d{4}-\d\d-\d\d$/.test(String(m.date)))
+      .map(m=>({...m,kg:Number(m.kg),time:Date.parse(m.date+'T12:00:00')}))
+      .filter(m=>Number.isFinite(m.time)&&m.time<=Date.now()+86400000).sort((a,b)=>a.time-b.time);
+    const days=PROGRESS_PERIODS.find(x=>x[0]===period)?.[2]??null;
+    const cutoff=days==null?-Infinity:Date.now()-days*86400000;
+    const shown=all.filter(m=>m.time>=cutoff);
+    const latest=all.at(-1)||null;
+    const base=shown[0]||null,final=shown.at(-1)||null;
+    return {all,shown,base,final,latest,body};
+  }
+  function progressWeightCard(){
+    const period=progressWeightPeriod(),{all,shown,base,final,latest,body}=progressWeightData(period);
+    const height=Number(body.height||0)/100;
+    const bmi=latest&&height>0.9&&height<2.6?latest.kg/(height*height):null;
+    const diff=base&&final&&shown.length>=2?final.kg-base.kg:null;
+    const unit=(body.unit||'kg')==='lb'?'lb':(body.unit||'kg')==='st'?'st':'kg';
+    const points=shown.map(m=>({date:m.date,value:chartWeight(m.kg)}));
+    const buttons=PROGRESS_PERIODS.map(([id,label])=>`<button type="button" data-action="weight-progress-period" data-period="${id}" aria-pressed="${period===id}" class="${period===id?'active':''}">${esc(label)}</button>`).join('');
+    return `<section class="rr164-weight-card" aria-label="Body weight progress">
+      <div class="rr163-section-heading"><div><div class="eyebrow">BODY WEIGHT & HEALTH METRICS</div><h2>Weight progress</h2><p>Your recorded weigh-ins and BMI, separate from strength gains.</p></div><button type="button" class="rr164-log-weight" data-action="weigh-in">+ Weigh in</button></div>
+      <div class="rr164-body-summary"><div><small>Latest weight</small><strong>${latest?esc(displayWeight(latest.kg)):'—'}</strong><span>${latest?esc(dateText(latest.date+'T12:00:00')):'No weigh-ins yet'}</span></div>
+      <div><small>Change in period</small><strong class="${diff!=null&&diff<0?'rr164-down':''}">${diff==null?'—':`${diff>0?'+':''}${fmt(chartWeight(diff))} ${unit}`}</strong><span>${diff==null?'Needs two weigh-ins in this period':'First to latest weigh-in'}</span></div>
+      <div><small>Current BMI</small><strong>${bmi==null?'—':bmi.toFixed(1)}</strong><span>${bmi==null?'Add height and weight':'Weight ÷ height squared'}</span></div></div>
+      <div class="rr164-periods" role="group" aria-label="Body weight history period">${buttons}</div>
+      ${all.length?`<div class="rr164-weight-chart">${trendChart(points.map(p=>({date:p.date,performance:p.value})),false,'weight')}</div>`:
+      `<div class="rr164-empty">Add your first weigh-in to start seeing body-weight progress.</div>`}
+      <p class="rr163-metric-note">${all.length===1?'Only one weigh-in so far; log another to draw a trend. ':''}BMI is a height/weight screening metric; it does not measure body fat or muscle mass.</p>
+    </section>`;
+  }
+  function progressOverview(){
+    const rating=athleteIndex(),history=state.history;
+    const now=Date.now(),last28=history.filter(x=>{const d=Date.parse(x.endedAt||x.startedAt||'');return Number.isFinite(d)&&d<=now&&d>=now-28*86400000;});
+    const validDates=history.map(x=>Date.parse(x.endedAt||x.startedAt||'')).filter(n=>Number.isFinite(n)&&n<=now);
+    const firstDate=validDates.length?Math.min(...validDates):now;
+    const trackedDays=Math.max(7,Math.min(28,Math.ceil((now-firstDate)/86400000)+1));
+    const weeklyGoal=Math.max(1,Math.min(7,Number(profile().planTracking?.weeklyGoal||profile().adaptive?.frequency||3)));
+    const targetSessions=Math.max(1,Math.ceil(weeklyGoal*trackedDays/7));
+    const recentForConsistency=validDates.filter(d=>d>=now-trackedDays*86400000).length;
+    const consistencyPercent=Math.min(100,Math.round(recentForConsistency/targetSessions*100));
+    const groups=progressGroupChanges('12w');
+    const changes=groups.filter(g=>g.change!=null).map(g=>g.change).sort((a,b)=>a-b);
+    const median=changes.length?(changes.length%2?changes[(changes.length-1)/2]:(changes[changes.length/2-1]+changes[changes.length/2])/2):null;
+    const pbs=last28.reduce((n,s)=>n+(s.prs||[]).length,0);
+    const last=history.at(-1);
+    return `<section class="rr163-glance" aria-label="Your progress at a glance">
+      <div class="rr163-section-heading"><div><div class="eyebrow">YOUR PROGRESS AT A GLANCE</div><h2>Are you moving forward?</h2><p>Three simple signals from your recorded training.</p></div></div>
+      <div class="rr163-glance-grid">
+        <div class="rr163-stat"><small>Athlete rating</small><strong>${rating.value==null?'—':fmt(rating.value)}</strong><span>100 = your initial performance baseline</span></div>
+        <div class="rr163-stat"><small>Consistency</small><strong>${consistencyPercent}%</strong><span>${recentForConsistency} of ${targetSessions} target workouts · ${trackedDays} days</span></div>
+        <div class="rr163-stat"><small>Strength trend</small><strong class="${median!=null&&median<0?'rr163-negative':''}">${progressPercent(median)}</strong><span>${changes.length?'Median group improvement · 12 weeks':'Needs repeat exercise sessions'}</span></div>
+      </div><p class="rr163-metric-note">Strength compares your repeated recorded exercises, not muscle size.</p>
+    </section>
+    ${progressWeightCard()}
+    <section class="rr163-overview-history"><div class="rr163-section-heading"><div><h2>Recent activity</h2><p>Your last four workouts and a summary of the past four weeks.</p></div></div>
+      <div class="rr163-recent-stats"><div><strong>${last28.length}</strong><span>Workouts</span></div><div><strong>${last28.reduce((n,s)=>n+(s.logs||[]).length,0)}</strong><span>Working sets</span></div><div><strong>${pbs}</strong><span>Logged PBs</span></div></div>
+      <div class="rr163-history">${historyList(4)}</div>
+      ${last?`<p class="rr163-metric-note">Most recent session: ${esc(dateText(last.endedAt||last.startedAt))}.</p>`:''}</section>`;
+  }
+  function progressMuscles(){
+    const period=state.settings.muscleStrengthPeriod||'12w';
+    const data=progressGroupChanges(period),available=data.filter(x=>x.change!=null);
+    const buttons=PROGRESS_PERIODS.map(([id,label])=>`<button type="button" class="${period===id?'active':''}" aria-pressed="${period===id}" data-action="muscle-strength-period" data-period="${id}">${label}</button>`).join('');
+    const rows=data.map(g=>{
+      const n=g.change;const width=n==null?0:Math.min(100,Math.max(0,Math.abs(n)));
+      return `<details class="rr163-group-row"><summary><div class="rr163-group-top"><strong>${g.name}</strong><span class="${n<0?'rr163-negative':''}">${progressPercent(n)}</span></div><div class="rr163-strength-track" role="img" aria-label="${g.name}: ${progressPercent(n)} strength change; bar shows ${Math.round(width)} out of 100 percent"><span style="width:${width}%;${n<0?'background:#9d7e74':''}"></span></div><small>${g.qualified?g.qualified+' repeated movement'+(g.qualified===1?'':'s')+' compared':g.recorded?'Log the same movement again to measure change':'No logged movements in this period'}</small></summary>
+        <div class="rr163-group-expanded">${g.movements.length?g.movements.map(m=>`<div><span>${esc(m.name)}</span><strong class="${m.change!=null&&m.change<0?'rr163-negative':''}">${progressPercent(m.change)}</strong></div>`).join(''):'<p>No completed exercises in this muscle group for this period.</p>'}<p>Based on each exercise's first and latest best-set performance in this period. Exercises without two sessions have no comparison yet.</p></div></details>`;
+    }).join('');
+    return `<div class="rr163-muscles">
+      <section class="rr163-strength-section"><div class="rr163-section-heading"><div><div class="eyebrow">ESTIMATED STRENGTH CHANGE</div><h2>Which groups are getting stronger?</h2><p>Repeated lifts, compared within the selected period. A +43% gain fills 43% of the bar.</p></div></div>
+        <div class="rr163-period-buttons" role="group" aria-label="Muscle strength comparison period">${buttons}</div>
+        <div class="rr163-strength-rows">${rows}</div><p class="rr163-metric-note">Bars use a consistent 0–100% reference; gains above 100% are capped visually, not numerically. ${available.length} of 6 groups have comparable repeat sessions. Estimated performance ≠ measured muscle growth.</p>
+      </section>
+      <div class="rr163-section-heading"><div><div class="eyebrow">RECENT MUSCLE STIMULUS</div><h2>Muscle heatmap</h2><p>Red = recent logged training. Blue = sustained reduction in your usual training. Neither colour proves muscle growth or loss.</p></div></div>
       ${musclePanel(false)}
-      ${card(`<div class="row"><h3>Your last 30 days</h3><span class="label-tag">AT A GLANCE</span></div><div class="rr161-summary-three"><div><strong>${last30.length}</strong><span>Workouts</span></div><div><strong>${pbs}</strong><span>New PBs</span></div><div><strong>${last30.reduce((a,s)=>a+(s.logs||[]).length,0)}</strong><span>Working sets</span></div></div><p class="subhead mt12">Last workout: <strong>${esc(lastDate)}</strong></p>`,'section')}
-      ${simpleMovementTrends()}
-      ${card(`<div class="row"><h3>Workout history</h3><span class="label-tag">${history.length} sessions</span></div><p class="subhead mt8">Tap Review to see individual sets and your progress since that session.</p><div class="mt12">${historyList(12)}</div>`,'section')}`;
+    </div>`;
+  }
+
+  function movementHistoryPeriod(){return PROGRESS_PERIODS.some(x=>x[0]===state.settings.movementTrendPeriod)?state.settings.movementTrendPeriod:'all';}
+  function periodTrendSeries(m,period){
+    const days=PROGRESS_PERIODS.find(x=>x[0]===period)?.[2]??null;
+    const threshold=days==null?-Infinity:Date.now()-days*86400000;
+    return comparableSessions(m).filter(x=>{const t=Date.parse(x.date);return Number.isFinite(t)&&t>=threshold&&t<=Date.now()+86400000;});
+  }
+  function movementSparkline(series,m){
+    const data=series.filter(x=>Number.isFinite(x.performance));
+    if(!data.length)return '<div class="rr164-spark-empty">No sessions in this period</div>';
+    const w=160,h=54,lo=Math.min(...data.map(x=>x.performance)),hi=Math.max(...data.map(x=>x.performance)),pad=Math.max((hi-lo)*.2,Math.abs(hi)*.025,.25);
+    const low=Math.max(0,lo-pad),high=hi+pad;
+    const xy=data.map((pt,i)=>({x:8+i*(w-16)/Math.max(1,data.length-1),y:6+(h-14)*(1-(pt.performance-low)/(high-low))}));
+    const path=xy.map((p,i)=>`${i?'L':'M'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+    return `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(m.name)}: ${data.length} session${data.length===1?'':'s'} in selected history period"><path d="M8 46H152" stroke="#765c50" stroke-opacity=".4" stroke-dasharray="3 5" />${xy.length>1?`<path d="${path}" stroke="#f08364" stroke-width="2.3" stroke-linejoin="round" stroke-linecap="round" fill="none"/>`:''}${xy.map((p,i)=>`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${i===xy.length-1?3.2:2}" fill="#ffa18a" />`).join('')}</svg>`;
+  }
+  function movementTrendTiles(data,period,chosen){
+    return `<div class="rr164-trend-grid" aria-label="Charts for recently trained and pinned movements">${data.selected.map(m=>{
+      const series=periodTrendSeries(m,period),first=series[0],last=series.at(-1),pct=first&&last&&series.length>=2&&first.performance>0?(last.performance/first.performance-1)*100:null;
+      const recent=data.recent.has(m.id),pinned=data.pinned.has(m.id);
+      return `<button type="button" class="rr164-trend-tile ${chosen?.id===m.id?'selected':''}" data-action="trend-spotlight" data-id="${esc(m.id)}" aria-pressed="${chosen?.id===m.id}">
+        <div class="rr164-tile-heading"><strong>${esc(m.name)}</strong>${pinned?'<span aria-label="Pinned">★</span>':''}</div>
+        <small>${recent?'Trained in last 7 days':pinned?'Pinned movement':'Added movement'}</small>
+        ${movementSparkline(series,m)}
+        <div class="rr164-tile-bottom"><b class="${pct!=null&&pct<0?'rr163-negative':''}">${progressPercent(pct)}</b><span>${series.length} session${series.length===1?'':'s'}</span></div>
+      </button>`;
+    }).join('')}</div>`;
+  }
+  function movementSpotlight(m,period,pinned){
+    const series=periodTrendSeries(m,period),all=comparableSessions(m),first=series[0],last=series.at(-1),best=series.length?series.reduce((a,b)=>b.performance>a.performance?b:a,series[0]):null;
+    const weighted=!!last&&(bestSet(last.log)?.load!=='bodyweight');
+    const label=pt=>pt?scoreLabel(bestSet(pt.log)):'—';
+    const n=first&&last&&series.length>=2&&first.performance>0?(last.performance/first.performance-1)*100:null;
+    return `<section class="rr164-spotlight" aria-label="Movement spotlight"><div class="rr163-section-heading"><div><div class="eyebrow">MOVEMENT SPOTLIGHT</div><h2>${esc(m.name)}</h2><p>Selected exercise · ${series.length} session${series.length===1?'':'s'} in this chart period</p></div>${pinned?'<span class="rr162-pin-label">Pinned</span>':''}</div>
+      <div class="rr164-spotlight-metrics"><div><small>First</small><strong>${esc(label(first))}</strong></div><div><small>Latest</small><strong>${esc(label(last))}</strong></div><div><small>Best in period</small><strong>${esc(label(best))}</strong></div></div>
+      <div class="rr164-big-chart">${trendChart(series,!weighted)}</div>
+      <div class="rr164-spotlight-summary"><strong>${progressPercent(n)} change</strong><span>${all.length} total logged sessions · ${weighted?'estimated best-set strength':'recorded best-set repetitions'}</span></div>
+      ${series.length?`<details class="rr162-history"><summary>Recorded sessions and sets <span>⌄</span></summary><div>${[...series].reverse().slice(0,15).map(x=>`<div><span>${esc(dateText(x.date))}</span><strong>${esc(label(x))}</strong></div>`).join('')}</div></details>`:''}
+    </section>`;
+  }
+  function movementTrendsScreen(embedded=false){
+    const data=trendCollection(),catalog=data.universe.slice().sort((a,b)=>a.name.localeCompare(b.name));
+    const period=movementHistoryPeriod(),chosen=data.selected.find(m=>m.id===state.settings.progressMovementId)||data.selected[0];
+    const buttons=PROGRESS_PERIODS.map(([id,label])=>`<button type="button" data-action="movement-trend-period" data-period="${id}" aria-pressed="${period===id}" class="${period===id?'active':''}">${esc(label)}</button>`).join('');
+    return `<section class="rr164-trends" aria-label="Movement Trends">
+      <div class="rr163-section-heading"><div><div class="eyebrow">INDIVIDUAL EXERCISE PERFORMANCE</div><h2>Movement Trends</h2><p>Movements trained in the last seven days appear automatically. Their charts show your chosen period of historical performance.</p></div></div>
+      <div class="rr164-trends-toolbar"><span>${data.selected.length} movement${data.selected.length===1?'':'s'} · ${data.selected.filter(m=>data.recent.has(m.id)).length} trained recently</span><button class="btn outline sm" data-action="modify-trends" type="button" aria-expanded="${trendEditing}">${trendEditing?'Done ✓':'Modify +'}</button></div>
+      <div class="rr164-period-label">HISTORY SHOWN IN CHARTS</div><div class="rr164-periods" role="group" aria-label="Movement chart history period">${buttons}</div>
+      ${trendEditing?`<section class="rr162-trend-edit"><h3>Choose movements</h3><p class="subhead">Search, add or remove exercises and pin favourites to keep them visible.</p><label class="rr162-trend-search-label" for="trendSearch">Search exercises</label><input id="trendSearch" type="search" placeholder="Bench, curl, row…" value="${esc(trendSearchQuery)}" autocomplete="off"><div id="rr162-trend-choices" class="rr162-trend-choices">${catalog.map(m=>{const selected=data.selected.some(x=>x.id===m.id),pinned=data.pinned.has(m.id);return `<div class="rr162-trend-choice" data-trend-name="${esc((m.name+' '+(m.muscle||'')).toLowerCase())}"><span>${esc(m.name)}<small>${esc(m.muscle||'')}</small></span><div><button type="button" data-action="trend-select" data-id="${esc(m.id)}" class="rr162-mini-button ${selected?'on':''}">${selected?'✓ Shown':'+ Add'}</button><button type="button" data-action="trend-pin" data-id="${esc(m.id)}" class="rr162-mini-button ${pinned?'pinned':''}">${pinned?'★':'☆'}</button></div></div>`;}).join('')}</div><p class="rr162-trend-empty-search" hidden>No matching exercises.</p></section>`:''}
+      ${data.selected.length?`${movementTrendTiles(data,period,chosen)}${movementSpotlight(chosen,period,data.pinned.has(chosen.id))}`:
+      '<div class="rr164-empty">No movements from the last seven days yet. Finish a workout or choose an exercise with Modify.</div>'}
+      <p class="rr163-metric-note">Weighted movements use an estimated strength score from your best set. Bodyweight movements use repetitions. One recorded session shows a point, not a trend. These charts do not measure muscle mass.</p>
+    </section>`;
+  }
+
+  function progress(){
+    // All three views sit under the same persistent bottom-navigation destination.
+    return `<div class="rr163-progress-screen"><div class="eyebrow">TRAIN · COMPETE · IMPROVE</div><h1 class="page-title">Progress.</h1><p class="lead rr163-progress-intro">See how your work is paying off, from the big picture to individual exercises.</p>
+      ${progressTabs()}<div class="rr163-tab-content" role="tabpanel" aria-label="${PROGRESS_TABS.find(x=>x[0]===progressTab)[1]}">${progressTab==='muscles'?progressMuscles():progressTab==='movements'?movementTrendsScreen(true):progressOverview()}</div></div>`;
   }
 
   function adaptivePlan(){return selectedPlan===ADAPT_ID&&profile().adaptive?.active;}
@@ -1043,6 +1268,7 @@
     else if(page==='workout-intro')body=workoutLanding();
     else if(page==='workout')body=workout();
     else if(page==='progress')body=progress();
+    else if(page==='movement-trends'){page='progress';progressTab='movements';body=progress();}
     else if(page==='readiness')body=readinessScreen();
     else if(page==='muscle-detail')body=muscleDetailScreen();
     else if(page==='leagues')body=leaguesScreen();
@@ -1051,6 +1277,10 @@
     else if(page==='edit-history')body=editHistoryScreen();
     else body=home();
     shell(body);
+    if(page==='progress'&&progressTab==='movements'&&trendEditing&&trendSearchQuery){
+      let count=0;document.querySelectorAll('.rr162-trend-choice').forEach(row=>{const match=(row.dataset.trendName||'').includes(trendSearchQuery.toLocaleLowerCase());row.hidden=!match;if(match)count++;});
+      const empty=document.querySelector('.rr162-trend-empty-search');if(empty)empty.hidden=count!==0;
+    }
     document.title=`RepRival · ${page[0].toUpperCase()+page.slice(1)}`;
   }
   function showToast(message){
@@ -1170,10 +1400,15 @@
     const nav=e.target.closest('[data-nav]');
     if(nav){page=nav.dataset.nav;render();window.scrollTo({top:0,left:0,behavior:'instant'});return;}
     const link=e.target.closest('[data-page]');
-    if(link){page=link.dataset.page==='workout'?'workout-intro':link.dataset.page;render();window.scrollTo({top:0,left:0,behavior:'instant'});return;}
+    if(link){const dest=link.dataset.page;page=dest==='workout'?'workout-intro':dest==='movement-trends'?'progress':dest;if(dest==='progress')progressTab='overview';if(dest==='movement-trends')progressTab='movements';render();window.scrollTo({top:0,left:0,behavior:'instant'});return;}
     const muscle=e.target.closest('[data-muscle]');if(muscle){state.settings.selectedMuscle=muscle.dataset.muscle;page='muscle-detail';render();return;}
     const el=e.target.closest('[data-action]');if(!el)return;
     const action=el.dataset.action;
+    if(action==='progress-tab'){progressTab=['overview','muscles','movements'].includes(el.dataset.tab)?el.dataset.tab:'overview';trendEditing=false;page='progress';render();window.scrollTo({top:0,left:0,behavior:'instant'});return;}
+    if(action==='weight-progress-period'){const id=el.dataset.period;if(PROGRESS_PERIODS.some(x=>x[0]===id)){state.settings.progressWeightPeriod=id;save();render();}return;}
+    if(action==='movement-trend-period'){const id=el.dataset.period;if(PROGRESS_PERIODS.some(x=>x[0]===id)){state.settings.movementTrendPeriod=id;save();render();}return;}
+    if(action==='trend-spotlight'){const id=el.dataset.id;if(trendCollection().selected.some(m=>m.id===id)){state.settings.progressMovementId=id;save();render();}return;}
+    if(action==='muscle-strength-period'){const id=el.dataset.period;if(PROGRESS_PERIODS.some(x=>x[0]===id)){state.settings.muscleStrengthPeriod=id;save();render();}return;}
     if(['designer','library','metrics','equipment','exercises'].includes(action)){page=action;render();return;}
     if(action==='adaptive-wizard-next'||action==='adaptive-wizard-back'){
       const steps=[...document.querySelectorAll('[data-wizard-step]')],current=steps.findIndex(step=>!step.hidden);
@@ -1207,7 +1442,14 @@
       cfg.reviewedAt=todayLocal();save();page='plan';render();showToast(action==='accept-adaptive-review'?'Focus suggestions accepted':'Review dismissed');return;
     }
     if(action==='adjust-adaptive-focus'){adaptiveDraft=adaptiveConfig();page='adaptive-setup';render();return;}
-    if(action==='modify-trends'){trendEditing=!trendEditing;render();return;}
+    if(action==='modify-trends'){trendEditing=!trendEditing;page='progress';progressTab='movements';render();return;}
+    if(action==='trend-pin'){
+      const id=String(el.dataset.id||''),known=trendCollection().universe.some(m=>m.id===id);if(!known)return;
+      const over=profile().trendOverrides||(profile().trendOverrides={added:[],hidden:[],pinned:[]});
+      const pins=new Set(over.pinned||[]);
+      if(pins.has(id))pins.delete(id);else{pins.add(id);over.added=[...new Set([...(over.added||[]),id])];over.hidden=(over.hidden||[]).filter(k=>k!==id);}
+      over.pinned=[...pins];save();page='progress';progressTab='movements';render();return;
+    }
     if(action==='trend-select'){
       const id=String(el.dataset.id||''),movements=allMovements(),known=movements.some(m=>m.id===id);if(!known)return;
       const over=profile().trendOverrides||(profile().trendOverrides={added:[],hidden:[]});
@@ -1216,7 +1458,7 @@
       const manually=(over.added||[]).some(k=>k===id||keysForId.has(k))||(profile().selectedMovements||[]).some(k=>keysForId.has(k));
       const hidden=(over.hidden||[]).some(k=>k===id||keysForId.has(k));
       const selected=!hidden&&(manually||autoIds.has(id));
-      if(selected){over.added=over.added.filter(k=>k!==id&&!keysForId.has(k));over.hidden=[...new Set([...over.hidden.filter(k=>!keysForId.has(k)),id])];profile().selectedMovements=(profile().selectedMovements||[]).filter(k=>!keysForId.has(k));}
+      if(selected){over.pinned=(over.pinned||[]).filter(k=>k!==id&&!keysForId.has(k));over.added=over.added.filter(k=>k!==id&&!keysForId.has(k));over.hidden=[...new Set([...over.hidden.filter(k=>!keysForId.has(k)),id])];profile().selectedMovements=(profile().selectedMovements||[]).filter(k=>!keysForId.has(k));}
       else{over.hidden=over.hidden.filter(k=>k!==id&&!keysForId.has(k));over.added=[...new Set([...over.added.filter(k=>!keysForId.has(k)),id])];}
       save();render();return;
     }
@@ -1322,6 +1564,12 @@
   document.addEventListener('input',e=>{
     if(e.target.classList?.contains('rr160-focus-slider')){
       const i=Number(e.target.name.replace('level',''));const label=document.querySelector(`[data-focus-name="${i}"]`);if(label)label.textContent=ADAPT.LEVELS[Number(e.target.value)];return;
+    }
+    if(e.target.id==='trendSearch'){
+      trendSearchQuery=e.target.value;
+      const q=trendSearchQuery.trim().toLocaleLowerCase();let shown=0;
+      document.querySelectorAll('.rr162-trend-choice').forEach(row=>{const match=(row.dataset.trendName||'').includes(q);row.hidden=!match;if(match)shown++;});
+      const empty=document.querySelector('.rr162-trend-empty-search');if(empty)empty.hidden=shown!==0;return;
     }
     if(e.target.id==='exerciseSearch'){catalogueFilter.search=e.target.value;const start=e.target.selectionStart;render();const field=document.querySelector('#exerciseSearch');if(field){field.focus();if(start!=null)field.setSelectionRange(start,start);}return;}
     if(e.target.form?.id==='roundForm'&&state.active){
@@ -1460,6 +1708,7 @@
     if(e.target.id==='exerciseDay'){state.settings.editDay=e.target.value;save();render();return;}
     
     if(e.target.id==='leagueArea'){leagueStore().area=e.target.value;save();render();return;}
+    if(e.target.id==='rr163-movement-choice'){state.settings.progressMovementId=e.target.value;save();render();return;}
     if(e.target.id==='journeyPeriod'||e.target.id==='journeyWorkout'){state.settings[e.target.id]=e.target.value;save();render();return;}
     if(e.target.id==='heatPeriod'){state.settings.heatPeriod=Number(e.target.value);save();render();return;}
     if(e.target.id==='volumeFilter'){state.settings.volumeFilter=e.target.value;save();render();return;}
@@ -1504,5 +1753,5 @@
   }
   render();
   // Small surface for local smoke tests. No production backend or data transfer.
-  window.RepRivalTest={getState:()=>structuredClone(state),buildTasks,score,calcRest,version:'1.5.4',league:()=>({store:structuredClone(leagueStore()),inactivity:leagueInactivity()}),comparableSessions,muscleChange};
+  window.RepRivalTest={getState:()=>structuredClone(state),buildTasks,score,calcRest,version:'1.6.3',league:()=>({store:structuredClone(leagueStore()),inactivity:leagueInactivity()}),comparableSessions,muscleChange};
 })();
