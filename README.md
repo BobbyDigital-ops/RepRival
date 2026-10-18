@@ -1,24 +1,21 @@
-# RepRival v1.4.6 — Real exercise artwork
+# RepRival v1.4.7 — Illustration deployment fix
 
-**Release replaces the v1.4.4/1.4.5 homemade illustrations** with original Workout Guide exercise SVGs from Bryl Lim's Everkinetic-derived collection. All 19 distinct built-in movement IDs are mapped to locally included assets. A couple of closely related poses are representative rather than the identical equipment variation, such as suitcase carry shown with farmer carry artwork.
+This release fixes missing workout images after deploying to GitHub / Netlify.
 
-## How to deploy
+## What changed
+- All 23 original Bryl Lim / Everkinetic-derived SVG exercise artworks are **embedded locally inside illustrations.js** as image data. No external fetches, nested illustrations folders or third-party CDN requests are required.
+- Workout artwork uses the same exact existing exercise-ID mappings and tap-to-enlarge feature.
+- Site cache updated to `reprival-v147`, with all required root files precached.
+- No changes to the saved profile/workout data structure or localStorage key `reprival-athletes-v12`.
 
-1. Export a complete backup of your existing live RepRival data. Keep it safe.
-2. Extract the ZIP file. Its *root* contains the project's `index.html`, `app.js`, `program.js`, `plan-library.js`, `styles.css`, `sw.js`, `manifest.webmanifest`, `illustrations.js`, icons, and `illustrations/` folder.
-3. Upload all of those files and the whole `illustrations/` directory to the **root of your GitHub repository** and commit. Do NOT upload the outer extracted folder itself.
-4. Netlify will redeploy, and the new cache version will update after a reload.
+## Deploy
+1. On the existing live site, **export a complete backup (JSON)** first.
+2. Extract `RepRival_v1_4_7_GitHub_Update.zip`.
+3. Upload **all files at the extracted folder's top level** to the ROOT of your GitHub repository (alongside the existing `index.html`). Commit replacements. There is **no illustrations folder to upload**.
+4. Netlify should publish the new version. Open the live site and confirm `1.4.7` appears at the top.
+5. If the old version persists, reload the existing tab once after Netlify deploys. **Do not clear site data or uninstall the PWA**, because workout records are local to the browser.
 
-No stored workout/profile data formats or localStorage keys were changed.
+Files previously present in your repository under `illustrations/` can remain, but v1.4.7 no longer needs or requests them.
 
-## Licences
-
-The artwork in `illustrations/workout-guide/` is from Bryl Lim's Workout Guide, based on Everkinetic poses. Art under CC BY-SA 4.0, retained unmodified; its displayed color is adjusted by CSS. See `ATTRIBUTION.md`, `LICENSES.md` and `LICENSE-ASSETS` for upstream attribution and license. Program code remains independently licensed.
-
-## Changes
-
-- Exact built-in movement ID matching; no more generic bench or row pictures across unrelated exercises.
-- Artwork bundled as local SVG files and prefetched by the service worker for offline use.
-- Tap artwork to enlarge during workout (close to resume).
-- New app and offline cache version 1.4.6.
-- Home screen overview refinements and scheduled weigh-ins from previous releases preserved.
+## Illustrations & licence
+Illustrations by Bryl Lim / Workout Guide based on Everkinetic under CC BY-SA 4.0. Bundled image bytes are unmodified. The app applies its colour tint through CSS. See `ATTRIBUTION.md`, `LICENSES.md` and `LICENSE-ASSETS` for credit and asset licensing. Code and exercise data preserved.

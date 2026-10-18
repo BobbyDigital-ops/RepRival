@@ -265,7 +265,7 @@
   function miniProgress(n,done){return `<div class="progress-row">${Array.from({length:n},(_,i)=>`<span class="${i<done?'done':i===done?'current':''}"></span>`).join('')}</div>`;}
   function dateText(iso){return new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}
   function shortPeriod(start,end){const a=new Date(start+'T12:00:00'),b=new Date(end+'T12:00:00');const month=d=>d.toLocaleDateString('en-GB',{month:'short'});if(a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth())return `${a.getDate()}–${b.getDate()} ${month(b)} ${b.getFullYear()}`;return `${a.getDate()} ${month(a)} – ${b.getDate()} ${month(b)} ${b.getFullYear()}`;}
-  function title(){return `<header class="topbar"><span class="brand">RepRival</span><span class="version-chip">PERSONAL PREVIEW · 1.4.6</span></header>`;}
+  function title(){return `<header class="topbar"><span class="brand">RepRival</span><span class="version-chip">PERSONAL PREVIEW · 1.4.7</span></header>`;}
 
   function bottomNav(){
     const links=[['home','⌂','Home'],['workout','◫','Workout'],['progress','▥','Progress'],['plan','⚙','My plan'],[profile().role==='admin'?'admin':'account','♙',profile().role==='admin'?'Admin':'Account']];
@@ -407,7 +407,8 @@
     }
     const slug=specific||window.REPRIVAL_FALLBACK_ART?.[key];
     if(!slug)return '';
-    const src=`illustrations/workout-guide/${slug}.svg`;
+    const src=window.REPRIVAL_EMBEDDED_ART?.[slug];
+    if(!src)return '';
     const description=specific?'Exercise illustration':'Representative exercise illustration';
     return `<button type="button" class="art-open" data-action="view-art" aria-label="Enlarge illustration for ${esc(ex.name)}"><img class="exercise-cue exercise-art" src="${src}" alt="${esc(ex.name)} — ${description}" loading="lazy"></button>`;
   }
@@ -1005,5 +1006,5 @@
   }
   render();
   // Small surface for local smoke tests. No production backend or data transfer.
-  window.RepRivalTest={getState:()=>structuredClone(state),buildTasks,score,calcRest,version:'1.4.6',comparableSessions,muscleChange};
+  window.RepRivalTest={getState:()=>structuredClone(state),buildTasks,score,calcRest,version:'1.4.7',comparableSessions,muscleChange};
 })();
