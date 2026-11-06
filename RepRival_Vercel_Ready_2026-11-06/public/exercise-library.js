@@ -299,6 +299,7 @@
       ex.displayMuscle='Shoulders (front / side)';
     }
     if(LOAD_OPTIONAL.has(ex.id)){
+      if(ex.load==='single')ex.optionalLoadMode='single';
       ex.equipment=ex.equipment.filter(g=>g!=='dumbbells');
       ex.optionalEquipment=['dumbbells'];
       ex.load='optional';
@@ -322,6 +323,7 @@
   // The newly added movement is included before canonical indexing.
   const russian=entries[entries.length-1];
   russian.optionalEquipment=['dumbbells'];
+  russian.optionalLoadMode='single';
   function inferPatternAndFamily(ex) {
     let pattern = 'isolation';
     let family = ex.id;
