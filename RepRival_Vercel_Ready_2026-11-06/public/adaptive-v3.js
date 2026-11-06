@@ -56,7 +56,7 @@
       return true;
     });
     const supersets=Math.max(1,Math.min(5,Number(opts.supersets || cfg.supersets || 3)));
-    const setsPerPair=p=>p<2?3:2;
+    const setsPerPair=p=>supersets===1?2:p<2?3:2;
     const plannedTotal=Array.from({length:supersets},(_,p)=>setsPerPair(p)*2).reduce((a,b)=>a+b,0);
     const desiredDominant=Math.ceil(plannedTotal*.75);
     let dominantSets=0, usedSets=0;
