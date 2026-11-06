@@ -1214,6 +1214,72 @@
     `;
   }
 
+  // Stage 1: a dedicated Graphite Home visual; scores and original atlas remain intact.
+  const GRAPHITE_STIMULUS_STOPS=[[0,"#536777"],[20,"#657582"],[45,"#777680"],[70,"#a4767b"],[100,"#bc7479"]];
+  function graphiteHeatColour(score) {
+    const x=Math.min(100,Math.max(0,Number(score)||0));
+    let i=0;
+    while(i<GRAPHITE_STIMULUS_STOPS.length-2&&x>GRAPHITE_STIMULUS_STOPS[i+1][0])i++;
+    const [p1,h1]=GRAPHITE_STIMULUS_STOPS[i], [p2,h2]=GRAPHITE_STIMULUS_STOPS[i+1];
+    const a=[1,3,5].map(j=>parseInt(h1.slice(j,j+2),16)),b=[1,3,5].map(j=>parseInt(h2.slice(j,j+2),16));
+    const t=(x-p1)/(p2-p1||1);
+    return '#'+a.map((v,k)=>Math.round(v+(b[k]-v)*t).toString(16).padStart(2,'0')).join('');
+  }
+  
+  function graphiteAtlasPalette(metric,defaultColor) {
+    if (!metric || defaultColor?.alpha===0) return defaultColor;
+    const days=Number(metric.daysSince);
+    if(metric.isDetraining&&Number.isFinite(days)&&days>=21)
+      return {fill:days>=28?'#6589a2':'#7d9eaf',alpha:days>=28?.55:.43};
+    const stimulus=Math.min(100,Math.max(0,Number(metric.stimulusScore)||0));
+    return {fill:graphiteHeatColour(stimulus),alpha:Math.min(.74,Math.max(.10,.17+stimulus*.0055))};
+  }
+  
+  function graphiteMuscleRow(m) {
+    const s=Math.min(100,Math.max(0,Math.round(Number(m.stimulusScore)||0)));
+    const r=m.readinessScore==null||!Number.isFinite(Number(m.readinessScore))?null:Math.max(0,Math.min(100,Math.round(Number(m.readinessScore))));
+    const eff=Number(m.effectiveSets)||0;
+    const target=Number(m.targetSets)||10;
+    const sets=(Number.isInteger(eff)?String(eff):eff.toFixed(1).replace(/\.0$/,''))+'/'+target+' sets';
+    const status=esc(m.readinessState||'Insufficient data'),pct=r==null?'—':r+'%';
+    const color=graphiteHeatColour(s);
+    return `<div class="rr-g-muscle-row" aria-label="${esc(m.name)}: stimulus ${s} percent, readiness ${esc(pct)}, ${esc(sets)}">
+      <div class="rr-g-muscle-title"><strong>${esc(m.name)}</strong><small>${esc(sets)}</small></div>
+      <div class="rr-g-muscle-dose">
+        <div class="rr-g-metric-head"><span>STIMULUS</span><strong style="color:${color}">${s}%</strong></div>
+        <div class="rr-g-track" role="progressbar" aria-label="${esc(m.name)} stimulus" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${s}"><i style="width:${s}%;background:${color}"></i></div>
+      </div>
+      <div class="rr-g-muscle-ready"><span>READINESS</span><strong>${esc(pct)}</strong><small>${status}</small></div>
+    </div>`;
+  }
+  
+  function graphiteHomeHeatmap() {
+    const data=heatData(7);
+    const groups=window.RepRivalIntelligence?.calculateGroupMetrics?.(data)||[];
+    const ready=groups.filter(m=>m.readinessState==='Ready'||m.readinessState==='Mostly ready').length;
+    const front=window.RepRivalBodyMap.figure('front',data,graphiteAtlasPalette);
+    const back=window.RepRivalBodyMap.figure('back',data,graphiteAtlasPalette);
+    return `<section class="rr-g-home-heat" aria-labelledby="rr-g-title">
+      <div class="rr-g-head">
+        <div class="rr-g-kicker">STIMULUS / RECOVERY / READINESS</div>
+        <h1 id="rr-g-title">Muscle Heat Zones</h1>
+        <p>See which muscle groups have received productive training and how ready they are to work again.</p>
+      </div>
+      <div class="rr-g-body-pair" aria-label="Front and back interactive anatomical muscle maps">
+        <div class="rr-g-body-view"><div class="rr-g-body-svg">${front}</div><span>FRONT</span></div>
+        <div class="rr-g-body-view"><div class="rr-g-body-svg">${back}</div><span>BACK</span></div>
+      </div>
+      <p class="rr-g-body-hint">Tap a muscle to view its recent training.</p>
+      <div class="rr-g-scores-head"><h2>Muscle groups</h2><span>${ready} / ${groups.length} groups ready</span></div>
+      <div class="rr-g-muscle-list">${groups.map(graphiteMuscleRow).join('')}</div>
+      <div class="rr-g-legend" aria-label="Muscle heat colours">
+        <div class="rr-g-gradient" aria-hidden="true"></div>
+        <div class="rr-g-legend-ends"><span>COOL · LOWER STIMULUS</span><span>WARM · HIGHER STIMULUS</span></div>
+        <p>Blue on the body indicates prolonged detraining; other cool or neutral tones indicate lower recent stimulus. Readiness is a separate recovery estimate, not the heat colour.</p>
+      </div>
+    </section>`;
+  }
+
   function home(){
     const a = state.active;
     const session = a?.session || state.next;
@@ -1275,6 +1341,7 @@
     const ringDotY = (43 + 36 * Math.sin(angleRad)).toFixed(1);
 
     return `
+      ${graphiteHomeHeatmap()}
       <!-- Redesigned Hero Greeting Card with Rich Ember Edge Highlighting & Background Waves -->
       <section class="card section rr165-greeting-card">
         <div class="rr153-waves" aria-hidden="true"></div>
@@ -1416,19 +1483,6 @@
             <button type="button" class="btn outline sm" data-action="open-generator" style="font-size:11px; padding:4px 10px;">⚡ Quick Workout</button>
             <button type="button" class="btn outline sm" data-action="open-holiday-modal" style="font-size:11px; padding:4px 10px; border-color:rgba(56,189,248,0.4); color:#38bdf8;">${state.holiday?.active ? '🌴 Holiday Settings' : '🌴 Holiday Mode'}</button>
           </div>
-        </div>
-      </section>
-
-      <!-- Anatomical Heat Map Card -->
-      <section class="card section rr-home-heatmap-card">
-        <div>
-          <div class="eyebrow">ANATOMICAL HEAT MAP</div>
-          <h3 class="mt4">Muscle Heat Zones</h3>
-        </div>
-        <p class="subhead mt4">Heat zones turn glowing red with substantial productive training exposure and transition to cool blue with prolonged inactivity. Balance productive stimulus with adequate recovery.</p>
-
-        <div class="mt16">
-          ${musclePanel(true)}
         </div>
       </section>
 
@@ -4958,6 +5012,12 @@
   }
 
   function render(){
+    // Disable the light Element stylesheet only on Home. The rest of the app
+    // retains its existing look, and the change is trivially reversible.
+    const graphiteHome=page==='home';
+    document.body.classList.toggle('rr-graphite-home',graphiteHome);
+    const elementSheet=document.getElementById('rr-element-sheet');
+    if(elementSheet)elementSheet.disabled=graphiteHome;
     let body='';
     if(page==='setup')body=setupScreen();
     else if(page==='unlock')body=unlockScreen();
@@ -6596,6 +6656,9 @@
     setHistory:(h)=>{ state.history = h; },
     setTodayReadiness:(r)=>{ const p=profile(); if(!Array.isArray(p.readinessLog))p.readinessLog=[]; const idx=p.readinessLog.findIndex(x=>x.day===r.day); if(idx>=0)p.readinessLog[idx]=r; else p.readinessLog.push(r); save(); },
     getProfile:()=>structuredClone(profile()),
+    graphiteHomeHeatmap,
+    graphiteHeatColour,
+    graphiteAtlasPalette,
     pauseProgrammeForAdaptive,
     resumePausedProgramme,
     adaptiveStudioScreen,
