@@ -312,32 +312,56 @@ body.rr-graphite-home {
   .rr-graphite-home .rr-g-muscle-ready>strong{font-size:12px!important}
   .rr-graphite-home .rr-g-welcome h2{font-size:17px!important}
 }
-/* Graphite Pass 3: workout-first mobile hierarchy and renewed premium finish.
-   Purely presentational: training data, recovery calculations and map interaction unchanged. */
+/* Graphite Pass 3.1 — achromatic polished graphite.
+   Heat map artwork and physiological stimulus colour scales are deliberately untouched. */
 .rr-graphite-home .rr-g-home-overview{
-  position:relative!important;overflow:hidden!important;margin:0 0 18px!important;
-  background:linear-gradient(157deg,#25272d 0%,#1b1d22 48%,#17191d 100%)!important;
-  border:1px solid #55505a!important;
-  box-shadow:0 14px 38px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.045)!important;
+  position:relative!important;isolation:isolate!important;overflow:hidden!important;margin:0 0 18px!important;
+  background:linear-gradient(145deg,#292b30 0%,#1e2024 38%,#141619 100%)!important;
+  border:1px solid #515459!important;border-radius:21px!important;
+  box-shadow:0 16px 44px #0009,inset 0 1px 0 #ffffff18,inset 0 -1px 0 #0009!important;
 }
 .rr-graphite-home .rr-g-home-overview::before{
-  content:"";pointer-events:none;position:absolute;top:0;left:16px;right:16px;height:2px;
-  background:linear-gradient(90deg,#e36b4c 0%,#b75b59 37%,transparent 85%);opacity:.9;
+  content:"";pointer-events:none;position:absolute;top:0;left:17px;right:17px;height:2px;
+  background:linear-gradient(90deg,transparent,#747a80 14%,#f0f2f3 49%,#6d7277 82%,transparent);
+  opacity:.85;
 }
-.rr-graphite-home .rr-g-section-eyebrow{color:#c0a7a5!important}
-.rr-graphite-home .rr-g-welcome h2{color:#f6f0ed!important;font-weight:670!important}
+.rr-graphite-home .rr-g-home-overview::after{
+  content:"";position:absolute;z-index:-1;pointer-events:none;
+  width:240px;height:190px;right:-100px;top:-100px;border-radius:50%;
+  background:radial-gradient(ellipse,#a0a9b313,transparent 70%);
+}
+.rr-graphite-home .rr-g-section-eyebrow{color:#aeb4ba!important}
+.rr-graphite-home .rr-g-welcome h2{color:#f4f5f5!important;font-weight:680!important;letter-spacing:-.65px!important}
 .rr-graphite-home .rr-g-next-workout{
-  background:linear-gradient(125deg,#352b2d 0%,#26252b 50%,#24252a 100%)!important;
-  border-color:#68504c!important;box-shadow:inset 3px 0 0 #d96a51!important;
+  position:relative!important;isolation:isolate!important;overflow:hidden!important;
+  background:linear-gradient(112deg,#35383e 0%,#282b30 48%,#1e2025 100%)!important;
+  border:1px solid #60666d!important;border-radius:16px!important;
+  box-shadow:inset 3px 0 0 #c9cfd5,inset 0 1px 0 #ffffff1c,0 8px 24px #0005!important;
 }
-.rr-graphite-home .rr-g-next-copy h3{color:#fff4ee!important;font-weight:730!important}
+.rr-graphite-home .rr-g-next-workout::before{
+  content:"";pointer-events:none;position:absolute;z-index:-1;
+  inset:0;background:linear-gradient(125deg,#ffffff0c,transparent 42%,#ffffff08 73%,transparent);
+}
+.rr-graphite-home .rr-g-next-copy h3{
+  color:#f6f7f8!important;font-weight:730!important;text-shadow:0 1px 7px #ffffff12!important;
+}
+.rr-graphite-home .rr-g-next-copy p{color:#b8bec4!important}
 .rr-graphite-home .rr-g-start{
-  background:#ec7659!important;border-color:#f18b6e!important;color:#22191a!important;
-  box-shadow:0 3px 14px rgba(233,110,82,.23)!important;
+  background:linear-gradient(145deg,#f4f5f6 0%,#bdc2c8 48%,#878f97 100%)!important;
+  border:1px solid #d1d6dc!important;color:#191d22!important;
+  box-shadow:inset 0 1px 1px #ffffffa3,0 3px 15px #c7cdd225,0 4px 12px #0007!important;
 }
-.rr-graphite-home .rr-g-mini-metrics strong{color:#f0e9e5!important}
-.rr-graphite-home .rr-g-mini-metrics>div:nth-child(2) strong{color:#eaa08c!important}
-.rr-graphite-home .rr-g-home-actions button:first-child{color:#eea38e!important}
+.rr-graphite-home .rr-g-start:active{transform:scale(.97)!important;filter:brightness(.94)!important}
+.rr-graphite-home .rr-g-mini-metrics strong{color:#e8eaed!important}
+.rr-graphite-home .rr-g-mini-metrics>div:nth-child(2) strong{
+  color:#e9edf0!important;text-shadow:0 0 14px #dbe2eb20!important;
+}
+.rr-graphite-home .rr-g-checkin{
+  background:linear-gradient(145deg,#32363c,#24262b)!important;
+  border-color:#62666c!important;color:#e3e6e9!important;
+}
+.rr-graphite-home .rr-g-plan-link{color:#d5d9de!important}
+.rr-graphite-home .rr-g-home-actions button:first-child{color:#e3e7eb!important;font-weight:680!important}
 .rr-graphite-home .rr-g-home-heat{margin-top:0!important}
 .rr-graphite-home .rr-g-muscle-row{
   grid-template-columns:minmax(110px,1fr) minmax(105px,1.2fr) minmax(62px,.65fr)!important;
@@ -345,6 +369,19 @@ body.rr-graphite-home {
 .rr-graphite-home .rr-g-muscle-identity{gap:0!important}
 .rr-graphite-home .rr-g-muscle-title strong{font-size:13px!important}
 .rr-graphite-home .rr-g-muscle-title small{font-size:10px!important}
+/* Active navigation is monochrome too; do not override heatmap colours. */
+.rr-graphite-home .tabnav button.active{
+  color:#e9ecef!important;
+  background:linear-gradient(150deg,#42464b,#2a2d33)!important;
+  box-shadow:inset 0 1px 0 #ffffff19!important;
+}
+.rr-graphite-home .tabnav button.active :is(.ico,svg){
+  color:#e9ecef!important;stroke:#e9ecef!important;filter:none!important;
+}
+.rr-graphite-home .tabnav button.active:after{background:#c9cfd5!important}
+.rr-graphite-home :is(.rr-g-checkin,.rr-g-start,.rr-g-plan-link,.rr-g-home-actions button):focus-visible{
+  outline:2px solid #e0e6eb!important;outline-offset:3px!important
+}
 @media(max-width:530px){
   .rr-graphite-home .rr-g-home-overview{padding:17px 15px!important}
   .rr-graphite-home .rr-g-welcome{margin-bottom:14px!important}
@@ -363,4 +400,7 @@ body.rr-graphite-home {
     gap:6px!important;padding:10px 8px!important
   }
   .rr-graphite-home .rr-g-muscle-title strong{font-size:12px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .rr-graphite-home .rr-g-start{transition:none!important}
 }
