@@ -2477,6 +2477,40 @@ try {
   assert('Suite 48 Exception: '+err.message,false);
 }
 
+
+// -----------------------------------------------------------------------------
+// SUITE 49: Stage 1 Graphite Home visual boundaries
+// -----------------------------------------------------------------------------
+console.log('\n--- SUITE 49: Graphite Home (visual-only, live data) ---');
+try {
+  const t=window.RepRivalTest;
+  const prev=t.getState().history.map(w=>w.id).join('|');
+  const html=t.graphiteHomeHeatmap();
+  assert('Stage 1 Home exposes semantic heatmap heading',html.includes('Muscle Heat Zones')&&html.includes('rr-g-title'));
+  assert('Stage 1 Home renders front and back anatomy',html.includes('front anatomical')&&html.includes('back anatomical'));
+  assert('Stage 1 Home renders all 9 real muscle groups',(html.match(/class="rr-g-muscle-row"/g)||[]).length===9);
+  assert('Stage 1 shows stimulus and readiness independently',html.includes('STIMULUS')&&html.includes('READINESS')&&html.includes('separate recovery'));
+  assert('Stage 1 does not add yellow to heatmap visuals',!html.toLowerCase().includes('yellow')&&!html.includes('#ffd'));
+  assert('Stage 1 map keeps muscle vector interactivity',html.includes('rr160-muscle-zone')&&html.includes('data-muscle='));
+  assert('Stage 1 neutral→rose palette has valid RGB hex values',
+    [0,10,30,50,70,90,100].every(score=>/^#[0-9a-f]{6}$/i.test(t.graphiteHeatColour(score))));
+  assert('Stage 1 low/high stimulus is visually distinguishable',t.graphiteHeatColour(10)!==t.graphiteHeatColour(95));
+  const blue=t.graphiteAtlasPalette({ever:true,daysSince:25,isDetraining:true,stimulusScore:2},{fill:'#123456',alpha:.5});
+  const red=t.graphiteAtlasPalette({ever:true,daysSince:2,isDetraining:false,stimulusScore:99},{fill:'#aabbcc',alpha:.6});
+  assert('Stage 1 detraining zones remain cool blue',blue.fill==='#7d9eaf');
+  assert('Stage 1 higher stimulus uses muted rose instead of neon',red.fill===t.graphiteHeatColour(99)&&red.alpha<.8);
+  assert('Stage 1 never colours untrained baseline',t.graphiteAtlasPalette(null,{fill:'#18191d',alpha:0}).alpha===0);
+  assert('Stage 1 map rendering does not edit training history',t.getState().history.map(w=>w.id).join('|')===prev);
+  const entry=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+  const css=fs.readFileSync(path.join(__dirname,'../public/graphite-stage1.css'),'utf8');
+  assert('Graphite CSS is separately versioned and linked',entry.includes('/graphite-stage1.css?v=1'));
+  assert('Original Element stylesheet remains present for other screens',entry.includes('id="rr-element-sheet"'));
+  assert('Graphite styles scoped exclusively to Home',css.includes('.rr-graphite-home .rr-g-home-heat')&&!css.includes('body.rr-element .card'));
+  assert('Graphite CSS keeps figures side by side',css.includes('grid-template-columns:repeat(2,minmax(0,1fr))'));
+} catch(err) {
+  assert('Suite 49 Exception: '+err.message,false);
+}
+
 console.log('\n================================================================');
 console.log('                   REGRESSION TEST RESULTS SUMMARY');
 console.log('================================================================');
