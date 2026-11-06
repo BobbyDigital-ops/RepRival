@@ -2401,6 +2401,48 @@ try {
   assert(`Suite 46 Exception: ${err.message}`, false);
 }
 
+
+// -----------------------------------------------------------------------------
+// SUITE 47: Adaptive v3 — strict vs focused, per-exercise frequency, quick isolation
+// -----------------------------------------------------------------------------
+console.log('\n--- SUITE 47: Adaptive v3 mode & exercise policy ---');
+try {
+  const v3=window.RepRivalAdaptiveV3;
+  const lib=window.REPRIVAL_EXERCISE_LIBRARY;
+  const owned=['dumbbells','bench','kettlebell','ab_wheel','row_station'];
+  const strict=v3.generate({focus:'upper_only',supersets:3},[],owned,null,{variant:1});
+  const strictEx=strict.pairs.flatMap(p=>p.exercises);
+  assert('Adaptive v3 registered',!!v3);
+  assert('Upper only generates exercises',strictEx.length>0);
+  assert('Upper only never contains lower or core movements',strictEx.every(e=>v3.UPPER.has(e.muscle)));
+  const legs=v3.generate({focus:'lower_only',supersets:3},[],owned,null,{variant:2});
+  assert('Lower only never contains upper or core movements',legs.pairs.flatMap(p=>p.exercises).every(e=>v3.LOWER.has(e.muscle)));
+  const upperFocus=v3.generate({focus:'upper_focused',supersets:3},[],owned,null,{variant:3});
+  const upperSets=upperFocus.pairs.flatMap(p=>p.exercises).filter(e=>v3.UPPER.has(e.muscle)).reduce((a,e)=>a+e.sets,0);
+  const allSets=upperFocus.pairs.flatMap(p=>p.exercises).reduce((a,e)=>a+e.sets,0);
+  assert('Upper-focused assigns at least 70 percent of sets to upper body',allSets>0&&upperSets/allSets>=.70);
+  const lowerFocus=v3.generate({focus:'lower_focused',supersets:3},[],owned,null,{variant:4});
+  const lowerSets=lowerFocus.pairs.flatMap(p=>p.exercises).filter(e=>v3.LOWER.has(e.muscle)).reduce((a,e)=>a+e.sets,0);
+  const lowerTotal=lowerFocus.pairs.flatMap(p=>p.exercises).reduce((a,e)=>a+e.sets,0);
+  assert('Lower-focused assigns at least 70 percent of sets to lower body',lowerTotal>0&&lowerSets/lowerTotal>=.70);
+  const noPress=v3.generate({focus:'balanced',supersets:3,exerciseFrequency:{low_incline_db_press:0}},[],owned,null,{variant:2});
+  assert('0-frequency movement is excluded',!noPress.pairs.flatMap(p=>p.exercises).some(e=>e.id==='low_incline_db_press'));
+  const disabled=Object.fromEntries(lib.entries.filter(e=>lib.compatible(e,owned)).map(e=>[e.id,0]));
+  const none=v3.generate({focus:'gaps',supersets:3,exerciseFrequency:disabled},[],owned);
+  assert('No eligible movements yields safe empty workout',none.pairs.length===0&&!!none.warning);
+  const when=new Date().toISOString();
+  const weekly=v3.weeklyOccurrences([{startedAt:when,logs:[{exId:'hammer_curl',reps:10},{exId:'hammer_curl',reps:11}]}]);
+  assert('Weekly frequency counts sessions rather than sets',weekly.hammer_curl===1);
+  assert('Exercise categories organise shoulder subgroups',v3.category({muscle:'Rear delts'})==='Shoulders');
+  const profile=RepRivalTest.getProfile();
+  const beforeNext=RepRivalTest.getState().next;
+  const quick=RepRivalTest.generateOneOffWorkout({duration:15,gearMode:'owned',focus:'upper_only'});
+  assert('One-off strict upper uses heatmap v3',quick.pairs.flatMap(p=>p.exercises).every(e=>v3.UPPER.has(e.muscle)));
+  assert('Generating a One-Off never advances main plan rotation',RepRivalTest.getState().next===beforeNext);
+} catch(err) {
+  assert('Suite 47 Exception: '+err.message,false);
+}
+
 console.log('\n================================================================');
 console.log('                   REGRESSION TEST RESULTS SUMMARY');
 console.log('================================================================');
