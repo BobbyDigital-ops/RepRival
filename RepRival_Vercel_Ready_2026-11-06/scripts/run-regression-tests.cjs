@@ -2443,6 +2443,40 @@ try {
   assert('Suite 47 Exception: '+err.message,false);
 }
 
+
+// -----------------------------------------------------------------------------
+// SUITE 48: Fixed-plan preservation and Adaptive configuration UI
+// -----------------------------------------------------------------------------
+console.log('\n--- SUITE 48: Programme pause and exact resume ---');
+try {
+  const t=window.RepRivalTest;
+  const oldProfile=t.getProfile();
+  const oldState=t.getState();
+  t.setActive(null);
+  const before=t.getState();
+  const originalPlan=t.getProfile().planId;
+  const beforeIDs=before.history.map(w=>w.id).join('|');
+  const paused=t.pauseProgrammeForAdaptive();
+  assert('Switching into Adaptive succeeds with available equipment',paused===true);
+  const adaptive=t.getProfile();
+  assert('Adaptive stores the exact previous plan and rotation cursor',
+    adaptive.adaptive?.pausedPlan?.planId===originalPlan && adaptive.adaptive?.pausedPlan?.next===before.next);
+  assert('Adaptive stores the fixed plan without deleting it',!!adaptive.plans?.[originalPlan]);
+  const studio=t.adaptiveStudioScreen();
+  assert('Adaptive setup groups Chest, Biceps and Triceps',
+    studio.includes('Chest')&&studio.includes('Biceps')&&studio.includes('Triceps'));
+  assert('Adaptive setup exposes four frequency radio choices',
+    studio.includes('data-adaptive-frequency=') && studio.includes('value="0"') && studio.includes('value="3"'));
+  const resumed=t.resumePausedProgramme();
+  assert('Disabling Adaptive restores the paused programme',resumed===true && t.getProfile().planId===originalPlan);
+  assert('Disabling Adaptive resumes the exact next scheduled workout',t.getState().next===before.next);
+  assert('Mode switching never deletes or rewrites workout history',
+    t.getState().history.map(w=>w.id).join('|')===beforeIDs);
+  t.setProfile(oldProfile);t.setHistory(oldState.history);t.setActive(oldState.active);
+} catch(err) {
+  assert('Suite 48 Exception: '+err.message,false);
+}
+
 console.log('\n================================================================');
 console.log('                   REGRESSION TEST RESULTS SUMMARY');
 console.log('================================================================');
