@@ -3633,7 +3633,7 @@
     // Shared heatmap-driven generator for the modern One-Off focus modes.
     // One-offs contribute to history but never touch the A/B/C or Adaptive rotation.
     const modernFocus=ADAPT_V3.normaliseFocus(focus);
-    const useModernFocus=ADAPT_V3.FOCUSES.some(([key])=>key===modernFocus);
+    const useModernFocus=ADAPT_V3.FOCUSES.some(([key])=>key===focus);
     if(useModernFocus){
       const owned=gearMode==='bodyweight'?[]:gearMode==='dumbbells'?['dumbbells','bench']:
         gearMode==='all'?Object.keys(window.REPRIVAL_EXERCISE_LIBRARY.gear):profile().equipment||[];
