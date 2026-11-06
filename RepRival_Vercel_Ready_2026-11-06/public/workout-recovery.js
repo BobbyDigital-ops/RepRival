@@ -13,7 +13,7 @@
     }
     throw Error('Choose a RepRival extracted-workouts JSON or a complete profile backup.');
   };
-  let panel, file, preview;
+  let panel, selectedFile, preview;
   function ensurePanel() {
     if (panel) return;
     panel = document.createElement('section');
@@ -23,10 +23,17 @@
     document.body.append(panel);
     panel.querySelector('[data-close]').onclick = () => panel.remove(), panel=null;
     panel.querySelector('input').onchange = async e => {
-      const f=e.target.files?.[0]; file=null;preview=null;
+      const f=e.target.files?.[0]; selectedFile=f||null; preview=null;
       const status=panel.querySelector('[data-status]');const button=panel.querySelector('[data-import]');
-      button.disabled=true;button.textContent='Review backup first';
+      button.disabled=!f;button.textContent=f?'Review selected backup':'Choose a backup file';
+      status.textContent=f?'Selected '+f.name+'. Press Review selected backup to check what is missing.':'';
+    };
+    async function reviewSelectedBackup() {
+      const f=selectedFile;
+      const status=panel.querySelector('[data-status]'),button=panel.querySelector('[data-import]');
       if(!f)return;
+      button.disabled=true;button.textContent='Checking backup…';
+      status.textContent='Reading and comparing workouts. No changes have been made.';
       try {
         if(f.size>7e6)throw Error('Backup is too large; expected a RepRival JSON export.');
         const user=window.RepRivalCloud?.getCurrentUser();
@@ -45,9 +52,10 @@
         status.textContent=items.length+' workouts in backup; '+existing.length+' already in Firestore; '+missing.length+' missing. No records will be deleted or overwritten.';
         button.textContent=missing.length?'Import '+missing.length+' missing workouts':'No missing workouts';
         button.disabled=!missing.length;
-      } catch(err) {status.textContent=err?.message||String(err);}
-    };
+      } catch(err) {status.textContent=err?.message||String(err);button.textContent='Try review again';button.disabled=false;}
+    }
     panel.querySelector('[data-import]').onclick = async()=>{
+      if (!preview) { await reviewSelectedBackup(); return; }
       const status=panel.querySelector('[data-status]'),button=panel.querySelector('[data-import]');
       if(!preview||!preview.missing.length)return;
       const user=window.RepRivalCloud?.getCurrentUser();
@@ -65,11 +73,16 @@
           IDs.add(w.id);imported++;
           status.textContent='Imported '+imported+' of '+preview.missing.length+'…';
         }
-        status.textContent='Success: '+imported+' missing workouts uploaded. Refresh to view updated history across devices.';
+        const verified=await window.RepRivalCloud.loadWorkouts();
+        const verifiedIds=new Set(verified.map(w=>String(w.id)));
+        const absent=preview.missing.filter(w=>!verifiedIds.has(w.id));
+        if(absent.length)throw Error(absent.length+' uploaded workout(s) could not be verified in Firebase. Do not discard your backup.');
+        status.textContent='Verified: '+imported+' missing workouts added to Firebase. Refresh to view updated history across devices.';
         button.textContent='Import complete';
       }catch(err) {
         status.textContent='Stopped after '+imported+' uploads: '+(err?.message||err)+'. Keep your backup; you can retry safely.';
-        button.disabled=false;
+        preview=null;
+        button.textContent='Review selected backup';button.disabled=false;
       }
     };
   }
