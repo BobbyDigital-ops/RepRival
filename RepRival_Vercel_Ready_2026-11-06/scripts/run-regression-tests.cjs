@@ -2547,7 +2547,7 @@ try {
   assert('Responsive Home supports muscle rows and workout-first overview',
     css.includes('.rr-g-muscle-row')&&css.includes('.rr-g-home-overview')&&css.includes('@media(max-width:360px)'));
   const index=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
-  assert('Second-pass assets cache-busted for mobile',index.includes('graphite-stage1.css?v=3')&&index.includes('app.js?v=graphite-pass3'));
+  assert('Second-pass assets cache-busted for mobile',index.includes('graphite-stage1.css?v=4')&&index.includes('app.js?v=graphite-pass3'));
 } catch(err) {
   assert('Suite 50 Exception: '+err.message,false);
 }
