@@ -133,10 +133,15 @@ export class RepRivalCloudService {
   private workoutUnsubscribe: (() => void) | null = null;
 
   constructor() {
-    onAuthStateChanged(auth, async (u) => {
+    onAuthStateChanged(auth, (u) => {
       this.user = u;
       if (u) {
-        await this.syncOrCreateProfile(u);
+        // A slow Firestore profile read must never hold the Auth transition
+        // hostage. syncOrCreateProfile installs the safe local fallback before
+        // its first await, so listeners can use the authenticated user now.
+        void this.syncOrCreateProfile(u).catch(error => {
+          console.warn('Cloud profile refresh unavailable; signed-in session retained.', error);
+        });
       } else {
         this.profile = null;
         if (this.workoutUnsubscribe) {
@@ -169,12 +174,33 @@ export class RepRivalCloudService {
   public async signIn() {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
+    // Embedded mobile browsers sometimes return from Google's chooser while
+    // leaving the popup promise pending. An actual Firebase-authenticated user
+    // is equally authoritative, so also observe the real auth state.
+    let stopListening: (() => void) | undefined;
+    let watchdog: ReturnType<typeof setTimeout> | undefined;
+    const authenticated = new Promise<User>((resolve, reject) => {
+      stopListening = onAuthStateChanged(auth, (u) => {
+        if (u) resolve(u);
+      }, reject);
+    });
+    const stalled = new Promise<never>((_, reject) => {
+      watchdog = setTimeout(() => {
+        const error = Object.assign(new Error('Google sign-in did not finish. Open RepRival directly in Chrome and try again.'), {code:'auth/popup-timeout'});
+        reject(error);
+      }, 20000);
+    });
     try {
-      const result = await signInWithPopup(auth, provider);
-      return result.user;
+      const popup = signInWithPopup(auth, provider).then(result => result.user);
+      // The race attaches rejection handlers to both promises: a later popup
+      // completion cannot accidentally trigger an unhandled rejection.
+      return await Promise.race([popup, authenticated, stalled]);
     } catch (e) {
-      console.error('Sign-in error:', e);
+      console.warn('Google sign-in did not complete:', e);
       throw e;
+    } finally {
+      if (stopListening) stopListening();
+      if (watchdog) clearTimeout(watchdog);
     }
   }
 
