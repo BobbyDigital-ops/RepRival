@@ -17,17 +17,42 @@
   function weeklyOccurrences(history, now=Date.now()) {
     const counts = {};
     const cutoff = now - 7*86400000;
+    const canonical=id=>window.REPRIVAL_EXERCISE_LIBRARY?.canonicalId?.(id)||id;
     for (const s of history || []) {
       const when = Date.parse(s.endedAt || s.startedAt || '');
       if (!Number.isFinite(when) || when < cutoff || when > now) continue;
-      const ids = new Set((s.logs||[]).filter(l => l && !l.skipped && l.exId).map(l => l.exId));
+      const ids = new Set((s.logs||[])
+        .filter(l=>l&&!l.skipped&&l.exId&&l.reps!==0)
+        .map(l=>canonical(l.exId)));
       for (const id of ids) counts[id] = (counts[id]||0)+1;
     }
     return counts;
   }
   const pref = (cfg,id) => {
-    const n=cfg?.exerciseFrequency?.[id];
+    const preferences=cfg?.exerciseFrequency||{};
+    const canonical=window.REPRIVAL_EXERCISE_LIBRARY?.canonicalId?.(id)||id;
+    // Explicitly saved canonical preference wins; otherwise honour saved
+    // choices for formerly separate aliases (without rewriting cloud data).
+    let n=preferences[canonical];
+    if(n==null){
+      const aliases=window.REPRIVAL_EXERCISE_LIBRARY?.legacyAliases||{};
+      const old=Object.keys(aliases).filter(key=>aliases[key]===canonical&&preferences[key]!=null);
+      if(old.length)n=preferences[old[0]];
+    }
     return n == null ? 1 : Math.max(0,Math.min(3,Number(n)||0));
+  };
+  const PAIR_COMPAT={
+    'Chest':['Back','Rear delts','Biceps','Hamstrings','Calves'],
+    'Back':['Chest','Triceps','Side delts','Quads','Calves'],
+    'Side delts':['Back','Rear delts','Biceps','Hamstrings','Calves'],
+    'Rear delts':['Chest','Side delts','Triceps','Quads'],
+    'Biceps':['Triceps','Chest','Quads','Calves'],
+    'Triceps':['Biceps','Back','Quads','Hamstrings'],
+    'Quads':['Back','Hamstrings','Rear delts','Core'],
+    'Hamstrings':['Chest','Side delts','Quads','Calves'],
+    'Glutes':['Chest','Rear delts','Biceps','Calves'],
+    'Calves':['Chest','Back','Biceps','Hamstrings'],
+    'Core':['Chest','Back','Quads','Calves']
   };
   function generate(cfg={},history=[],owned=[],checkin=null,opts={}) {
     const lib=window.REPRIVAL_EXERCISE_LIBRARY;
@@ -43,6 +68,9 @@
     const gearMeta=opts.equipmentMetadata || {};
     const eligible=lib.entries.filter(e=>{
       if (!e?.id || !lib.compatible(e,owned) || avoid.has(e.id) || pref(cfg,e.id)===0) return false;
+      // A preference is a cap per *completed workout appearance* in the last
+      // rolling seven days, not just a ranking hint.
+      if((weekly[e.id]||0)>=pref(cfg,e.id))return false;
       if (opts.availability==='indoor_only' && ((e.equipment||[]).some(g=>gearMeta[g]?.location==='outdoor') || gearMeta[e.id]?.location==='outdoor')) return false;
       if (e.id==='bodyweight_doorway_row' || e.id==='bodyweight_doorway_curl') return false;
       if (e.id==='inverted_row_wide' && gearMeta.inverted_row_bar?.grip==='fixed-grip') return false;
@@ -67,7 +95,7 @@
       return {score:Number(h.stimulusScore??h.score??0),readiness:Number(h.readinessScore??100),
         daysSince:Number(h.daysSince??30), ever:!!h.ever};
     };
-    function pick(needDominant,firstFamily) {
+    function pick(needDominant,firstExercise) {
       const candidates=eligible.filter(e=>!picked.has(e.id));
       let pool=candidates.filter(e=>{
         const region=UPPER.has(e.muscle)?'upper':LOWER.has(e.muscle)?'lower':'other';
@@ -82,8 +110,15 @@
       const safe=pool.filter(e=>!sore.has(e.muscle) && metrics(e.muscle).readiness>=30);
       if(safe.length)pool=safe;
       else return null; // Never override severe soreness or very low readiness.
-      const distinct=pool.filter(e=>!families.has(e.family || e.id) && (e.family||e.id)!==firstFamily);
+      const distinct=pool.filter(e=>!families.has(e.family || e.id) &&
+        (!firstExercise||(e.family||e.id)!==(firstExercise.family||firstExercise.id)));
       if(distinct.length)pool=distinct;
+      // Avoid repeating the same primary muscle in a superset whenever there
+      // are compatible alternatives. Exact duplicate IDs are already removed.
+      if(firstExercise){
+        const otherMuscles=pool.filter(e=>e.muscle!==firstExercise.muscle);
+        if(otherMuscles.length)pool=otherMuscles;
+      }
       const ranked=pool.map(e=>{
         const h=metrics(e.muscle),weeklyUsed=weekly[e.id]||0,frequency=pref(cfg,e.id);
         const remaining=Math.max(0,frequency-weeklyUsed);
@@ -93,9 +128,12 @@
         const quality=style==='weights_focused'?(e.load==='bodyweight'?-38:8):0;
         const variety=focus==='mixed'?(trainedRecently?-35:15):trainedRecently?-8:4;
         const frequencyScore=remaining>0?35+remaining*3:-25;
+        const pairing=firstExercise
+          ? (PAIR_COMPAT[firstExercise.muscle]?.includes(e.muscle)?22:0)
+          : 0;
         const tie=[...e.id].reduce((n,c)=>(n*31+c.charCodeAt(0))%997,variant+11)/997;
         return {e,score:(100-h.score)*1.2+Math.min(18,h.daysSince)*1.1+(h.readiness-65)*.4
-          +frequencyScore+variety+quality-coverage-fatigue+tie};
+          +frequencyScore+variety+quality+pairing-coverage-fatigue+tie};
       }).sort((a,b)=>b.score-a.score);
       return ranked[0]?.e||null;
     }
@@ -105,7 +143,7 @@
         let region=null;
         if(focus==='upper_focused')region=dominantSets<desiredDominant?'upper':'other-upper';
         if(focus==='lower_focused')region=dominantSets<desiredDominant?'lower':'other-lower';
-        const e=pick(region,chosen[0]?.family);
+        const e=pick(region,chosen[0]);
         if(!e)continue;
         const copy={...e,sets:count};
         if(cfg.goal==='strength'){copy.min=5;copy.max=8;}
@@ -123,7 +161,7 @@
     return {
       name:label+' · Adaptive',subtitle:setCount+' working sets · ~'+Math.round(setCount*1.7+pairs.length*2)+' min',
       pairs,focus:focusedMuscles,estimatedMinutes:Math.round(setCount*1.7+pairs.length*2),
-      explanation:caution || 'Selected from your 28-day muscle stimulus, readiness, last seven days of training and exercise preferences. '+label+'.',
+      explanation:caution || 'Selected using your 28-day stimulus, readiness, seven-day exercise limits and complementary muscle pairing. '+label+'.',
       focusType:focus,warning:caution,weekly,dominantShare:usedSets?dominantSets/usedSets:0
     };
   }
