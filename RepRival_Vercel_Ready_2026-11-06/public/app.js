@@ -1310,7 +1310,7 @@
       <div class="rr-g-legend" aria-label="Muscle heat colours">
         <div class="rr-g-gradient" aria-hidden="true"></div>
         <div class="rr-g-legend-ends"><span>COOL · LOWER STIMULUS</span><span>WARM · HIGHER STIMULUS</span></div>
-        <p>Blue on previously trained muscles shows fading stimulus after a week without training; deeper blue can indicate prolonged detraining. Never-trained muscles stay neutral. Readiness is separate from heat colour.</p>
+        <p>Heat Zones reflect completed sets only, with fractional credit for assisting muscles; upcoming workouts are not counted. Blue shows fading stimulus in previously trained muscles. Never-trained muscles stay neutral. Readiness is separate.</p>
       </div>
     </section>`;
   }
@@ -1584,7 +1584,7 @@
                   <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
                     <div>
                       <strong style="color:#fff; font-size:14px; display:block;">${esc(ex.name)}</strong>
-                      <small style="color:#94a3b8; font-size:11px;">${esc(ex.muscle)} · ${exDone}/${ex.sets} sets logged</small>
+                      <small style="color:#94a3b8; font-size:11px;">${esc(ex.displayMuscle||ex.muscle)} · ${exDone}/${ex.sets} sets logged</small>
                     </div>
                     <div style="display:flex; gap:4px;">
                       <button type="button" class="btn text btn-compact-action" data-action="swap-exercise" data-pair="${pi}" data-ex="${ei}" style="font-size:11px; padding:4px 8px; background:rgba(255,255,255,0.08); border-radius:4px; font-weight:700;">⇄ Swap</button>
@@ -1680,7 +1680,7 @@
                     <button type="button" class="btn text btn-compact-action text-danger" data-action="drop-exercise" data-pair="${t.pi}" data-ex="${t.ei}" style="font-size:10px; padding:2px 6px; background:rgba(239,68,68,0.12); color:#fca5a5; border-radius:4px;">✕ Drop</button>
                   </div>
                 </div>
-                <div style="font-size:11px; color:#aaa8a5; margin-bottom:8px;">Set ${t.round}/${ex.sets} · ${esc(ex.muscle)}</div>
+                <div style="font-size:11px; color:#aaa8a5; margin-bottom:8px;">Set ${t.round}/${ex.sets} · ${esc(ex.displayMuscle||ex.muscle)}</div>
 
                 <!-- Overload Banner -->
                 <div style="background:rgba(217,114,65,0.1); border-radius:6px; padding:6px 8px; margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; gap:6px;">
@@ -1743,7 +1743,7 @@
           <h2 style="font-size:18px; margin:0; font-weight:800; color:#fff;">${esc(ex.name)}</h2>
           <button type="button" class="btn text" data-action="close-modal" style="font-size:18px; padding:0 4px; color:#aaa8a5;">✕</button>
         </div>
-        <p class="subhead" style="margin-bottom:16px; font-size:12px; color:#94a3b8;">${esc(ex.muscle)} · ${ex.min}–${ex.max} reps</p>
+        <p class="subhead" style="margin-bottom:16px; font-size:12px; color:#94a3b8;">${esc(ex.displayMuscle||ex.muscle)} · ${ex.min}–${ex.max} reps</p>
 
         <div style="display:flex; flex-direction:column; gap:8px;">
           <button type="button" class="btn outline full" data-action="swap-exercise" data-pair="${pairIdx}" data-ex="${exIdx}" style="height:44px; justify-content:flex-start; padding-left:14px; font-size:14px; font-weight:700;">
@@ -1831,7 +1831,7 @@
     const skipped=a?.logs?.filter(l => l && l.skipped).length||0;
     const totalTasks=buildTasks(day).length;
     const allDone=a && ((completed + skipped) >= totalTasks || a.stage === 'feedback') && totalTasks > 0;
-    const groups=pairs.map((p,i)=>`<div class="preworkout-block"><div class="preworkout-block-header"><span>${p.exercises.length>1?'SUPERSET':'BLOCK'} ${i+1}</span><span>${p.restMin}–${p.restMax}s rest</span></div>${p.exercises.length>1?`<div class="superset-rest-badge compact"><span>15–30s transition rest between movements · ${p.restMin}–${p.restMax}s full rest after superset round</span></div>`:''}${p.exercises.map((ex,ei)=>`<div class="preworkout-ex"><div><strong>${esc(ex.name)}</strong><small>${esc(ex.muscle)} · ${esc(ex.min)}–${esc(ex.max)} ${esc(ex.unit||'reps')} ${esc(ex.suffix||'')}</small></div><div class="preworkout-actions"><button type="button" class="quiet-link" data-action="swap-exercise" data-pair="${i}" data-ex="${ei}">⇄ Swap</button><button type="button" class="quiet-link text-danger" data-action="drop-exercise" data-pair="${i}" data-ex="${ei}">✕ Drop</button></div></div>`).join('')}<div class="mt8"><button type="button" class="btn text" data-action="add-exercise" data-pair="${i}">＋ Add exercise</button></div></div>`).join('');
+    const groups=pairs.map((p,i)=>`<div class="preworkout-block"><div class="preworkout-block-header"><span>${p.exercises.length>1?'SUPERSET':'BLOCK'} ${i+1}</span><span>${p.restMin}–${p.restMax}s rest</span></div>${p.exercises.length>1?`<div class="superset-rest-badge compact"><span>15–30s transition rest between movements · ${p.restMin}–${p.restMax}s full rest after superset round</span></div>`:''}${p.exercises.map((ex,ei)=>`<div class="preworkout-ex"><div><strong>${esc(ex.name)}</strong><small>${esc(ex.displayMuscle||ex.muscle)} · ${esc(ex.min)}–${esc(ex.max)} ${esc(ex.unit||'reps')} ${esc(ex.suffix||'')}</small></div><div class="preworkout-actions"><button type="button" class="quiet-link" data-action="swap-exercise" data-pair="${i}" data-ex="${ei}">⇄ Swap</button><button type="button" class="quiet-link text-danger" data-action="drop-exercise" data-pair="${i}" data-ex="${ei}">✕ Drop</button></div></div>`).join('')}<div class="mt8"><button type="button" class="btn text" data-action="add-exercise" data-pair="${i}">＋ Add exercise</button></div></div>`).join('');
     const hasCustom = state.activeCustomPairs || (state.active && state.active.pairs);
     const focus=[...new Set(exercises.map(x=>x.muscle).filter(Boolean))].slice(0,6);
     const guide=readinessGuidance();const sore=(guide?.r?.groups||[]);const hitsSore=focus.filter(m=>sore.includes(leagueGroupFor(m))); 
@@ -1895,17 +1895,18 @@
     if(!ex) return false;
     if(ex.load === 'bodyweight') return false;
     if(ex.equipment && ex.equipment.includes('dumbbells')) return true;
+    if(ex.optionalEquipment?.includes('dumbbells')) return true;
     if(/(\bdb\b|dumbbell)/i.test(ex.name || '')) return true;
     const libEx = window.REPRIVAL_EXERCISE_LIBRARY?.byId?.[ex.id || ex.exId];
-    if(libEx?.equipment?.includes('dumbbells')) return true;
+    if(libEx?.equipment?.includes('dumbbells')||libEx?.optionalEquipment?.includes('dumbbells')) return true;
     return false;
   }
 
   function isSingleDumbbell(ex){
     if(!ex) return false;
-    if(ex.load === 'single') return true;
+    if(ex.load === 'single'||ex.optionalLoadMode==='single') return true;
     const libEx = window.REPRIVAL_EXERCISE_LIBRARY?.byId?.[ex.id || ex.exId];
-    if(libEx?.load === 'single') return true;
+    if(libEx?.load === 'single'||libEx?.optionalLoadMode==='single') return true;
     const name = (ex.name || '').toLowerCase();
     if(name.includes('goblet') || name.includes('single db') || name.includes('single-arm') || name.includes('one-arm')) return true;
     return false;
@@ -1978,6 +1979,9 @@
 
   function getAvailableLoadsForExercise(ex){
     if(!ex || ex.load === 'bodyweight') return [0];
+    if(ex.optionalEquipment?.includes('dumbbells')&&!profile()?.equipment?.includes('dumbbells')){
+      return [0];
+    }
     if(isDumbbellExercise(ex)){
       return getAchievableDumbbellLoads(ex);
     }
@@ -2403,7 +2407,7 @@
                 <button type="button" class="btn text btn-compact-action btn-exercise-options" data-action="open-active-exercise-edit-modal" data-pair="${t.pi}" data-ex="${t.ei}" data-index="${idx}" style="font-size:11px; padding:3px 8px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:#cbd5e1; font-weight:700;">••• Edit</button>
               </div>
               <h2 class="rr-session-exercise-name">${esc(ex.name)} <span class="rr-session-set-number">· ${t.round}/${ex.sets}</span></h2>
-              <p class="tiny muted" style="margin:0 0 6px 0;">${esc(ex.muscle)} · Target: ${ex.min}–${ex.max} ${esc(ex.unit||'reps')}</p>
+              <p class="tiny muted" style="margin:0 0 6px 0;">${esc(ex.displayMuscle||ex.muscle)} · Target: ${ex.min}–${ex.max} ${esc(ex.unit||'reps')}</p>
             </div>
             <div class="cue-stack">${movementCue(ex)}</div>
           </div>
@@ -3930,7 +3934,7 @@
           <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-top:1px solid rgba(255,255,255,0.05);">
             <div>
               <strong style="color:#ffffff; font-size:14px;">${esc(ex.name)}</strong>
-              <small style="display:block; color:#94a3b8;">${esc(ex.muscle)} · ${ex.sets} sets × ${ex.min}–${ex.max} reps · ${ex.load === 'bodyweight' ? 'BW' : (isDumbbellExercise(ex) ? 'per DB' : ex.load)}</small>
+              <small style="display:block; color:#94a3b8;">${esc(ex.displayMuscle||ex.muscle)} · ${ex.sets} sets × ${ex.min}–${ex.max} reps · ${ex.load === 'bodyweight' ? 'BW' : (isDumbbellExercise(ex) ? 'per DB' : ex.load)}</small>
             </div>
             <span class="label-tag" style="font-size:10px;">${(ex.equipment || []).length === 0 ? 'Bodyweight' : ex.equipment.join(', ')}</span>
           </div>
@@ -4485,9 +4489,17 @@
         '<div class="rr-adaptive-group-heading"><h4>'+esc(cat)+'</h4><span>'+list.length+' movements</span></div>'+
         '<div class="rr-adaptive-exercise-list">'+list.map(ex=>{
           const value=v3.pref(cfg,ex.id);
-          const gear=(ex.equipment||[]).map(g=>lib.gear[g]?.name||g).join(' + ')||'No equipment';
+          let gear=(ex.equipment||[]).map(g=>lib.gear[g]?.name||g).join(' + ')||'No required equipment';
+          if(ex.equipmentAlternatives)gear='Bench or stable step';
+          if(ex.optionalEquipment?.includes('dumbbells')){
+            gear+=(gear?' · ':'')+'Dumbbells optional (0 kg = bodyweight)';
+          }
+          const secondary=window.RepRivalIntelligence?.getSecondaryContributions?.({exId:ex.id,muscle:ex.muscle})||[];
+          const secondaryText=secondary.length
+            ?'Also trains: '+secondary.map(([muscle,f])=>muscle+' (~'+Math.round(f*100)+'% set credit)').join(', ')
+            :null;
           return '<article class="rr-element-exercise rr-adaptive-exercise" data-adaptive-item="'+esc((ex.name+' '+gear).toLocaleLowerCase())+'">'+
-            '<div class="rr-adaptive-exercise-info"><strong>'+esc(ex.name)+'</strong><small>'+esc(gear)+'</small></div>'+
+            '<div class="rr-adaptive-exercise-info"><strong>'+esc(ex.name)+'</strong><small>'+esc(gear)+'</small>'+(ex.displayMuscle?'<small class="rr-adaptive-target">'+esc(ex.displayMuscle)+'</small>':'')+(secondaryText?'<small class="rr-adaptive-secondary">'+esc(secondaryText)+'</small>':'')+'</div>'+
             '<fieldset class="rr-adaptive-frequency" aria-label="'+esc(ex.name)+' appearances per rolling 7 days">'+
               '<legend>APPEARANCES / 7 DAYS</legend><div class="rr-adaptive-frequency-options">'+
               [0,1,2,3].map(n=>'<label class="rr-adaptive-frequency-choice"><input type="radio" name="freq-'+esc(ex.id)+'" data-adaptive-frequency="'+esc(ex.id)+'" value="'+n+'" '+(value===n?'checked':'')+'><span><b>'+n+'</b><small>'+frequencyLabels[n]+'</small></span></label>').join('')+
@@ -4500,12 +4512,12 @@
         '<button class="btn '+(cfg.active?'outline':'primary')+' full mt12" type="button" data-action="'+(cfg.active?'adaptive-disable':'adaptive-enable')+'" '+(state.active?'disabled':'')+'>'+(cfg.active?'Resume my paused programme':'Pause programme & enable Adaptive')+'</button>','section')+
       card('<h3>Workout focus</h3><p class="subhead mt8">Only means strict body region. Focused targets roughly 75% of sets in that region. All modes still use the heatmap.</p>'+
         '<div class="field mt12"><label for="adaptiveDefaultFocus">Default focus</label><select id="adaptiveDefaultFocus" data-adaptive-default-focus>'+opts(cfg.focus||'balanced')+'</select></div>'+
-        '<div class="field mt12"><label for="adaptiveNextFocus">Next workout only (optional)</label><select id="adaptiveNextFocus" data-adaptive-next-focus><option value="">Use default focus</option>'+opts(cfg.nextFocus||'')+'</select></div>'+
+        '<div class="field mt12"><label for="adaptiveNextFocus">Next generated workout only · resets after use</label><select id="adaptiveNextFocus" data-adaptive-next-focus><option value="">Follow default focus</option>'+opts(cfg.nextFocus||'')+'</select></div>'+
         '<div class="form-grid"><div class="field"><label for="adaptiveSessionCount">Workout blocks</label><select id="adaptiveSessionCount" data-adaptive-blocks>'+[2,3,4,5].map(n=>'<option value="'+n+'" '+((cfg.supersets||3)===n?'selected':'')+'>'+n+' blocks</option>').join('')+'</select></div>'+
         '<div class="field"><label for="adaptiveWeeklyGoal">Sessions / week</label><select id="adaptiveWeeklyGoal" data-adaptive-weekly>'+[2,3,4,5,6].map(n=>'<option value="'+n+'" '+((cfg.frequency||3)===n?'selected':'')+'>'+n+' per week</option>').join('')+'</select></div></div>'+
         '<button class="btn primary full mt12" data-action="adaptive-generate" '+(!cfg.active||state.active?'disabled':'')+' type="button">Generate next adaptive workout</button>','section')+
       card('<section class="rr-adaptive-library" aria-label="Adaptive exercise preferences">'+
-        '<div class="rr-adaptive-library-head"><div><div class="eyebrow">BUILD YOUR EXERCISE POOL</div><h3>Exercise preferences</h3><p class="subhead">Choose a muscle group, then set how often each exercise can appear.</p></div><span class="label-tag">'+eligible.length+' available</span></div>'+
+        '<div class="rr-adaptive-library-head"><div><div class="eyebrow">BUILD YOUR EXERCISE POOL</div><h3>Exercise preferences</h3><p class="subhead">One version of each movement. Set a seven-day appearance limit; compound lifts also credit assisting muscles.</p></div><span class="label-tag">'+eligible.length+' available</span></div>'+
         '<div class="rr-adaptive-library-controls">'+
           '<div class="field"><label for="adaptiveMuscleSelect">Muscle group</label><select id="adaptiveMuscleSelect" aria-controls="adaptiveExerciseGroups">'+muscleOptions+'</select></div>'+
           '<div class="field"><label for="adaptiveExerciseSearch">Find an exercise</label><input id="adaptiveExerciseSearch" type="search" placeholder="Search this muscle group" autocomplete="off"></div>'+
