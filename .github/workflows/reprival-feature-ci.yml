@@ -6,6 +6,7 @@ on:
       - design/graphite-home-heatmap-stage1
       - design/graphite-app-polish
       - design/adaptive-library-picker
+      - design/graphite-compact-workout
   pull_request:
     branches:
       - migration/aistudio-to-vercel-2026-11-06
