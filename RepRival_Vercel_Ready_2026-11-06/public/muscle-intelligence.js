@@ -134,7 +134,14 @@
   function resolveLogMuscle(log) {
     if (!log) return null;
     const raw = String(log.muscle || '').trim();
-
+    const suppliedId=String(log.exId||'');
+    const catalog=window.REPRIVAL_EXERCISE_LIBRARY;
+    const known=catalog?.byId?.[suppliedId];
+    // Correct demonstrably incorrect classifications even for older history
+    // containing the legacy muscle label. The original log is never edited.
+    if(known&&['db_sumo_squat','db_rear_delt_row','kb_swing','kb_clean','db_clean'].includes(suppliedId)){
+      return known.muscle;
+    }
     if (HEAT_KEYS.includes(raw)) return raw;
 
     const lower = raw.toLowerCase();
@@ -180,57 +187,47 @@
    */
   function getSecondaryContributions(log) {
     if (!log) return [];
-    const exId = String(log.exId || log.name || '').toLowerCase();
-    const primary = resolveLogMuscle(log);
-
-    if (primary === 'Chest') {
-      if (/fly/i.test(exId)) {
-        return [['Side delts', 0.15]];
-      }
-      return [['Triceps', 0.40], ['Side delts', 0.25]];
+    const catalog=window.REPRIVAL_EXERCISE_LIBRARY;
+    const exId=String(catalog?.canonicalId?.(log.exId||log.name)||log.exId||log.name||'').toLowerCase();
+    const primary=resolveLogMuscle(log);
+    // These are *estimated equivalent set contributions*, not a guarantee of
+    // exact recruitment. A secondary muscle is never given a full extra set.
+    if(primary==='Core'){
+      return []; // Suitcase/farmer carries: core training; back is stabilisation.
     }
-
-    if (primary === 'Back') {
-      if (/shrug/i.test(exId)) {
-        return [['Rear delts', 0.15]];
-      }
-      return [['Biceps', 0.40], ['Rear delts', 0.30]];
+    if(primary==='Chest'){
+      if(/fly/i.test(exId))return [['Side delts',0.10]];
+      if(/close_grip/i.test(exId))return [['Triceps',0.50],['Side delts',0.18]];
+      return [['Triceps',0.40],['Side delts',0.25]];
     }
-
-    if (primary === 'Side delts') {
-      if (/press/i.test(exId)) {
-        return [['Triceps', 0.35], ['Rear delts', 0.15]];
-      }
-      return [['Rear delts', 0.15]];
+    if(primary==='Back'){
+      if(/shrug|scapular/i.test(exId))return []; // Traps/scapular work, not biceps.
+      if(/pullover/i.test(exId))return [['Chest',0.20]];
+      return [['Biceps',0.40],['Rear delts',0.30]];
     }
-
-    if (primary === 'Rear delts') {
-      return [['Back', 0.25]];
+    if(primary==='Side delts'){
+      if(/press|pike_push_up/.test(exId))return [['Triceps',0.35]];
+      if(/front_raise/.test(exId))return []; // Front delts within the 9-zone Shoulders view.
+      if(/high_pull|upright_row/.test(exId))return [['Back',0.20]];
+      return [];
     }
-
-    if (primary === 'Quads') {
-      if (/leg_extension/i.test(exId)) {
-        return [];
-      }
-      if (/lunge|split_squat/i.test(exId)) {
-        return [['Glutes', 0.40], ['Hamstrings', 0.10]];
-      }
-      // Bilateral squats (goblet, barbell, front, hack): Glutes 0.30, Hamstrings 0.0 (biarticular length constant)
-      return [['Glutes', 0.30]];
+    if(primary==='Rear delts')return [['Back',0.25]];
+    if(primary==='Quads'){
+      if(/leg_extension/.test(exId))return [];
+      if(/thruster/.test(exId))return [['Glutes',0.35],['Side delts',0.35],['Triceps',0.20]];
+      if(/lunge|split_squat|step_up/.test(exId))return [['Glutes',0.40],['Hamstrings',0.10]];
+      if(/sumo/.test(exId))return [['Glutes',0.45]];
+      return [['Glutes',0.30]];
     }
-
-    if (primary === 'Hamstrings') {
-      if (/leg_curl/i.test(exId)) {
-        return [];
-      }
-      // RDL, Deadlift: Glutes 0.40, Core 0.20
-      return [['Glutes', 0.40], ['Core', 0.20]];
+    if(primary==='Hamstrings'){
+      if(/leg_curl/.test(exId))return [];
+      return [['Glutes',0.40],['Core',0.20]];
     }
-
-    if (primary === 'Glutes') {
-      return [['Hamstrings', 0.25], ['Quads', 0.15]];
+    if(primary==='Glutes'){
+      if(/swing|clean/.test(exId))return [['Hamstrings',0.40]];
+      if(/thrust|bridge/.test(exId))return [['Hamstrings',0.15]];
+      return [['Hamstrings',0.25],['Quads',0.15]];
     }
-
     return [];
   }
 
@@ -244,8 +241,17 @@
     const exId = String(log.exId || log.name || '').toLowerCase();
     const primary = resolveLogMuscle(log);
 
+    if (primary === 'Core' && /carry|walk|windmill|turkish_getup/.test(exId)) {
+      return ['Back','Glutes']; // Isometric support, zero extra hypertrophy sets.
+    }
+    if (primary === 'Side delts' && /press/.test(exId)) {
+      return ['Core']; // Bracing is not a full abdominal working set.
+    }
+    if (primary === 'Glutes' && /swing|clean/.test(exId)){
+      return ['Core','Back'];
+    }
     if (primary === 'Quads') {
-      if (/squat|lunge|split_squat|leg_press/i.test(exId)) {
+      if (/squat|lunge|split_squat|step_up|leg_press/i.test(exId)) {
         return ['Calves', 'Core'];
       }
     }
@@ -419,7 +425,10 @@
 
           // All qualifying sets count once. Logarithmic normalisation below
           // supplies the *only* diminishing-returns function.
-          const setWeight = 1;
+          const exId=String(log.exId||'').toLowerCase();
+          // Loaded carries train anti-lateral flexion / bracing but are not
+          // interchangeable, set-for-set, with direct dynamic abdominal work.
+          const setWeight=primary==='Core'&&/carry|farmer|suitcase|waiters_carry/.test(exId)?0.65:1;
 
           const rirData = rirStimulusWeight(log.rir);
           const fMult = rirFatigueMultiplier(log.rir);
@@ -432,12 +441,12 @@
             }
 
             muscles[primary].rawCompletedSets += 1;
-            muscles[primary].primarySets += 1;
-            muscles[primary].effectiveSets += 1.0 * setWeight;
+            muscles[primary].primarySets += setWeight;
+            muscles[primary].effectiveSets += setWeight;
           }
 
-          stimulusDoseSums[primary] += 1.0 * rirData.factor * setWeight * recencyDecay;
-          acuteFatigue[primary] += 1.0 * fMult * fatigueDecay;
+          stimulusDoseSums[primary] += rirData.factor * setWeight * recencyDecay;
+          acuteFatigue[primary] += fMult * setWeight * fatigueDecay;
 
           const secList = getSecondaryContributions(log);
           for (const [secM, fraction] of secList) {
