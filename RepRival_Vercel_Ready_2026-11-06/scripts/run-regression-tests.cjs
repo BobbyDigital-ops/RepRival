@@ -2511,6 +2511,49 @@ try {
   assert('Suite 49 Exception: '+err.message,false);
 }
 
+
+// -----------------------------------------------------------------------------
+// SUITE 50: Second-pass Graphite Home hierarchy, actions and outline icons
+// -----------------------------------------------------------------------------
+console.log('\n--- SUITE 50: Stage 1 second-pass Home quality gates ---');
+try {
+  const t=window.RepRivalTest;
+  const before=t.getState().history.map(w=>w.id).join('|');
+  const home=t.homeScreen();
+  const heat=t.graphiteHomeHeatmap();
+  assert('Heat Zones sits before the less-busy training overview',
+    home.indexOf('rr-g-home-heat')>=0 &&
+    home.indexOf('rr-g-home-heat')<home.indexOf('rr-g-home-overview'));
+  assert('Ready count is positioned in a top-right summary',
+    heat.includes('rr-g-headline') && heat.includes('rr-g-ready-summary'));
+  assert('All nine muscle rows display anatomical line-art thumbnails',
+    (heat.match(/class="rr-g-muscle-icon"/g)||[]).length===9);
+  assert('Outline icons are intentionally different by muscle group',
+    t.graphiteMuscleIcon('Chest','#a4767b')!==t.graphiteMuscleIcon('Quads','#a4767b') &&
+    t.graphiteMuscleIcon('Glutes','#a4767b')!==t.graphiteMuscleIcon('Back','#a4767b'));
+  assert('Line-art muscle icons use the same score-based tint as their bar',
+    heat.includes('var(--rr-g-zone)') && heat.includes('class="rr-g-muscle-dose"'));
+  assert('Old four-card KPI panel removed from the new Home',
+    !home.includes('rr165-kpi-grid') && !home.includes('rr165-score-widget'));
+  assert('Quick Workout remains accessible',home.includes('data-action="open-generator"'));
+  assert('Holiday Mode remains accessible',home.includes('data-action="open-holiday-modal"'));
+  assert('Next workout start/resume action preserved',home.includes('data-page="workout-intro"')||home.includes('data-page="workout"'));
+  assert('Home keeps plan and completed-workout navigation',
+    home.includes('data-nav="plan"') && home.includes('data-tab="records"'));
+  assert('Daily check-in action remains available',home.includes('data-action="readiness"'));
+  assert('No player rating or League UI on the clean Home',
+    !home.includes('rr165-score-ring-wrap') && !home.includes('data-page="leagues"'));
+  assert('Home re-render did not modify historical workout IDs',
+    before===t.getState().history.map(w=>w.id).join('|'));
+  const css=fs.readFileSync(path.join(__dirname,'../public/graphite-stage1.css'),'utf8');
+  assert('Responsive Home supports muscle thumbnails and quiet overview',
+    css.includes('.rr-g-muscle-icon')&&css.includes('.rr-g-home-overview')&&css.includes('@media(max-width:360px)'));
+  const index=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+  assert('Second-pass assets cache-busted for mobile',index.includes('graphite-stage1.css?v=2')&&index.includes('app.js?v=graphite-pass2'));
+} catch(err) {
+  assert('Suite 50 Exception: '+err.message,false);
+}
+
 console.log('\n================================================================');
 console.log('                   REGRESSION TEST RESULTS SUMMARY');
 console.log('================================================================');
