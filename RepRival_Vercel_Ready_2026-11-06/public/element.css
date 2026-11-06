@@ -145,3 +145,110 @@ body.rr-element {
   .rr-element .rr-element-exercise strong{font-size:12px}
   .rr-element .rr-element-exercise fieldset{gap:0}
 }
+
+/* ELEMENT OVERRIDES — legacy 1.6 stylesheet intentionally used !important.
+   Match that specificity only in Element mode; preserve all legacy styles for rollback. */
+html:has(body.rr-element){
+  --rr-bg:#f8f7f0!important;--rr-card:#fffefa!important;--rr-card-border:#e3e3d3!important;
+  --rr-surface:#fffefa!important;--rr-surface-border:#e3e5d8!important;
+  --rr-copper:#5a7b39!important;--rr-copper-dark:#375525!important;
+  --rr-copper-glow:rgba(84,124,55,.15)!important;
+  --rr-text:#283121!important;--rr-sub:#63715e!important;--rr-dim:#899280!important;
+  color-scheme:light!important;
+  background:#f8f7ef!important;
+}
+body.rr-element{background:radial-gradient(ellipse at 80% 2%,#e5e9d5 0%,transparent 33%),linear-gradient(140deg,#faf9f3,#f5f4e9 55%,#f9f8f2)!important;color:#273023!important;color-scheme:light!important}
+.rr-element .shell{max-width:880px!important;padding:20px 22px 130px!important}
+.rr-element .card,.rr-element .section,.rr-element .metric,.rr-element .movement-entry,.rr-element .movement-tile{
+  background:#fffef9!important;border:1px solid #e0e3d5!important;border-radius:22px!important;
+  box-shadow:0 11px 33px rgba(53,70,43,.07)!important;color:#283121!important;
+}
+.rr-element .card:before{background:none!important;opacity:0!important}
+.rr-element .page-title,.rr-element .feature-title{font-family:'Segoe UI',Arial,sans-serif!important;font-weight:850!important;color:#20271f!important}
+.rr-element :is(.subhead,.fineprint,.lead){color:#66735e!important}
+.rr-element .eyebrow{color:#748263!important}
+.rr-element .brand-rep{color:#202d21!important;text-shadow:none!important}
+.rr-element .brand-rival{
+  background:linear-gradient(135deg,#607d40,#3f5b2b)!important;
+  -webkit-background-clip:text!important;-webkit-text-fill-color:transparent!important;text-shadow:none!important}
+.rr-element .brand-r-mark{background:none!important;color:#fff!important;-webkit-text-fill-color:#fff!important;text-shadow:none!important;font-style:normal!important}
+.rr-element .brand-emblem{background:#566e3a!important;border-color:#748a5b!important;box-shadow:0 3px 10px #52654116!important;border-radius:11px!important}
+.rr-element .topbar-user{background:#fffdf5!important;border:1px solid #cbd3bf!important;box-shadow:none!important}
+.rr-element .topbar-user:hover{background:#f0f4e7!important;border-color:#8ea778!important}
+.rr-element .user-avatar{background:#6d874c!important;box-shadow:none!important}
+.rr-element .user-chip,.rr-element .user-caret{color:#3c5035!important}
+.rr-element .btn.primary,.rr-element .btn.green{background:linear-gradient(130deg,#719047,#49682c)!important;color:#fff!important;border-color:#577a3a!important;box-shadow:0 4px 12px #4e6c3031!important}
+.rr-element .btn.outline{background:#fffdf7!important;color:#405c31!important;border:1px solid #bdc9af!important}
+.rr-element .btn.text{color:#446b34!important;background:transparent!important}
+.rr-element .rr165-greeting-card{
+ background:linear-gradient(110deg,#f1f2e5,#fbfaf2 75%)!important;border:1px solid #e0e6d4!important;
+ box-shadow:0 14px 38px #3d502012!important;border-radius:25px!important;min-height:133px!important;padding:19px 21px!important;
+}
+.rr-element .rr165-greeting-card .rr153-waves{opacity:.16!important;filter:grayscale(1) sepia(.6) hue-rotate(35deg)!important}
+.rr-element .rr165-greeting-sub,.rr-element .rr165-card-eyebrow{color:#7c896d!important}
+.rr-element .rr-eyebrow-accent-bar{background:#73914f!important}
+.rr-element .rr165-title,.rr-element .rr165-title em{color:#232c21!important}
+.rr-element .rr165-title{font-size:24px!important;letter-spacing:-.6px!important}
+.rr-element .rr165-title em{font-weight:850!important}
+.rr-element .rr161-checkin{background:#fffef7!important;color:#4e623b!important;border:1px solid #becbb0!important;box-shadow:none!important}
+.rr-element .rr161-checkin:hover{background:#eff3e6!important;border-color:#799a5b!important}
+.rr-element .rr165-score-number{color:#2a3b25!important}
+.rr-element .rr165-score-label{color:#72816c!important}
+.rr-element .rr165-kpi-item{background:#fffefa!important;border:1px solid #e0e4d5!important;box-shadow:0 9px 22px #3448220e!important;border-radius:17px!important}
+.rr-element .rr165-kpi-item:hover{border-color:#c3d4b6!important}
+.rr-element .rr165-kpi-icon{background:#eaf0df!important;border-color:#d7e3c7!important}
+.rr-element .rr165-kpi-icon svg{stroke:#557739!important}
+.rr-element .rr165-kpi-val{color:#263223!important}
+.rr-element .rr165-kpi-val small,.rr-element .rr165-kpi-lbl{color:#6d7965!important}
+.rr-element :is(.rr-kpi-glow-bar,.bar-copper,.bar-orange,.bar-green,.bar-amber,.bar-coral){background:#72914c!important;box-shadow:none!important}
+.rr-element .rr165-plan-card{background:#fffefa!important;border:1px solid #e1e5d8!important;box-shadow:0 12px 35px #40562712!important;border-radius:23px!important}
+.rr-element .rr165-plan-title-info h2{color:#25301f!important}
+.rr-element .rr165-plan-subtitle,.rr-element .rr165-plan-pct-badge small{color:#697860!important}
+.rr-element .rr165-plan-pct-badge strong{color:#527939!important}
+.rr-element .rr165-rotation-tag{color:#476930!important;background:#edf2e2!important;border-color:#d5e0c9!important}
+.rr-element .rr165-progress-bar{background:#e9ede0!important;border:0!important}
+.rr-element .rr165-progress-fill{background:linear-gradient(90deg,#8aa96a,#537b3d)!important;box-shadow:none!important}
+.rr-element .rr-plan-next-bubble{background:#f5f6e9!important;border:1px solid #d9e3cc!important;box-shadow:0 5px 14px #34482208!important;border-radius:18px!important}
+.rr-element .rr-plan-next-bubble:hover{border-color:#91b276!important;box-shadow:0 7px 22px #34482215!important}
+.rr-element .rr-next-badge-icon{background:#e5edd6!important;border-color:#d0dfc1!important}
+.rr-element .rr-next-badge-icon svg{stroke:#5b7e3e!important}
+.rr-element .rr-next-bubble-eyebrow{color:#687d4f!important}
+.rr-element .rr-next-bubble-title{color:#293420!important}
+.rr-element .rr-next-bubble-meta{color:#707c63!important}
+.rr-element .rr-next-play-dial{background:#edf1e0!important;border-color:#c0d5a9!important;box-shadow:none!important}
+.rr-element .rr-next-play-inner{background:#607f3c!important;box-shadow:none!important}
+.rr-element .rr-next-play-inner svg{fill:#fff!important}
+.rr-element .rr-home-heatmap-card{background:#fffefa!important;border:1px solid #e0e4d7!important}
+.rr-element .rr-home-heatmap-card h3{color:#293321!important}
+.rr-element .rr-home-heatmap-card .eyebrow{color:#75826b!important}
+.rr-element .rr-home-heatmap-card .btn.text{background:#f3f5e9!important;border-color:#cbdcb9!important;color:#496c37!important}
+.rr-element .tabnav{background:rgba(254,253,246,.97)!important;border:1px solid #dce3d0!important;box-shadow:0 11px 32px #34482223!important;border-radius:25px!important}
+.rr-element .tabnav button{color:#68775c!important}
+.rr-element .tabnav button.active{color:#375b2c!important;background:#e9f0da!important}
+.rr-element .tabnav button.active:after{background:#708e52!important;box-shadow:none!important}
+.rr-element .roadmap-accordion,.rr-element .roadmap-block{background:#f5f6ed!important;border:1px solid #e0e4d5!important;border-radius:13px!important}
+.rr-element .roadmap-block{background:#fffefa!important}
+.rr-element .roadmap-block-head{color:#55773c!important;border-bottom-color:#e5e6d9!important}
+.rr-element .roadmap-ex-row{background:#f9faf3!important}
+.rr-element .roadmap-ex-row.roadmap-active{background:#e9f1de!important;border-left-color:#61833f!important}
+.rr-element .roadmap-ex-name{color:#223120!important}
+.rr-element .roadmap-ex-meta,.rr-element .roadmap-sets-count{color:#6a795f!important}
+.rr-element .swap-option-card{background:#f7f9ef!important;border:1px solid #e0e5d6!important}
+.rr-element .swap-option-card strong{color:#243220!important}
+.rr-element .swap-option-card small{color:#6a7560!important}
+.rr-element :is(.rr165-intro-title,.rr165-intro-desc,.rr165-meta-chip,.rr165-focus-pill){color:#253320!important}
+.rr-element .rr165-train-row{background:#fffefa!important;border-color:#dce4d5!important}
+.rr-element .rr165-train-info strong{color:#283524!important}
+.rr-element .rr165-train-info span{color:#6d7a63!important}
+.rr-element .rr165-cta-btn{background:#607e3c!important;border-color:#607e3c!important;color:#fff!important}
+.rr-element .rr165-modal,.rr-element .rr165-modal-content{background:#fffefa!important;color:#263223!important;border-color:#d5e2c8!important}
+.rr-element .pb-toast{background:#2d4625!important;border-color:#668c48!important;color:#fff!important}
+.rr-element .pb-toast :is(h1,h2,h3,strong,span,small){color:inherit!important}
+.rr-element .pb-toast-title{color:#ccefa4!important}
+.rr-element .rr-element-studio .card{background:#fffefa!important}
+@media(max-width:590px){
+  .rr-element .shell{padding:15px 13px calc(127px + env(safe-area-inset-bottom))!important}
+  .rr-element .rr165-greeting-card{min-height:118px!important;padding:16px!important}
+  .rr-element .rr165-title{font-size:21px!important}
+  .rr-element .rr165-kpi-grid{gap:6px!important}
+}
