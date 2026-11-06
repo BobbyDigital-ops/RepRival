@@ -312,3 +312,55 @@ body.rr-graphite-home {
   .rr-graphite-home .rr-g-muscle-ready>strong{font-size:12px!important}
   .rr-graphite-home .rr-g-welcome h2{font-size:17px!important}
 }
+/* Graphite Pass 3: workout-first mobile hierarchy and renewed premium finish.
+   Purely presentational: training data, recovery calculations and map interaction unchanged. */
+.rr-graphite-home .rr-g-home-overview{
+  position:relative!important;overflow:hidden!important;margin:0 0 18px!important;
+  background:linear-gradient(157deg,#25272d 0%,#1b1d22 48%,#17191d 100%)!important;
+  border:1px solid #55505a!important;
+  box-shadow:0 14px 38px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.045)!important;
+}
+.rr-graphite-home .rr-g-home-overview::before{
+  content:"";pointer-events:none;position:absolute;top:0;left:16px;right:16px;height:2px;
+  background:linear-gradient(90deg,#e36b4c 0%,#b75b59 37%,transparent 85%);opacity:.9;
+}
+.rr-graphite-home .rr-g-section-eyebrow{color:#c0a7a5!important}
+.rr-graphite-home .rr-g-welcome h2{color:#f6f0ed!important;font-weight:670!important}
+.rr-graphite-home .rr-g-next-workout{
+  background:linear-gradient(125deg,#352b2d 0%,#26252b 50%,#24252a 100%)!important;
+  border-color:#68504c!important;box-shadow:inset 3px 0 0 #d96a51!important;
+}
+.rr-graphite-home .rr-g-next-copy h3{color:#fff4ee!important;font-weight:730!important}
+.rr-graphite-home .rr-g-start{
+  background:#ec7659!important;border-color:#f18b6e!important;color:#22191a!important;
+  box-shadow:0 3px 14px rgba(233,110,82,.23)!important;
+}
+.rr-graphite-home .rr-g-mini-metrics strong{color:#f0e9e5!important}
+.rr-graphite-home .rr-g-mini-metrics>div:nth-child(2) strong{color:#eaa08c!important}
+.rr-graphite-home .rr-g-home-actions button:first-child{color:#eea38e!important}
+.rr-graphite-home .rr-g-home-heat{margin-top:0!important}
+.rr-graphite-home .rr-g-muscle-row{
+  grid-template-columns:minmax(110px,1fr) minmax(105px,1.2fr) minmax(62px,.65fr)!important;
+}
+.rr-graphite-home .rr-g-muscle-identity{gap:0!important}
+.rr-graphite-home .rr-g-muscle-title strong{font-size:13px!important}
+.rr-graphite-home .rr-g-muscle-title small{font-size:10px!important}
+@media(max-width:530px){
+  .rr-graphite-home .rr-g-home-overview{padding:17px 15px!important}
+  .rr-graphite-home .rr-g-welcome{margin-bottom:14px!important}
+  .rr-graphite-home .rr-g-welcome h2{font-size:21px!important}
+  .rr-graphite-home .rr-g-next-copy h3{font-size:21px!important}
+  .rr-graphite-home .rr-g-muscle-row{
+    grid-template-columns:minmax(85px,.95fr) minmax(92px,1.1fr) minmax(63px,.7fr)!important;
+    gap:8px!important;padding:12px 10px!important
+  }
+  .rr-graphite-home .rr-g-muscle-title strong{font-size:13px!important}
+  .rr-graphite-home .rr-g-muscle-title small{font-size:10px!important}
+}
+@media(max-width:360px){
+  .rr-graphite-home .rr-g-muscle-row{
+    grid-template-columns:minmax(77px,.9fr) minmax(79px,1.05fr) minmax(55px,.7fr)!important;
+    gap:6px!important;padding:10px 8px!important
+  }
+  .rr-graphite-home .rr-g-muscle-title strong{font-size:12px!important}
+}
