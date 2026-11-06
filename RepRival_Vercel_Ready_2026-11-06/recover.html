@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RepRival — Restore Workouts</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#0b1012;color:#eef2ef;font:16px system-ui,Arial,sans-serif;padding:28px 14px;display:flex;justify-content:center}main{max-width:560px;width:100%}h1{font-size:28px;margin:12px 0}p{line-height:1.5;color:#bdc9c4}.card{padding:20px;background:#182322;border:1px solid #4f6b60;border-radius:16px;margin:20px 0}button,.file-label{display:block;width:100%;border:0;border-radius:10px;padding:15px;margin:12px 0;font-size:16px;font-weight:700;cursor:pointer;background:#9fceb1;color:#112017;text-align:center}button:disabled{opacity:.55;cursor:not-allowed}input[type=file]{display:block;width:100%;margin:18px 0;font-size:15px}#status{white-space:pre-wrap;line-height:1.55;padding:12px;border:1px solid #577264;border-radius:9px;min-height:56px;background:#101917}small{color:#9facaa}a{color:#a5d5bd}strong{color:white}
+</style></head><body><main><small>REPRIVAL · RECOVERY v4</small><h1>Restore missing workouts</h1><p>This tool compares your backup with your Google account's workout history and adds missing records only. Existing workouts will not be overwritten.</p>
+<div class="card"><strong>1. Google account</strong><p id="account">Checking sign-in…</p><button id="login" type="button">Sign in with Google</button></div>
+<div class="card"><strong>2. Your backup</strong><input id="backup" type="file" accept=".json,application/json"><button id="review" type="button">Review backup</button></div>
+<div class="card"><strong>3. Recovery</strong><div id="status" role="status">No file reviewed yet.</div><button id="import" type="button" disabled>Import missing workouts</button></div>
+<a href="/">Back to RepRival</a><p><small>Keep the original JSON backup. Import requires confirmation and verifies the cloud documents after writing.</small></p>
+<script type="module" src="/src/restore-workouts.ts"></script></main></body></html>
