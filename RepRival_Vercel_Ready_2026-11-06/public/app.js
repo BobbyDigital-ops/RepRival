@@ -1311,215 +1311,66 @@
   }
 
   function home(){
-    const a = state.active;
-    const session = a?.session || state.next;
-    const nextSessionData = planFor(session);
-    const planMeta = window.REPRIVAL_PLAN_LIBRARY.details[selectedPlan] || {};
-    const planName = esc(selectedPlan === ADAPT_ID ? 'Adaptive Training' : planMeta.title || 'Training plan');
-    const nextName = esc(nextSessionData.name || ('Workout ' + session));
-    const greeting = esc((profile().username || 'Athlete').split(' ')[0]);
-    const c = consistency();
-    const pbTotal = state.history.reduce((n, s) => n + (s.prs || []).length, 0);
-
-    const pairs = nextSessionData.pairs || [];
-    const exerciseCount = pairs.flatMap(p => p.exercises).length;
-    const totalWorkingSets = pairs.flatMap(p => p.exercises).reduce((s, e) => s + e.sets, 0);
-    const estimate = adaptivePlan()
-      ? Math.round(5 + totalWorkingSets * 1.32 + pairs.length * 2.15 + exerciseCount * 0.65)
-      : Math.max(20, Math.ceil((totalWorkingSets * 1.6 + pairs.length * 1.5) / 5) * 5);
-
-    const currentIndex = Math.max(0, SESSION_ORDER.indexOf(session)), rotationCount = Math.max(1, SESSION_ORDER.length);
-
-    // Athlete Rating & League Score
-    const rating = athleteIndex();
-    const leagueRating = leagueInactivity();
-    const displayRating = rating.value == null ? '108' : fmt(leagueRating.adjusted);
-
-    // Dynamic strength percentage increase
-    const strengthPct = calculateStrengthGainPct();
-
-    // Plan Progress calculations for whole plan
-    const totalPlanWorkouts = (state.history || []).length;
-    const currentRotation = Math.floor(totalPlanWorkouts / rotationCount) + 1;
-
-    // Total workouts in the entire plan program (e.g. 8-10 weeks * weekly frequency = 24-30 workouts)
-    let totalPlanSessions = 30;
-    if (planMeta.totalWorkouts && Number(planMeta.totalWorkouts) > 0) {
-      totalPlanSessions = Number(planMeta.totalWorkouts);
-    } else if (planMeta.duration && typeof planMeta.duration === 'string') {
-      const match = planMeta.duration.match(/(\d+)\s*week/i);
-      if (match) {
-        const weeks = parseInt(match[1], 10);
-        const weekly = Number(planMeta.weekly) || Number(c.goal) || 3;
-        totalPlanSessions = weeks * weekly;
-      } else {
-        const weekly = Number(planMeta.weekly) || Number(c.goal) || 3;
-        totalPlanSessions = Math.max(12, 10 * weekly);
-      }
-    } else {
-      const weekly = Number(planMeta.weekly) || Number(c.goal) || 3;
-      totalPlanSessions = Math.max(12, 10 * weekly);
-    }
-
-    const currentSessionNumber = Math.min(totalPlanSessions, (c.totalDone || totalPlanWorkouts) + 1);
-    const wholePlanPct = adaptivePlan() ? 100 : Math.min(100, Math.round(((c.totalDone || totalPlanWorkouts) / totalPlanSessions) * 100));
-
-    // Rating ring needle dot calculation
-    const ratingFraction = Math.min(1, Math.max(0.15, (leagueRating.adjusted || 750) / 1000));
-    const angleRad = (ratingFraction * 248 - 90) * (Math.PI / 180);
-    const ringDotX = (43 + 36 * Math.cos(angleRad)).toFixed(1);
-    const ringDotY = (43 + 36 * Math.sin(angleRad)).toFixed(1);
-
-    return `
-      ${graphiteHomeHeatmap()}
-      <!-- Redesigned Hero Greeting Card with Rich Ember Edge Highlighting & Background Waves -->
-      <section class="card section rr165-greeting-card">
-        <div class="rr153-waves" aria-hidden="true"></div>
-        <div class="rr165-greeting-text">
-          <span class="rr165-greeting-sub">A HIGHER STANDARD. EVERY DAY.</span>
-          <div class="rr-eyebrow-accent-bar"></div>
-          <h1>${new Date().getHours()<12&&new Date().getHours()>=5?'Good morning':new Date().getHours()<18&&new Date().getHours()>=12?'Good afternoon':'Good evening'},<br><em>${greeting}.</em></h1>
-          <button type="button" class="rr161-checkin mt12" data-action="readiness">
-            ${todayReadiness() ? '✓ Check-in saved · edit' : '＋ Daily check-in'} &nbsp;›
+    const current=state.active;
+    const session=current?.session||state.next;
+    const currentPlan=planFor(session);
+    const planMeta=window.REPRIVAL_PLAN_LIBRARY.details[selectedPlan]||{};
+    const planName=selectedPlan===ADAPT_ID?'Adaptive Training':planMeta.title||'Current Training Plan';
+    const nextName=currentPlan.name||'Workout '+session;
+    const pairs=currentPlan.pairs||[];
+    const sets=pairs.flatMap(p=>p.exercises||[]).reduce((s,e)=>s+Number(e.sets||0),0);
+    const minutes=adaptivePlan()?Math.round(5+sets*1.32+pairs.length*2.15+pairs.flatMap(p=>p.exercises||[]).length*.65)
+      :Math.max(20,Math.ceil((sets*1.6+pairs.length*1.5)/5)*5);
+    const done=state.history.length;
+    const count=state.history.reduce((n,w)=>n+(w.prs||[]).length,0);
+    const consistencyStats=consistency();
+    const firstName=(profile().username||'Rival').split(/\s+/)[0];
+    const hour=new Date().getHours();
+    const greeting=hour<12&&hour>=5?'Good morning':hour<18&&hour>=12?'Good afternoon':'Good evening';
+    const tasks=current?buildTasks(current.session):[];
+    const complete=Boolean(current&&current.logs.filter(Boolean).length>=tasks.length);
+    const workoutStatus=current?(complete?'Review completed workout':'Resume your workout'):'Next workout';
+    const link=current?'workout':'workout-intro';
+    const planCycle=Math.floor(done/Math.max(1,SESSION_ORDER.length))+1;
+    const currentStrength=calculateStrengthGainPct();
+    const signedIn=Boolean(window.RepRivalCloud?.getCurrentUser?.());
+    return `${graphiteHomeHeatmap()}
+      <section class="rr-g-home-overview" aria-label="Your training overview">
+        <div class="rr-g-welcome">
+          <div>
+            <span class="rr-g-section-eyebrow">YOUR TRAINING</span>
+            <h2>${greeting}, ${esc(firstName)}.</h2>
+          </div>
+          <button class="rr-g-checkin" type="button" data-action="readiness">${todayReadiness()?'✓ Check-in saved':'＋ Check in'}</button>
+        </div>
+        <div class="rr-g-mini-metrics" aria-label="Your training statistics">
+          <div data-nav="plan" role="button" tabindex="0" title="View completed workouts"><strong>${done}</strong><span>WORKOUTS</span></div>
+          <div data-action="progress-tab" data-tab="movements" role="button" tabindex="0" title="View strength history"><strong>${esc(String(currentStrength))}%</strong><span>STRENGTH</span></div>
+          <div data-action="progress-tab" data-tab="records" role="button" tabindex="0" title="View your records"><strong>${count}</strong><span>RECORDS</span></div>
+        </div>
+        <div class="rr-g-next-workout" aria-label="${esc(workoutStatus)}">
+          <div class="rr-g-next-copy" data-page="${link}" role="button" tabindex="0">
+            <span class="rr-g-section-eyebrow">${esc(workoutStatus)}</span>
+            <h3>${esc(nextName)}${complete?' ✓':''}</h3>
+            <p>${current?`${current.logs.filter(l=>l&&!l.skipped).length} of ${tasks.length} sets logged`:`${pairs.length} blocks · ${sets} sets · ~${minutes} min`}</p>
+          </div>
+          <button type="button" class="rr-g-start" data-page="${link}" aria-label="${current?'Resume':'Start'} ${esc(nextName)}">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m8 5 11 7-11 7V5Z"/></svg>
           </button>
         </div>
-        <div class="rr165-score-widget">
-          <div class="rr165-score-ring-wrap">
-            <svg viewBox="0 0 86 86">
-              <circle cx="43" cy="43" r="36" stroke="#1d2126" stroke-width="6.5" fill="none"/>
-              <circle cx="43" cy="43" r="36" stroke="url(#accentGrad)" stroke-width="6.5" fill="none"
-                stroke-dasharray="226" stroke-dashoffset="${(226 * (1 - ratingFraction)).toFixed(1)}"
-                stroke-linecap="round"/>
-              <circle cx="${ringDotX}" cy="${ringDotY}" r="3.5" fill="#f5ede6" filter="drop-shadow(0 0 4px rgba(217,114,65,0.7))"/>
-              <defs>
-                <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="#e88252"/>
-                  <stop offset="100%" stop-color="#ba5323"/>
-                </linearGradient>
-              </defs>
-            </svg>
-            <div class="rr165-score-val-overlay">
-              <span class="rr165-score-number">${displayRating}</span>
-              <span class="rr165-score-label">RATING</span>
-            </div>
-          </div>
-          <div class="rr-rating-status mt6">
-            <span class="rr-active-dot"></span>
-            <span class="rr-active-text">ACTIVE</span>
-          </div>
+        <div class="rr-g-plan-foot">
+          <div data-nav="plan" role="button" tabindex="0"><strong>${esc(planName)}</strong><span>${adaptivePlan()?'Adaptive active':`Cycle ${planCycle}`} · ${Math.round(consistencyStats.percentage||0)}% consistency</span></div>
+          <button type="button" class="rr-g-plan-link" data-nav="plan">View plan ›</button>
+        </div>
+        <div class="rr-g-home-actions">
+          <button type="button" data-action="open-generator">Quick workout</button>
+          <button type="button" data-action="open-holiday-modal">${state.holiday?.active?'Holiday settings':'Holiday mode'}</button>
         </div>
       </section>
-
-      <!-- 4-KPI Quick Stats Bubbles with Unified Weathered Copper Accents -->
-      <div class="rr165-kpi-grid">
-        <div class="rr165-kpi-item" data-nav="plan" role="button" tabindex="0" title="Total Plan Workouts">
-          <span class="rr165-kpi-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#d97241" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-          </span>
-          <div class="rr165-kpi-val">${c.totalDone || totalPlanWorkouts}<small>${c.totalTarget ? '/' + c.totalTarget : ''}</small></div>
-          <div class="rr165-kpi-lbl">Workouts</div>
-          <span class="rr-kpi-glow-bar bar-copper"></span>
-        </div>
-        <div class="rr165-kpi-item" data-action="progress-tab" data-tab="movements" role="button" tabindex="0" style="cursor:pointer;" title="View Strength Trends">
-          <span class="rr165-kpi-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#d97241" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-          </span>
-          <div class="rr165-kpi-val">${strengthPct}<small>%</small></div>
-          <div class="rr165-kpi-lbl">Strength</div>
-          <span class="rr-kpi-glow-bar bar-copper"></span>
-        </div>
-        <div class="rr165-kpi-item" data-action="progress-tab" data-tab="records" role="button" tabindex="0" title="Personal Records">
-          <span class="rr165-kpi-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#d97241" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.45 1-1 1H8v4h8v-4h-1c-.55 0-1-.45-1-1v-2.34"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
-          </span>
-          <div class="rr165-kpi-val">${pbTotal}</div>
-          <div class="rr165-kpi-lbl">Records</div>
-          <span class="rr-kpi-glow-bar bar-copper"></span>
-        </div>
-        <div class="rr165-kpi-item" data-nav="plan" role="button" tabindex="0" title="Plan Consistency">
-          <span class="rr165-kpi-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#d97241" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-          </span>
-          <div class="rr165-kpi-val">${c.percentage}<small>%</small></div>
-          <div class="rr165-kpi-lbl">Consistency</div>
-          <span class="rr-kpi-glow-bar bar-copper"></span>
-        </div>
-      </div>
-
-      <!-- Holiday Mode Active Banner (If Enabled) -->
-      ${state.holiday?.active ? `
-        <section class="card section" style="background:linear-gradient(135deg, rgba(56,189,248,0.15) 0%, rgba(14,165,233,0.05) 100%); border:1px solid rgba(56,189,248,0.3); border-radius:14px; padding:16px; margin-bottom:16px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-            <div>
-              <div style="font-size:11px; font-weight:700; color:#38bdf8; letter-spacing:1px;">🌴 HOLIDAY MODE ACTIVE</div>
-              <h3 style="margin:2px 0 0 0; color:#f5ede6; font-size:16px;">${esc(state.holiday.location || 'Holiday')} · Routine Paused</h3>
-              <p style="font-size:12px; color:#cbd5e1; margin:4px 0 0 0;">
-                Your main plan rotation is frozen at <strong>Workout ${esc(state.holiday.savedNext || state.next)}</strong>. Ad-hoc workouts keep your heat map hot without advancing your main rotation.
-              </p>
-            </div>
-            <div style="display:flex; gap:8px;">
-              <button type="button" class="btn outline sm" data-action="open-generator" style="font-size:12px; padding:6px 12px; border-color:#38bdf8; color:#38bdf8;">⚡ Quick Travel Workout</button>
-              <button type="button" class="btn primary sm" data-action="open-holiday-modal" style="font-size:12px; padding:6px 12px; background:#38bdf8; border-color:#38bdf8; color:#0d0f11; font-weight:700;">✈️ Return from Holiday</button>
-            </div>
-          </div>
-        </section>
-      ` : ''}
-
-      <!-- Plan Progress Card (With Integrated Next Workout for the Whole Plan) -->
-      <section class="card section rr165-plan-card" aria-label="Current training plan and next workout">
-        <div class="rr165-card-head" data-nav="plan" role="button" tabindex="0">
-          <span class="rr165-card-eyebrow">PLAN PROGRESS · ${planName.toUpperCase()} ${state.holiday?.active ? ' (PAUSED FOR HOLIDAY)' : ''}</span>
-          <span class="rr165-rotation-tag">${adaptivePlan() ? 'DYNAMIC' : `CYCLE ${currentRotation} · ${rotationCount}-DAY SPLIT`}</span>
-        </div>
-
-        <div class="rr165-plan-title-row mt8" data-nav="plan" role="button" tabindex="0">
-          <div class="rr165-plan-title-info">
-            <h2 class="rr165-plan-title">${planName}</h2>
-            <p class="rr165-plan-subtitle">${rotationCount}-Day Split · ${c.totalDone || totalPlanWorkouts} of ${totalPlanSessions} Workouts Completed · ${c.percentage}% Consistency</p>
-          </div>
-          <div class="rr165-plan-pct-badge">
-            <strong>${wholePlanPct}%</strong>
-            <small>PLAN PROGRESS</small>
-          </div>
-        </div>
-
-        <!-- Glowing Progress Fill Bar Across Whole Plan -->
-        <div class="rr165-progress-bar mt10" data-nav="plan" role="button" tabindex="0">
-          <div class="rr165-progress-fill" style="width: ${Math.max(6, wholePlanPct)}%;"></div>
-        </div>
-
-        <!-- Next Workout Bubble (Single upcoming workout with details and launch button) -->
-        <div class="rr-plan-next-bubble mt14" data-page="${a ? 'workout' : 'workout-intro'}" role="button" tabindex="0" title="${a ? (a.logs.filter(Boolean).length >= buildTasks(a.session).length ? 'Review and Save Completed Workout' : 'Resume Workout') : 'Start ' + nextName}">
-          <div class="rr-next-bubble-left">
-            <span class="rr-next-badge-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#d97241" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M2 12h20"/><path d="M6 6v12"/><path d="M18 6v12"/><path d="M4 8v8"/><path d="M20 8v8"/></svg>
-            </span>
-            <div class="rr-next-bubble-text">
-              <div class="rr-next-bubble-eyebrow">${state.holiday?.active ? `🌴 HOLIDAY MODE · FROZEN AT WORKOUT ${esc(state.holiday.savedNext || state.next)} ›` : (a ? (a.logs.filter(Boolean).length >= buildTasks(a.session).length ? 'COMPLETED WORKOUT · READY TO SAVE ›' : 'RESUME WORKOUT · IN PROGRESS ›') : 'NEXT WORKOUT · CURRENT PLAN ›')}</div>
-              <h3 class="rr-next-bubble-title">${nextName}${a && a.logs.filter(Boolean).length >= buildTasks(a.session).length ? ' ✓' : ''}</h3>
-              <p class="rr-next-bubble-meta">${a && a.logs.filter(Boolean).length >= buildTasks(a.session).length ? `${a.logs.filter(l => !l.skipped).length} of ${buildTasks(a.session).length} sets recorded${a.logs.filter(l => l.skipped).length ? ' (' + a.logs.filter(l => l.skipped).length + ' skipped)' : ''} · tap to review summary` : `${pairs.length} supersets · ${totalWorkingSets} sets · ~${estimate} min`}</p>
-            </div>
-          </div>
-          <div class="rr-next-play-dial" aria-label="${a ? 'Resume workout' : 'Start workout'}" role="button" tabindex="0" data-page="${a ? 'workout' : 'workout-intro'}">
-            <div class="rr-next-play-inner">
-              <svg viewBox="0 0 24 24" fill="#0d0f11" width="16" height="16"><polygon points="6 4 20 12 6 20 6 4"/></svg>
-            </div>
-          </div>
-        </div>
-
-        <div class="rr165-plan-sub mt12" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-          <span class="rr-plan-arrow-link" data-nav="plan" role="button" tabindex="0">View complete plan details ›</span>
-          <div style="display:flex; gap:8px;">
-            <button type="button" class="btn outline sm" data-action="open-generator" style="font-size:11px; padding:4px 10px;">⚡ Quick Workout</button>
-            <button type="button" class="btn outline sm" data-action="open-holiday-modal" style="font-size:11px; padding:4px 10px; border-color:rgba(56,189,248,0.4); color:#38bdf8;">${state.holiday?.active ? '🌴 Holiday Settings' : '🌴 Holiday Mode'}</button>
-          </div>
-        </div>
-      </section>
-
-      <!-- Cloud Sync Banner -->
-      ${cloudBanner()}
-    `;
+      ${state.holiday?.active?'<p class="rr-g-holiday-active">Holiday mode is active. Your regular workout rotation is paused.</p>':''}
+      ${signedIn?'':cloudBanner()}`;
   }
+
   function currentSessionPairs(){
     if(state.active && state.active.pairs) return state.active.pairs;
     if(state.activeCustomPairs) return state.activeCustomPairs;
