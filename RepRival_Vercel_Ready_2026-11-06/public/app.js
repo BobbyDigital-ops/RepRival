@@ -1228,9 +1228,16 @@
   function graphiteAtlasPalette(metric,defaultColor) {
     if (!metric || defaultColor?.alpha===0) return defaultColor;
     const days=Number(metric.daysSince);
-    if(metric.isDetraining&&Number.isFinite(days)&&days>=21)
-      return {fill:days>=28?'#6589a2':'#7d9eaf',alpha:days>=28?.55:.43};
     const stimulus=Math.min(100,Math.max(0,Number(metric.stimulusScore)||0));
+    // Muted cool blue is an *appearance* for fading recent stimulus,
+    // not a claim of physiological detraining. The intelligence engine keeps
+    // its conservative 21-day, multi-session detraining definition.
+    if(Number.isFinite(days)&&metric.ever&&days>=7&&stimulus<35){
+      if(metric.isDetraining&&days>=21){
+        return {fill:days>=28?'#5f88ad':'#7296b5',alpha:days>=28?.65:.55};
+      }
+      return {fill:days>=14?'#7799b3':'#829caf',alpha:days>=14?.47:.36};
+    }
     return {fill:graphiteHeatColour(stimulus),alpha:Math.min(.74,Math.max(.10,.17+stimulus*.0055))};
   }
   
@@ -1303,7 +1310,7 @@
       <div class="rr-g-legend" aria-label="Muscle heat colours">
         <div class="rr-g-gradient" aria-hidden="true"></div>
         <div class="rr-g-legend-ends"><span>COOL · LOWER STIMULUS</span><span>WARM · HIGHER STIMULUS</span></div>
-        <p>Blue on the body indicates prolonged detraining; other cool or neutral tones indicate lower recent stimulus. Readiness is a separate recovery estimate, not the heat colour.</p>
+        <p>Blue on previously trained muscles shows fading stimulus after a week without training; deeper blue can indicate prolonged detraining. Never-trained muscles stay neutral. Readiness is separate from heat colour.</p>
       </div>
     </section>`;
   }
@@ -4838,8 +4845,19 @@
     }
   }
 
+  let cloudSyncInFlight=null;
+  let cloudSyncUserId=null;
   async function syncWithCloudUser(user){
     if(!user) return;
+    if(cloudSyncInFlight&&cloudSyncUserId===user.uid)return cloudSyncInFlight;
+    const task=performCloudSyncWithUser(user);
+    cloudSyncInFlight=task;
+    cloudSyncUserId=user.uid;
+    try{return await task;}
+    finally{if(cloudSyncInFlight===task){cloudSyncInFlight=null;cloudSyncUserId=null;}}
+  }
+
+  async function performCloudSyncWithUser(user){
     const isOwnerAdmin = user.email?.toLowerCase() === 'zebob85@gmail.com';
     const profileId = 'user-' + user.uid;
     const role = isOwnerAdmin ? 'admin' : 'athlete';
@@ -6467,7 +6485,10 @@
       googleBtn.addEventListener('click', async () => {
         try {
           googleBtn.disabled = true;
+          googleBtn.setAttribute('aria-busy','true');
           googleBtn.textContent = 'Connecting with Google...';
+          const errDiv = dlg.querySelector('#authErrorNotice');
+          if(errDiv)errDiv.style.display='none';
           const user = await window.RepRivalCloud.signIn();
           if (user) {
             dlg.close();
@@ -6491,7 +6512,8 @@
             errDiv.style.display = 'block';
           }
           googleBtn.disabled = false;
-          googleBtn.innerHTML = 'Continue with Google';
+          googleBtn.removeAttribute('aria-busy');
+          googleBtn.textContent = 'Continue with Google';
         }
       });
 
@@ -6558,6 +6580,12 @@
     if(window.RepRivalCloud){
       cloudAuthChecked = true;
       window.RepRivalCloud.onAuth((user) => {
+        // A successful Firebase auth event is authoritative even if a mobile
+        // popup's original JavaScript promise has not settled.
+        if(user){
+          const authDialog=document.querySelector('.rr-auth-dialog');
+          if(authDialog?.open)authDialog.close();
+        }
         // Always reconcile Firestore on authenticated launch, including when the
         // selected local athlete profile already matches the signed-in account.
         // Otherwise a page refresh can display stale local workout history.
