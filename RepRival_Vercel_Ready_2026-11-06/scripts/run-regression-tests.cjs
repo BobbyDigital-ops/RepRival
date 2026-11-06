@@ -2626,6 +2626,34 @@ try {
   assert('Suite 52 Exception: '+err.message,false);
 }
 
+// -----------------------------------------------------------------------------
+// SUITE 53: Compact active session and rest UI boundaries
+// -----------------------------------------------------------------------------
+console.log('\n--- SUITE 53: Graphite compact workout / rest styling ---');
+try {
+  const fs=require('fs'),path=require('path');
+  const css=fs.readFileSync(path.join(__dirname,'../public/graphite-session.css'),'utf8');
+  const app=fs.readFileSync(path.join(__dirname,'../public/app.js'),'utf8');
+  const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+  assert('Compact session stylesheet linked after base theme',html.indexOf('/graphite-session.css?v=1')>html.indexOf('/graphite-polish.css?v=2'));
+  assert('Session stylesheet scoped exclusively to active workouts',css.includes('body.rr-active-session') && css.includes('.rr-session-set-card'));
+  assert('Compact logging keeps weight, reps, RIR and per-exercise identifiers',
+    app.includes('name="weight-\u0024{idx}"') && app.includes('name="reps-\u0024{idx}"') &&
+    app.includes('name="rir-\u0024{idx}"') && app.includes('data-index="\u0024{idx}"'));
+  assert('Recommendation application still uses its original action',app.includes('data-action="apply-overload"'));
+  assert('Rest duration controls retain their original actions',app.includes("btn('+15 seconds','rest-add'")&&app.includes("'rest-skip'"));
+  assert('Rest edit action remains accessible',app.includes('data-action="open-rest-edit-modal"'));
+  assert('Workout plan and rest structure are both user-expandable',
+    app.includes('rr-session-roadmap') && app.includes('rr-rest-structure') &&
+    app.includes('<summary>Workout plan') && app.includes('View full workout structure'));
+  assert('Workout and rest use silver rather than orange selected styling',
+    css.includes('.rr-session-rir-options input:checked+.rir-btn') &&
+    css.includes('.rr-rest-up-next') && !css.includes('background:#d97241'));
+  assert('Active session hides redundant large app header on mobile',css.includes('body.rr-active-session .topbar {display:none!important}'));
+} catch(err){
+  assert('Suite 53 Exception: '+err.message,false);
+}
+
 console.log('\n================================================================');
 console.log('                   REGRESSION TEST RESULTS SUMMARY');
 console.log('================================================================');
