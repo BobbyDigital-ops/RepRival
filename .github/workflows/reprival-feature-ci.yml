@@ -1,0 +1,30 @@
+name: RepRival feature regression
+on:
+  push:
+    branches:
+      - feature/element-adaptive-v3
+  pull_request:
+    branches:
+      - migration/aistudio-to-vercel-2026-11-06
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Install
+        working-directory: RepRival_Vercel_Ready_2026-11-06
+        run: npm install --no-audit --no-fund
+      - name: Test
+        working-directory: RepRival_Vercel_Ready_2026-11-06
+        run: npm test
+      - name: TypeScript
+        working-directory: RepRival_Vercel_Ready_2026-11-06
+        run: npm run lint
+      - name: Build
+        working-directory: RepRival_Vercel_Ready_2026-11-06
+        run: npm run build
