@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - feature/element-adaptive-v3
+      - design/graphite-home-heatmap-stage1
   pull_request:
     branches:
       - migration/aistudio-to-vercel-2026-11-06
