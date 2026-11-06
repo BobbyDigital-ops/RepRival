@@ -2562,7 +2562,7 @@ try {
   const source=fs.readFileSync(path.join(__dirname,'../public/graphite-polish.css'),'utf8');
   const index=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
   assert('Graphite polish stylesheet loads after the base stylesheet',
-    index.indexOf('graphite-polish.css?v=1')>index.indexOf('graphite-stage1.css?v=5'));
+    index.indexOf('graphite-polish.css?v=2')>index.indexOf('graphite-stage1.css?v=5'));
   assert('Adaptive programme actions receive explicit mobile grid layout',
     source.includes('.rr-element-mode-actions') &&
     source.includes('grid-template-columns:minmax(0,1fr)'));
@@ -2585,6 +2585,45 @@ try {
     window.RepRivalTest.homeScreen().includes('data-page="workout"'));
 } catch(err) {
   assert('Suite 51 Exception: '+err.message,false);
+}
+
+// -----------------------------------------------------------------------------
+// SUITE 52: Adaptive Studio muscle picker and frequency preference preservation
+// -----------------------------------------------------------------------------
+console.log('\n--- SUITE 52: Adaptive exercise library mobile redesign ---');
+try {
+  const t=window.RepRivalTest;
+  const before=JSON.stringify(t.getProfile().adaptive||{});
+  const historyBefore=t.getState().history.map(w=>w.id).join('|');
+  const studio=t.adaptiveStudioScreen();
+  const css=fs.readFileSync(path.join(__dirname,'../public/graphite-polish.css'),'utf8');
+  const index=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+  assert('Adaptive Studio exposes a muscle-group dropdown',studio.includes('id="adaptiveMuscleSelect"')&&studio.includes('aria-controls="adaptiveExerciseGroups"'));
+  assert('Muscle picker replaces the long multi-open details list',!studio.includes('rr-element-muscle-group')&&studio.includes('class="rr-adaptive-group"'));
+  assert('One selected muscle group is shown, others are initially hidden',
+    (studio.match(/data-adaptive-muscle="/g)||[]).length>1 &&
+    (studio.match(/data-adaptive-muscle="[^"]+" hidden/g)||[]).length>=1);
+  assert('Selected muscle has a scoped search control and result count',
+    studio.includes('id="adaptiveExerciseSearch"') && studio.includes('id="adaptiveResults"') &&
+    studio.includes('id="adaptiveEmpty"'));
+  assert('Every frequency selector still uses existing adaptive settings action',
+    studio.includes('data-adaptive-frequency=') && studio.includes('name="freq-'));
+  assert('Four mutually exclusive choices remain available for each exercise',
+    ['0','1','2','3'].every(n=>studio.includes('value="'+n+'"')) && studio.includes('<fieldset class="rr-adaptive-frequency"'));
+  assert('Exercise title and equipment are separate, with fully labelled frequency controls',
+    studio.includes('rr-adaptive-exercise-info') && studio.includes('<small>') &&
+    studio.includes('APPEARANCES / 7 DAYS'));
+  assert('Adaptive preference changes are saved automatically',studio.includes('Your choices save automatically.'));
+  assert('Mobile styling uses accessible selected-state cards',
+    css.includes('.rr-adaptive-frequency-choice input:checked+span') &&
+    css.includes('.rr-adaptive-library-controls') &&
+    css.includes('grid-template-columns:minmax(0,1fr)!important'));
+  assert('Adaptive Studio styling is cache-busted on Vercel',index.includes('graphite-polish.css?v=2'));
+  assert('Rendering the preference picker leaves settings and workout history untouched',
+    before===JSON.stringify(t.getProfile().adaptive||{}) &&
+    historyBefore===t.getState().history.map(w=>w.id).join('|'));
+} catch(err) {
+  assert('Suite 52 Exception: '+err.message,false);
 }
 
 console.log('\n================================================================');
