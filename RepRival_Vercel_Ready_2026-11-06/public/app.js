@@ -4498,8 +4498,12 @@
           const secondaryText=secondary.length
             ?'Also trains: '+secondary.map(([muscle,f])=>muscle+' (~'+Math.round(f*100)+'% set credit)').join(', ')
             :null;
+          const stabilisers=window.RepRivalIntelligence?.getSupportingContributions?.({exId:ex.id,muscle:ex.muscle})||[];
+          const supportText=stabilisers.length
+            ?'Stabilises: '+stabilisers.join(', ')+' (no additional sets)'
+            :null;
           return '<article class="rr-element-exercise rr-adaptive-exercise" data-adaptive-item="'+esc((ex.name+' '+gear).toLocaleLowerCase())+'">'+
-            '<div class="rr-adaptive-exercise-info"><strong>'+esc(ex.name)+'</strong><small>'+esc(gear)+'</small>'+(ex.displayMuscle?'<small class="rr-adaptive-target">'+esc(ex.displayMuscle)+'</small>':'')+(secondaryText?'<small class="rr-adaptive-secondary">'+esc(secondaryText)+'</small>':'')+'</div>'+
+            '<div class="rr-adaptive-exercise-info"><strong>'+esc(ex.name)+'</strong><small>'+esc(gear)+'</small>'+(ex.displayMuscle?'<small class="rr-adaptive-target">'+esc(ex.displayMuscle)+'</small>':'')+(secondaryText?'<small class="rr-adaptive-secondary">'+esc(secondaryText)+'</small>':'')+(supportText?'<small class="rr-adaptive-secondary">'+esc(supportText)+'</small>':'')+'</div>'+
             '<fieldset class="rr-adaptive-frequency" aria-label="'+esc(ex.name)+' appearances per rolling 7 days">'+
               '<legend>APPEARANCES / 7 DAYS</legend><div class="rr-adaptive-frequency-options">'+
               [0,1,2,3].map(n=>'<label class="rr-adaptive-frequency-choice"><input type="radio" name="freq-'+esc(ex.id)+'" data-adaptive-frequency="'+esc(ex.id)+'" value="'+n+'" '+(value===n?'checked':'')+'><span><b>'+n+'</b><small>'+frequencyLabels[n]+'</small></span></label>').join('')+
