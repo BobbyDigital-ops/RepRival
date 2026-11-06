@@ -1,0 +1,153 @@
+/* RepRival Stage 1 — GRAPHITE / muted blue → rose.
+ * Matches the user-approved reference for Home + Muscle Heat Zones ONLY.
+ * Original athlete data, scoring, Adaptive workouts, and other screens unchanged.
+ * This is a single, independently removable stylesheet (no accumulating theme hacks).
+ */
+:root:has(body.rr-graphite-home) {
+  color-scheme:dark;
+  --bg:#101112;--card:#1b1c1e;--soft:#222427;--ink:#ece9e8;
+  --sub:#b0afb1;--edge:#34373a;--accent:#ac8993;--accent-dark:#bd7b81;
+  --good:#c0c4c9;--bad:#bd7b81;--shadow:0 12px 40px #0004;
+  --rr-bg:#111213;--rr-card:#1c1e20;--rr-card-border:#373a3e;
+  --rr-surface:#232528;--rr-text:#edeaec;--rr-sub:#aeb0b4;--rr-dim:#83888e;
+  --rr-coral:#b77b82;--rr-orange:#ab8290;
+  background:#101112;
+}
+body.rr-graphite-home {
+  background:linear-gradient(180deg,#171819 0%,#101113 35%,#0e1011 100%) fixed !important;
+  color:#e8e7e6!important;color-scheme:dark!important;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif!important;
+}
+.rr-graphite-home .shell{max-width:690px!important;margin:0 auto!important;padding:16px 17px calc(115px + env(safe-area-inset-bottom))!important}
+.rr-graphite-home .topbar {
+  display:flex!important;align-items:center!important;justify-content:space-between!important;
+  background:transparent!important;padding:8px 1px 18px!important;margin:0 0 17px!important;
+  border-bottom:1px solid #353638!important;box-shadow:none!important
+}
+.rr-graphite-home .brand {
+  color:#e6e6e5!important;text-shadow:none!important;font-size:21px!important;font-weight:600!important;
+  font-style:normal!important;display:flex!important;align-items:center!important;gap:10px!important;
+  letter-spacing:-.55px!important
+}
+.rr-graphite-home .rr-g-brand-mark{display:inline-block;font-family:Arial,sans-serif;font-weight:900;color:#d4d5d5;font-size:24px;letter-spacing:-8px;transform:skewX(-10deg);padding-right:9px}
+.rr-graphite-home .rr-g-brand-word{font-size:22px;font-weight:600;letter-spacing:-.7px}
+.rr-graphite-home .topbar-user{display:grid!important;place-items:center!important;min-width:42px!important;width:42px!important;height:42px!important;padding:0!important;border:1px solid #45494b!important;border-radius:50%!important;background:#1e2022!important;box-shadow:none!important}
+.rr-graphite-home .topbar-user .user-avatar{background:transparent!important;color:#e0dedf!important;font-size:14px!important;border:0!important;width:auto!important;height:auto!important;min-width:0!important;box-shadow:none!important}
+.rr-graphite-home .topbar-user :is(.user-chip,.user-caret){display:none!important}
+.rr-graphite-home .rr-g-home-heat {
+  background:linear-gradient(165deg,#171819,#131517 53%,#171819)!important;
+  border:1px solid #383b3e!important;border-radius:21px!important;
+  padding:23px 21px 22px!important;box-shadow:0 18px 38px #00000038!important;
+  margin-bottom:20px!important;color:#eae8e7!important;overflow:hidden!important
+}
+.rr-graphite-home .rr-g-head{max-width:540px;margin:0 auto 4px;min-width:0}
+.rr-graphite-home .rr-g-kicker{color:#97999d!important;font-size:9.5px!important;font-weight:650!important;letter-spacing:2.55px!important;text-transform:uppercase;margin-bottom:13px!important}
+.rr-graphite-home .rr-g-head h1{
+  font:normal clamp(27px,7vw,41px)/1.12 Georgia,'Times New Roman',serif!important;
+  color:#ede9e7!important;letter-spacing:-1.3px!important;margin:0 0 13px!important;
+  text-wrap:balance
+}
+.rr-graphite-home .rr-g-head p{color:#b0adb0!important;font-size:13px!important;line-height:1.62!important;max-width:510px;margin:0!important;font-weight:400!important}
+.rr-graphite-home .rr-g-body-pair{
+  display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  align-items:end!important;justify-items:center!important;column-gap:9px!important;row-gap:0!important;
+  width:100%!important;max-width:410px!important;margin:17px auto 0!important;padding:0!important;
+}
+.rr-graphite-home .rr-g-body-view{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:end!important;gap:5px!important;min-width:0!important;width:100%!important;overflow:hidden!important}
+.rr-graphite-home .rr-g-body-svg{width:100%!important;max-width:166px!important;min-width:0!important;display:flex!important;align-items:flex-end!important;justify-content:center!important}
+.rr-graphite-home .rr-g-body-svg>.rr-figure-svg{display:block!important;width:100%!important;max-width:166px!important;height:auto!important;max-height:390px!important;min-width:0!important;filter:saturate(.83) contrast(.93)!important}
+.rr-graphite-home .rr-g-body-view>span{font-size:9px!important;font-weight:650!important;color:#98999b!important;letter-spacing:2.6px!important;text-align:center!important}
+.rr-graphite-home .rr-g-body-hint{text-align:center;color:#8f9296!important;font-size:10.5px!important;line-height:1.5!important;margin:9px 0 26px!important}
+.rr-graphite-home .rr-g-scores-head{
+  display:flex!important;align-items:baseline!important;justify-content:space-between!important;
+  gap:12px!important;margin-bottom:12px!important;padding-bottom:11px!important;
+  border-bottom:1px solid #34373a!important
+}
+.rr-graphite-home .rr-g-scores-head h2{font-size:17px!important;font-weight:600!important;letter-spacing:-.4px!important;color:#e7e7e6!important;margin:0!important}
+.rr-graphite-home .rr-g-scores-head>span{font-size:11px!important;color:#b9b9b9!important;white-space:nowrap!important;font-variant-numeric:tabular-nums}
+.rr-graphite-home .rr-g-muscle-list{display:grid!important;grid-template-columns:1fr!important;gap:7px!important;margin:0!important}
+.rr-graphite-home .rr-g-muscle-row{
+  display:grid!important;grid-template-columns:minmax(102px,1.05fr) minmax(88px,1.1fr) minmax(70px,.66fr)!important;
+  align-items:center!important;gap:10px!important;min-width:0!important;
+  background:linear-gradient(115deg,#222426,#1b1d1f)!important;border:1px solid #36393c!important;
+  border-radius:11px!important;padding:13px 12px!important;box-shadow:none!important;min-height:67px!important;
+}
+.rr-graphite-home .rr-g-muscle-title{min-width:0!important;display:flex!important;flex-direction:column!important;gap:2px!important;overflow-wrap:anywhere!important}
+.rr-graphite-home .rr-g-muscle-title strong{color:#eae9e9!important;font-size:13px!important;font-weight:650!important;line-height:1.25!important;letter-spacing:-.1px!important}
+.rr-graphite-home .rr-g-muscle-title small{color:#909499!important;font-size:10px!important;white-space:normal!important}
+.rr-graphite-home .rr-g-muscle-dose{min-width:0!important;display:flex!important;flex-direction:column!important;gap:5px!important}
+.rr-graphite-home .rr-g-metric-head{display:flex!important;justify-content:space-between!important;gap:5px!important;align-items:baseline!important}
+.rr-graphite-home .rr-g-metric-head span{font-size:8px!important;font-weight:650!important;color:#92989c!important;letter-spacing:1px!important}
+.rr-graphite-home .rr-g-metric-head strong{font-size:12px!important;font-weight:700!important;font-variant-numeric:tabular-nums!important;line-height:1.15!important}
+.rr-graphite-home .rr-g-track{height:5px!important;width:100%!important;border-radius:6px!important;background:#3d4146!important;overflow:hidden!important;border:0!important}
+.rr-graphite-home .rr-g-track>i{display:block!important;height:100%!important;border-radius:6px!important}
+.rr-graphite-home .rr-g-muscle-ready{display:flex!important;flex-direction:column!important;gap:2px!important;align-items:flex-end!important;text-align:right!important;min-width:0!important}
+.rr-graphite-home .rr-g-muscle-ready>span{color:#94999b!important;font-size:8px!important;font-weight:650!important;letter-spacing:.55px!important}
+.rr-graphite-home .rr-g-muscle-ready>strong{color:#d1d3d5!important;font-size:14px!important;font-weight:650!important;font-variant-numeric:tabular-nums}
+.rr-graphite-home .rr-g-muscle-ready>small{font-size:9px!important;color:#a9abad!important;line-height:1.2!important;overflow-wrap:anywhere!important}
+.rr-graphite-home .rr-g-legend{border-top:1px solid #333538!important;margin:19px 0 0!important;padding:18px 1px 0!important}
+.rr-graphite-home .rr-g-gradient{height:8px!important;border:0!important;border-radius:7px!important;background:linear-gradient(90deg,#536777 0%,#657582 20%,#777680 45%,#a4767b 70%,#bc7479 100%)!important}
+.rr-graphite-home .rr-g-legend-ends{display:flex!important;justify-content:space-between!important;gap:12px!important;margin:10px 0 0!important}
+.rr-graphite-home .rr-g-legend-ends>span{font-size:8.3px!important;letter-spacing:1px!important;color:#aeb1b3!important;font-weight:600!important}
+.rr-graphite-home .rr-g-legend p{margin:12px 0 0!important;font-size:10.5px!important;line-height:1.53!important;color:#94989c!important}
+/* Only the Home supporting cards change. The atlas is the visual centrepiece. */
+.rr-graphite-home .rr165-greeting-card,.rr-graphite-home .rr165-plan-card,.rr-graphite-home .rr165-kpi-item,
+.rr-graphite-home .card.section:not(.rr-g-home-heat){
+  background:#1c1e20!important;color:#dedddd!important;border:1px solid #373a3d!important;
+  box-shadow:0 10px 27px #0002!important;border-radius:16px!important
+}
+.rr-graphite-home .rr165-greeting-card:before,.rr-graphite-home .rr165-plan-card:before,.rr-graphite-home .card:before{display:none!important}
+.rr-graphite-home :is(.rr165-greeting-text h1,.rr165-plan-title,.rr165-kpi-val,.rr165-plan-title-info h2,.rr-next-bubble-title){color:#eceaeb!important}
+.rr-graphite-home :is(.rr165-greeting-sub,.rr165-card-eyebrow,.rr165-kpi-lbl,.rr165-plan-subtitle,.rr-next-bubble-meta,.rr-next-bubble-eyebrow){color:#a9acb0!important}
+.rr-graphite-home .rr-eyebrow-accent-bar,.rr-graphite-home .rr-kpi-glow-bar{background:#738291!important;box-shadow:none!important}
+.rr-graphite-home .rr165-kpi-icon,.rr-graphite-home .rr-next-badge-icon{background:#292d30!important;border:1px solid #3b4248!important}
+.rr-graphite-home .rr165-kpi-icon svg,.rr-graphite-home .rr-next-badge-icon svg{stroke:#b8bfc5!important}
+.rr-graphite-home .rr165-score-ring-wrap{filter:grayscale(.9) saturate(.4)!important}
+.rr-graphite-home .rr165-score-label,.rr-graphite-home .rr165-score-number{color:#e2dfe2!important}
+.rr-graphite-home .rr161-checkin,.rr-graphite-home .btn.outline{background:#2a2c30!important;color:#e5e3e3!important;border:1px solid #44484b!important;box-shadow:none!important}
+.rr-graphite-home .rr165-plan-pct-badge strong{color:#e4c8cb!important}
+.rr-graphite-home .rr165-rotation-tag{color:#ccd0d2!important;background:#2b2f32!important;border-color:#404549!important}
+.rr-graphite-home .rr165-progress-bar{background:#303439!important}
+.rr-graphite-home .rr165-progress-fill{background:#9b8b91!important;box-shadow:none!important}
+.rr-graphite-home .rr-plan-next-bubble{background:#23262a!important;border:1px solid #41474a!important;box-shadow:none!important}
+.rr-graphite-home .rr-next-play-dial{background:#34383c!important;border-color:#53595e!important;box-shadow:none!important}
+.rr-graphite-home .rr-next-play-inner{background:#c7c4c4!important;box-shadow:none!important}
+.rr-graphite-home .rr-next-play-inner svg{fill:#252729!important}
+.rr-graphite-home .btn.primary{background:#45474c!important;color:#f1f0f0!important;border-color:#62666b!important;box-shadow:none!important}
+.rr-graphite-home .rr165-greeting-card .rr153-waves{display:none!important}
+.rr-graphite-home .rr165-plan-card .rr-next-bubble-meta{color:#b0b2b4!important}
+.rr-graphite-home .tabnav{
+  display:flex!important;align-items:center!important;justify-content:space-between!important;
+  width:min(calc(100vw - 22px),660px)!important;max-width:660px!important;
+  left:50%!important;transform:translateX(-50%)!important;
+  background:rgba(23,25,27,.98)!important;backdrop-filter:blur(12px)!important;
+  border:1px solid #3c4044!important;border-radius:18px!important;
+  box-shadow:0 12px 36px #0007!important;bottom:8px!important;
+  padding:8px 7px calc(7px + env(safe-area-inset-bottom))!important
+}
+.rr-graphite-home .tabnav button{background:transparent!important;color:#a9adb1!important;border-radius:12px!important;min-width:0!important;flex:1!important}
+.rr-graphite-home .tabnav button.active{background:#303339!important;color:#ece8ea!important;box-shadow:none!important}
+.rr-graphite-home .tabnav button.active:after{background:#b1a9ac!important;box-shadow:none!important}
+.rr-graphite-home .tabnav .ico,.rr-graphite-home .tabnav svg{color:currentColor!important;stroke:currentColor!important;filter:none!important}
+.rr-graphite-home .toast{color:#eee!important;background:#313338!important}
+@media(max-width:530px){
+  .rr-graphite-home .shell{padding:13px 13px calc(115px + env(safe-area-inset-bottom))!important}
+  .rr-graphite-home .rr-g-home-heat{padding:20px 15px 19px!important;border-radius:17px!important}
+  .rr-graphite-home .rr-g-body-pair{max-width:340px!important;column-gap:3px!important;margin-top:14px!important}
+  .rr-graphite-home .rr-g-body-svg{max-width:145px!important}
+  .rr-graphite-home .rr-g-body-svg>.rr-figure-svg{max-width:145px!important;max-height:353px!important}
+  .rr-graphite-home .rr-g-muscle-row{grid-template-columns:minmax(78px,.92fr) minmax(78px,1fr) minmax(62px,.7fr)!important;gap:7px!important;padding:11px 9px!important}
+  .rr-graphite-home .rr-g-muscle-title strong{font-size:12.2px!important}
+  .rr-graphite-home .rr-g-muscle-title small{font-size:9.6px!important}
+  .rr-graphite-home .rr-g-muscle-ready>small{font-size:8.5px!important}
+  .rr-graphite-home .rr-g-scores-head h2{font-size:16px!important}
+  .rr-graphite-home .rr-g-kicker{font-size:9px!important;letter-spacing:1.6px!important}
+  .rr-graphite-home .rr-g-head p{font-size:12.4px!important}
+}
+@media(max-width:348px){
+  .rr-graphite-home .rr-g-muscle-row{grid-template-columns:minmax(75px,.95fr) minmax(69px,1fr) minmax(56px,.65fr)!important;gap:5px!important;padding:9px 7px!important}
+  .rr-graphite-home .rr-g-muscle-ready>strong{font-size:12px!important}
+  .rr-graphite-home .rr-g-muscle-ready>span{font-size:7px!important}
+  .rr-graphite-home .rr-g-body-svg>.rr-figure-svg{max-width:130px!important}
+}
+@media(prefers-reduced-motion:reduce){.rr-graphite-home *{animation-duration:.01ms!important;transition-duration:.01ms!important}}
