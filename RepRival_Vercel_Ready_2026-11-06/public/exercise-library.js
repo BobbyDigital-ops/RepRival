@@ -289,6 +289,9 @@
       ex.muscle='Quads'; ex.details='Wide-stance squat; glutes contribute secondarily';
     }
     if(ex.id==='db_rear_delt_row')ex.muscle='Rear delts';
+    // Swing/clean power predominantly uses hip extension; give hamstrings
+    // secondary credit instead of presenting these as isolation hamstring work.
+    if(['kb_swing','kb_clean','db_clean'].includes(ex.id))ex.muscle='Glutes';
     if(ex.id==='db_front_raise')ex.details='Front deltoid emphasis; shown within the combined Shoulders heat zone';
     if(['db_overhead_press','seated_db_press','arnold_press','single_arm_db_press',
       'barbell_overhead_press','machine_shoulder_press','kb_press','kb_clean_press',
