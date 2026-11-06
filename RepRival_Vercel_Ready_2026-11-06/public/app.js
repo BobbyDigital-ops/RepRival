@@ -31,6 +31,7 @@
   let trendEditing=false;
   let trendSearchQuery='';
   const ADAPT=window.RepRivalAdaptive;
+  const ADAPT_V3=window.RepRivalAdaptiveV3;
   const ADAPT_ID='adaptive';
   let adaptiveDraft=null;
   let catalogueFilter={muscle:'All',kit:'owned',search:''};
@@ -2830,6 +2831,11 @@
     }
 
     state.active = null;
+    if(!a.isOneOff && adaptivePlan()){
+      const cfg=profile().adaptive;
+      const next=createAdaptiveNext((cfg.variant||0)+1);
+      if(!next)console.warn('Adaptive next workout not generated:', cfg.lastReason);
+    }
     state.lastSummary = finished.id;
     save();
     page = 'summary';
@@ -4417,11 +4423,15 @@
   function lastReadinessForAdaptive(){return todayReadiness()||readinessLog().at(-1)||null;}
   function createAdaptiveNext(variant=0,keepFocus=false){
     const cfg=profile().adaptive;if(!cfg)return;
-    const fresh=ADAPT.generate(cfg,state.history,profile().equipment||[],lastReadinessForAdaptive(),{variant,avoid:cfg.avoid||[],focusLock:keepFocus?(cfg.lastFocus||[]):[]});
+    const effectiveFocus=cfg.nextFocus || cfg.focus || 'balanced';
+    const fresh=ADAPT_V3.generate(cfg,state.history,profile().equipment||[],lastReadinessForAdaptive(),{
+      variant,focus:effectiveFocus,avoid:cfg.avoid||[],equipmentMetadata:profile().equipmentMetadata||{}
+    });
+    if(!fresh.pairs.length){cfg.lastReason=fresh.warning||'No eligible exercises';return null;}
     const day={name:fresh.name,pairs:fresh.pairs};
     profile().plans[ADAPT_ID]={A:day};
     cfg.lastReason=fresh.explanation;cfg.lastFocus=fresh.focus;cfg.estimatedMinutes=fresh.estimatedMinutes;cfg.generatedAt=new Date().toISOString();
-    cfg.variant=variant;state.next='A';return day;
+    cfg.lastWorkoutFocus=effectiveFocus;cfg.nextFocus=null;cfg.variant=variant;state.next='A';return day;
   }
   function adaptiveConfig(){
     const adapt = window.RepRivalAdaptive || {};
@@ -4430,6 +4440,66 @@
     const runnerLvl = templates.runner?.levels || [3,3,2,2,1,3];
     return {space:'small',experience:'intermediate',exclusions:activeProfile==='admin'?['carries','overhead']:['carries'],...cfg,levels:[...(cfg.levels||runnerLvl)]};
   }
+
+  function pauseProgrammeForAdaptive(){
+    if(state.active){showToast('Finish or cancel the current workout before switching modes.');return false;}
+    const athlete=profile(), cfg=athlete.adaptive||(athlete.adaptive={});
+    if(athlete.planId===ADAPT_ID && cfg.active)return true;
+    const sourcePlan=athlete.planId===ADAPT_ID?'pump':athlete.planId;
+    cfg.pausedPlan={planId:sourcePlan,next:state.next,tracking:structuredClone(athlete.planTracking||{})};
+    cfg.active=true;cfg.startedAt=cfg.startedAt||todayLocal();
+    cfg.focus=cfg.focus||'balanced';cfg.goal=cfg.goal||'hypertrophy';cfg.supersets=cfg.supersets||3;
+    const trial=ADAPT_V3.generate(cfg,state.history,athlete.equipment||[],lastReadinessForAdaptive(),{equipmentMetadata:athlete.equipmentMetadata||{}});
+    if(!trial.pairs.length){cfg.active=false;showToast(trial.warning||'No compatible movements enabled');return false;}
+    athlete.planId=ADAPT_ID;selectedPlan=ADAPT_ID;SESSION_ORDER=['A'];
+    if(!athlete.plans)athlete.plans={};
+    createAdaptiveNext(cfg.variant||0);
+    athlete.planTracking={planId:ADAPT_ID,start:todayLocal(),weeklyGoal:cfg.frequency||3};
+    cfg.updatedAt=new Date().toISOString();save();return true;
+  }
+  function resumePausedProgramme(){
+    if(state.active){showToast('Finish or cancel the current workout before switching modes.');return false;}
+    const athlete=profile(),cfg=athlete.adaptive;
+    if(!cfg?.active)return false;
+    const paused=cfg.pausedPlan||{planId:'pump',next:'A',tracking:athlete.planTracking};
+    const planId=athlete.plans?.[paused.planId]?paused.planId:'pump';
+    athlete.planId=planId;selectedPlan=planId;
+    SESSION_ORDER=Object.keys(athlete.plans[planId]||PLAN);
+    state.next=SESSION_ORDER.includes(paused.next)?paused.next:SESSION_ORDER[0];
+    athlete.planTracking=structuredClone(paused.tracking||{planId,start:todayLocal(),weeklyGoal:3});
+    cfg.active=false;cfg.updatedAt=new Date().toISOString();save();return true;
+  }
+  function adaptiveStudioScreen(){
+    const athlete=profile(),cfg=athlete.adaptive||{},v3=ADAPT_V3;
+    const owned=athlete.equipment||[],lib=window.REPRIVAL_EXERCISE_LIBRARY;
+    const eligible=lib.entries.filter(e=>lib.compatible(e,owned));
+    const grouped=Object.fromEntries(v3.CATEGORIES.map(c=>[c,[]]));
+    eligible.forEach(e=>grouped[v3.category(e)].push(e));
+    const opts=(v)=>v3.FOCUSES.map(([key,label])=>'<option value="'+esc(key)+'" '+(key===v?'selected':'')+'>'+esc(label)+'</option>').join('');
+    const exercises=v3.CATEGORIES.map(cat=>{
+      const list=grouped[cat]||[];
+      return '<details class="rr-element-muscle-group"'+(cat==='Biceps'?' open':'')+'><summary><strong>'+esc(cat)+'</strong><span>'+list.length+' movements · configure ↓</span></summary><div class="rr-element-exercises">'+list.map(ex=>{
+        const value=v3.pref(cfg,ex.id);
+        return '<div class="rr-element-exercise" data-adaptive-item="'+esc((ex.name+' '+cat).toLowerCase())+'"><div><strong>'+esc(ex.name)+'</strong><small>'+esc((ex.equipment||[]).map(g=>lib.gear[g]?.name||g).join(' + ')||'No equipment')+'</small></div><fieldset aria-label="'+esc(ex.name)+' appearances per week"><legend class="sr-only">Appearances per week</legend>'+[0,1,2,3].map(n=>'<label><input type="radio" name="freq-'+esc(ex.id)+'" data-adaptive-frequency="'+esc(ex.id)+'" value="'+n+'" '+(value===n?'checked':'')+'><span>'+n+'</span></label>').join('')+'</fieldset></div>';
+      }).join('')+'</div></details>';
+    }).join('');
+    return '<div class="rr-element-studio"><div class="eyebrow">ADAPTIVE TRAINING · PERSONALISE</div><h1 class="page-title">Train your way.</h1>'+
+      '<p class="lead">Every workout follows your muscle stimulus and recovery heatmap. Choose the focus, then decide which movements can appear and how often.</p>'+
+      card('<div class="rr-element-mode-grid"><div><strong>My programme</strong><small>'+(cfg.active?'Paused · '+esc(cfg.pausedPlan?.next||'A')+' is next':'Active · your current rotation')+'</small></div><div><strong>Adaptive</strong><small>'+(cfg.active?'Currently active':'Ready when you are')+'</small></div></div>'+
+        '<button class="btn '+(cfg.active?'outline':'primary')+' full mt12" type="button" data-action="'+(cfg.active?'adaptive-disable':'adaptive-enable')+'" '+(state.active?'disabled':'')+'>'+(cfg.active?'Resume my paused programme':'Pause programme & enable Adaptive')+'</button>','section')+
+      card('<h3>Workout focus</h3><p class="subhead mt8">Only means strict body region. Focused targets roughly 75% of sets in that region. All modes still use the heatmap.</p>'+
+        '<div class="field mt12"><label for="adaptiveDefaultFocus">Default focus</label><select id="adaptiveDefaultFocus" data-adaptive-default-focus>'+opts(cfg.focus||'balanced')+'</select></div>'+
+        '<div class="field mt12"><label for="adaptiveNextFocus">Next workout only (optional)</label><select id="adaptiveNextFocus" data-adaptive-next-focus><option value="">Use default focus</option>'+opts(cfg.nextFocus||'')+'</select></div>'+
+        '<div class="form-grid"><div class="field"><label for="adaptiveSessionCount">Workout blocks</label><select id="adaptiveSessionCount" data-adaptive-blocks>'+[2,3,4,5].map(n=>'<option value="'+n+'" '+((cfg.supersets||3)===n?'selected':'')+'>'+n+' blocks</option>').join('')+'</select></div>'+
+        '<div class="field"><label for="adaptiveWeeklyGoal">Sessions / week</label><select id="adaptiveWeeklyGoal" data-adaptive-weekly>'+[2,3,4,5,6].map(n=>'<option value="'+n+'" '+((cfg.frequency||3)===n?'selected':'')+'>'+n+' per week</option>').join('')+'</select></div></div>'+
+        '<button class="btn primary full mt12" data-action="adaptive-generate" '+(!cfg.active||state.active?'disabled':'')+' type="button">Generate next adaptive workout</button>','section')+
+      card('<div class="row"><div><h3>Exercise library</h3><p class="subhead">Only equipment-compatible movements. Choose 0–3 appearances per rolling 7 days.</p></div><span class="label-tag">'+eligible.length+' available</span></div>'+
+        '<label class="field mt12" for="adaptiveExerciseSearch">Search exercises</label><input id="adaptiveExerciseSearch" type="search" placeholder="Search biceps, triceps, rows…" autocomplete="off">'+
+        '<div class="rr-element-frequency-help"><span>0 = exclude</span><span>1 = occasionally</span><span>2 = often</span><span>3 = frequently</span></div>'+
+        '<div class="rr-element-groups">'+exercises+'</div>','section')+
+      '<button class="btn outline full" data-page="plan">← Back to My Plan</button></div>';
+  }
+
   function adaptiveSetupScreen(){
     const adapt = window.RepRivalAdaptive || {};
     const cfg = adaptiveDraft || adaptiveConfig(), presets = profile().adaptivePresets || [];
@@ -4596,7 +4666,8 @@
   function plan(){
     const current=selectedPlan===ADAPT_ID?{title:'Adaptive Training',focus:(ADAPT.TEMPLATES[profile().adaptive?.template]||(profile().adaptivePresets||[]).find(x=>x.id===profile().adaptive?.template)||{name:'Personalised focus'}).name,duration:'Continuous',days:'Fresh workout after each session'}:(window.REPRIVAL_PLAN_LIBRARY.details[selectedPlan]||window.REPRIVAL_PLAN_LIBRARY.details.pump);
     return `<div class="eyebrow">TRAINING PROGRAMME</div><h1 class="page-title">My plan.</h1><p class="lead">Edit your workouts or switch focus without losing historical training.</p>
-      ${card(`<div class="row"><h3>${esc(current.title)}</h3><span class="label-tag">ACTIVE</span></div><p class="subhead mt12">${esc(current.focus)} · ${esc(current.duration)} · ${esc(current.days)}</p><div class="stack mt16">${btn('Edit workouts','designer','primary full')}${btn('Start Adaptive Training','adaptive-setup','outline full')}${btn('Import Excel / CSV plan','page-import-plan','primary full')}
+      ${card(`<div class="rr-element-mode-header"><div><div class="eyebrow">TRAINING MODE</div><h3>${adaptivePlan()?'Adaptive active':'My programme active'}</h3><p class="subhead">${adaptivePlan()?'Your former rotation is paused at '+esc(profile().adaptive?.pausedPlan?.next||'A')+'.':'Your existing rotation stays exactly as it is until you switch.'}</p></div><span class="label-tag">${adaptivePlan()?'ADAPTIVE':'PROGRAMME'}</span></div><div class="rr-element-mode-actions"><button type="button" class="btn primary" data-action="${adaptivePlan()?'adaptive-disable':'adaptive-enable'}" ${state.active?'disabled':''}>${adaptivePlan()?'Resume programme':'Switch to Adaptive'}</button><button type="button" class="btn outline" data-action="adaptive-studio">Exercise preferences & focus</button></div>`,'section')}
+      ${card(`<div class="row"><h3>${esc(current.title)}</h3><span class="label-tag">ACTIVE</span></div><p class="subhead mt12">${esc(current.focus)} · ${esc(current.duration)} · ${esc(current.days)}</p><div class="stack mt16">${btn('Edit workouts','designer','primary full')}${btn('Adaptive exercise preferences','adaptive-studio','outline full')}${btn('Import Excel / CSV plan','page-import-plan','primary full')}
       ${btn('Browse training plans','library','outline full')}${btn('Your equipment','equipment','outline full')}${btn('Explore 146 movements','exercises','outline full')}<button type="button" class="btn outline full text-danger mt8" data-action="cancel-plan">✕ Cancel current plan</button></div>`,'section')}
       ${adaptiveStatusCard()}
       ${card(`<h3>${adaptivePlan()?'Upcoming generated session':'Current rotation'}</h3>${SESSION_ORDER.map(id=>`<div class="session-row"><div><strong>${esc(planFor(id).name||'Workout '+id)}</strong><small>${planFor(id).pairs.length} blocks · ${buildTasks(id).length} working sets</small></div><span class="label-tag">${state.next===id?'Next':'Scheduled'}</span></div>`).join('')}`,'section')}
@@ -4844,6 +4915,7 @@
     else if(page==='equipment')body=equipmentScreen();
     else if(page==='exercises')body=exerciseBrowser();
     else if(page==='activate')body=activateScreen();
+    else if(page==='adaptive-studio')body=adaptiveStudioScreen();
     else if(page==='adaptive-setup')body=adaptiveSetupScreen();
     else if(page==='adaptive-review')body=adaptiveReviewScreen();
     else if(page==='metrics')body=metricsScreen();
@@ -5691,6 +5763,16 @@
     if(action==='trend-spotlight'){const id=el.dataset.id;if(trendCollection().selected.some(m=>m.id===id)){state.settings.progressMovementId=id;save();render();}return;}
     if(action==='muscle-strength-period'){const id=el.dataset.period;if(PROGRESS_PERIODS.some(x=>x[0]===id)){state.settings.muscleStrengthPeriod=id;save();render();}return;}
     if(['designer','library','metrics','equipment','exercises'].includes(action)){page=action;render();return;}
+    if(action==='adaptive-studio'||action==='adaptive-config'||action==='adaptive-setup'){page='adaptive-studio';render();return;}
+    if(action==='adaptive-enable'){if(pauseProgrammeForAdaptive()){page='plan';render();showToast('Programme paused. Adaptive is active.');}return;}
+    if(action==='adaptive-disable'){if(resumePausedProgramme()){page='plan';render();showToast('Your previous programme resumed where you left off.');}return;}
+    if(action==='adaptive-generate'){
+      if(!adaptivePlan()||state.active)return;
+      const cfg=profile().adaptive;const old=structuredClone(profile().plans.adaptive||{});
+      const newDay=createAdaptiveNext((cfg.variant||0)+1);
+      if(!newDay){profile().plans.adaptive=old;showToast(cfg.lastReason||'No eligible movements for this focus');return;}
+      save();page='workout-intro';render();return;
+    }
     if(action==='adaptive-wizard-next'||action==='adaptive-wizard-back'){
       const steps=[...document.querySelectorAll('[data-wizard-step]')],current=steps.findIndex(step=>!step.hidden);
       const target=Math.max(0,Math.min(steps.length-1,current+(action==='adaptive-wizard-next'?1:-1)));
@@ -5711,7 +5793,6 @@
       }
       return;
     }
-    if(action==='adaptive-config'||action==='adaptive-setup'){adaptiveDraft=adaptiveConfig();page='adaptive-setup';render();return;}
     if(action==='save-adaptive-preset'){
       const form=document.querySelector('#adaptiveForm');if(!form)return;
       const f=new FormData(form),name=String(f.get('presetName')||'').trim();
@@ -6103,6 +6184,23 @@
       save();
     }
     if(e.target.matches('[data-unit]')){const form=e.target.closest('form');if(form)syncBodyFields(form,e.target.dataset.unit);return;}
+    if(e.target.matches('[data-adaptive-frequency]')){
+      const id=e.target.dataset.adaptiveFrequency;
+      const cfg=profile().adaptive||(profile().adaptive={});
+      cfg.exerciseFrequency=cfg.exerciseFrequency||{};cfg.exerciseFrequency[id]=Number(e.target.value);
+      cfg.updatedAt=new Date().toISOString();save();return;
+    }
+    if(e.target.matches('[data-adaptive-default-focus]')){
+      const cfg=profile().adaptive||(profile().adaptive={});cfg.focus=e.target.value;cfg.updatedAt=new Date().toISOString();save();return;
+    }
+    if(e.target.matches('[data-adaptive-next-focus]')){
+      const cfg=profile().adaptive||(profile().adaptive={});cfg.nextFocus=e.target.value||null;cfg.updatedAt=new Date().toISOString();save();return;
+    }
+    if(e.target.matches('[data-adaptive-blocks]')||e.target.matches('[data-adaptive-weekly]')){
+      const cfg=profile().adaptive||(profile().adaptive={});
+      cfg[e.target.matches('[data-adaptive-blocks]')?'supersets':'frequency']=Number(e.target.value);
+      cfg.updatedAt=new Date().toISOString();save();return;
+    }
     if(e.target.id==='adaptiveTemplate'){
       const t=ADAPT.TEMPLATES[e.target.value]||(profile().adaptivePresets||[]).find(p=>p.id===e.target.value);if(!t)return;
       document.querySelectorAll('.rr160-focus-slider').forEach((input,i)=>{input.value=t.levels[i];document.querySelector(`[data-focus-name="${i}"]`).textContent=ADAPT.LEVELS[t.levels[i]];});
