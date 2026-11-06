@@ -2503,9 +2503,9 @@ try {
   assert('Stage 1 map rendering does not edit training history',t.getState().history.map(w=>w.id).join('|')===prev);
   const entry=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
   const css=fs.readFileSync(path.join(__dirname,'../public/graphite-stage1.css'),'utf8');
-  assert('Graphite CSS is separately versioned and linked',entry.includes('/graphite-stage1.css?v=2'));
-  assert('Original Element stylesheet remains present for other screens',entry.includes('id="rr-element-sheet"'));
-  assert('Graphite styles scoped exclusively to Home',css.includes('.rr-graphite-home .rr-g-home-heat')&&!css.includes('body.rr-element .card'));
+  assert('Graphite CSS is separately versioned and linked',entry.includes('/graphite-stage1.css?v=5'));
+  assert('Original Element stylesheet remains available for rollback',entry.includes('id="rr-element-sheet"'));
+  assert('Anatomical Heat Zones remain independently styled',css.includes('.rr-graphite-home .rr-g-home-heat')&&!css.includes('body.rr-element .card'));
   assert('Graphite CSS keeps figures side by side',css.includes('grid-template-columns:repeat(2,minmax(0,1fr))'));
 } catch(err) {
   assert('Suite 49 Exception: '+err.message,false);
@@ -2550,6 +2550,39 @@ try {
   assert('Second-pass assets cache-busted for mobile',index.includes('graphite-stage1.css?v=5')&&index.includes('app.js?v=graphite-pass3'));
 } catch(err) {
   assert('Suite 50 Exception: '+err.message,false);
+}
+
+// -----------------------------------------------------------------------------
+// SUITE 51: Graphite UI consistency and mobile control layout
+// -----------------------------------------------------------------------------
+console.log('\n--- SUITE 51: Graphite app-wide design integrity ---');
+try {
+  const fs=require('fs');
+  const path=require('path');
+  const source=fs.readFileSync(path.join(__dirname,'../public/graphite-polish.css'),'utf8');
+  const index=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+  assert('Graphite polish stylesheet loads after the base stylesheet',
+    index.indexOf('graphite-polish.css?v=1')>index.indexOf('graphite-stage1.css?v=5'));
+  assert('Adaptive programme actions receive explicit mobile grid layout',
+    source.includes('.rr-element-mode-actions') &&
+    source.includes('grid-template-columns:minmax(0,1fr)'));
+  assert('Progress active tabs use graphite rather than orange',
+    source.includes('.rr163-progress-tabs button.active') &&
+    source.includes('border:1px solid #737b85'));
+  assert('Workout preparation has a monochrome hero treatment',
+    source.includes('.rr153-prep-hero') &&
+    source.includes('radial-gradient(ellipse at 90% 5%'));
+  assert('Weight and movement charts have dedicated silver styles',
+    source.includes('.rr162-chart svg circle') &&
+    source.includes('.rr164-trend-tile svg circle'));
+  assert('Detailed heatmap figure and stimulus data remain unmodified by theme polish',
+    !source.includes('.rr-g-home-heat') && !source.includes('.rr-g-muscle-dose') &&
+    !source.includes('.rr-figure-svg') && !source.includes('.rr-heat-track'));
+  assert('Workout plan buttons retain their original action identifiers',
+    window.RepRivalTest.homeScreen().includes('data-page="workout-intro"') ||
+    window.RepRivalTest.homeScreen().includes('data-page="workout"'));
+} catch(err) {
+  assert('Suite 51 Exception: '+err.message,false);
 }
 
 console.log('\n================================================================');
