@@ -5016,8 +5016,8 @@
     // Disable the light Element stylesheet only on Home. The rest of the app
     // retains its existing look, and the change is trivially reversible.
     const graphiteHome=page==='home';
-    document.body.classList.toggle('rr-graphite-home',graphiteHome);
-    const elementSheet=document.getElementById('rr-element-sheet');
+    if(document.body?.classList?.toggle)document.body.classList.toggle('rr-graphite-home',graphiteHome);
+    const elementSheet=document.getElementById?.('rr-element-sheet');
     if(elementSheet)elementSheet.disabled=graphiteHome;
     let body='';
     if(page==='setup')body=setupScreen();
