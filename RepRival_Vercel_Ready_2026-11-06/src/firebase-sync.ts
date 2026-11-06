@@ -105,6 +105,7 @@ export interface CloudAthleteProfile {
   role: 'admin' | 'athlete';
   planId?: string;
   equipment?: string[];
+  adaptiveConfig?: any;
   selectedMovements?: string[];
   body?: any;
   createdAt: string;
@@ -217,6 +218,22 @@ export class RepRivalCloudService {
 
   public getProfile(): CloudAthleteProfile | null {
     return this.profile;
+  }
+
+  // Adaptive preferences and paused-plan cursor belong to the signed-in athlete.
+  // Stored on the existing user document so the deployed Firestore owner rules apply.
+  public async loadAdaptiveConfig(): Promise<any | null> {
+    if (!this.user) return null;
+    const userRef=doc(db,'users',this.user.uid);
+    const snap=await getDoc(userRef);
+    return snap.exists() ? snap.data()?.adaptiveConfig || null : null;
+  }
+
+  public async saveAdaptiveConfig(config: any): Promise<void> {
+    if (!this.user || !config || typeof config !== 'object') return;
+    const userRef=doc(db,'users',this.user.uid);
+    await setDoc(userRef,{adaptiveConfig:config}, {merge:true});
+    if(this.profile)this.profile.adaptiveConfig=config;
   }
 
   public isUserAdmin(): boolean {
