@@ -927,8 +927,9 @@
     const athleteName = profile().username ? esc(profile().username.split(' ')[0]) : 'Rival';
     return `<header class="topbar">
       <div class="brand" data-action="logo-showcase" role="button" tabindex="0" title="RepRival · Train. Compete. Improve.">
-        <span class="brand-emblem"><span class="brand-r-mark">R</span></span>
-        <span class="brand-wordmark"><span class="brand-rep">REP</span><span class="brand-rival">RIVAL</span></span>
+        ${page==='home'
+          ? '<span class="rr-g-brand-mark" aria-hidden="true">//</span><span class="rr-g-brand-word">RepRival</span>'
+          : '<span class="brand-emblem"><span class="brand-r-mark">R</span></span><span class="brand-wordmark"><span class="brand-rep">REP</span><span class="brand-rival">RIVAL</span></span>'}
       </div>
       <div class="topbar-user" data-page="account" role="button" tabindex="0" title="Account settings">
         <span class="user-avatar">${athleteName.charAt(0).toUpperCase()}</span>
