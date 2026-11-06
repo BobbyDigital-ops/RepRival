@@ -238,6 +238,87 @@
   add('db_waiters_carry','DB waiter\'s carry (steps)','Core',['dumbbells'],'single',3,20,40,'Overhead single dumbbell carry','steps');
   add('db_suitcase_carry','DB suitcase carry (steps)','Core',['dumbbells'],'single',3,20,40,'Single dumbbell hold at side walk','steps');
 
+  // Keep legacy IDs readable for existing workouts and saved preferences, but
+  // show only one canonical exercise per physical movement in the picker.
+  // True variations (bench angle, unilateral, tempo, grip, equipment) remain.
+  const LEGACY_ALIASES = Object.freeze({
+    standing_db_calf_raise:'db_calf_raise',
+    standing_db_row:'db_bent_over_row',
+    chest_supported_db_row_incline:'chest_supported_db_row',
+    standing_strict_db_press:'db_overhead_press',
+    db_arnold_press:'arnold_press',
+    standing_db_upright_row:'db_upright_row',
+    db_goblet_squat:'goblet_squat',
+    db_reverse_lunge:'reverse_lunge',
+    bodyweight_reverse_lunge:'reverse_lunge',
+    db_walking_lunge:'walking_lunge',
+    db_bulgarian_split_squat:'bulgarian_split_squat',
+    bodyweight_bulgarian_split_squat:'bulgarian_split_squat',
+    db_split_squat:'split_squat',
+    bodyweight_step_up:'db_step_up',
+    db_single_leg_rdl:'single_leg_db_rdl',
+    single_leg_hip_hinge:'single_leg_db_rdl',
+    bodyweight_glute_bridge:'db_glute_bridge',
+    db_hip_thrust:'hip_thrust_bench',
+    db_hammer_curl:'hammer_curl',
+    db_cross_body_hammer_curl:'cross_body_hammer_curl',
+    db_zottman_curl:'zottman_curl',
+    db_spider_curl:'spider_curl',
+    db_concentration_curl:'concentration_curl',
+    db_farmers_walk:'farmer_carry',
+    db_suitcase_carry:'suitcase_carry',
+    db_overhead_tricep_extension:'overhead_db_triceps_extension',
+    ab_rollout:'kneeling_ab_rollout'
+  });
+  const canonicalId=id=>LEGACY_ALIASES[String(id)]||String(id);
+
+  // Optional dumbbells should be a selectable load, not a second "bodyweight"
+  // exercise. Keep real support requirements (e.g. split squat uses a bench).
+  const LOAD_OPTIONAL = new Set([
+    'reverse_lunge','forward_lunge','walking_lunge','split_squat',
+    'bulgarian_split_squat','db_step_up','single_leg_db_rdl',
+    'db_glute_bridge','goblet_squat','russian_twist'
+  ]);
+  const rawEntries=entries.slice();
+  const seenIds=new Set();
+  const curated=[];
+  for(const ex of rawEntries){
+    if(seenIds.has(ex.id)||LEGACY_ALIASES[ex.id])continue;
+    seenIds.add(ex.id);
+    if(ex.id==='db_sumo_squat'){
+      ex.muscle='Quads'; ex.details='Wide-stance squat; glutes contribute secondarily';
+    }
+    if(ex.id==='db_rear_delt_row')ex.muscle='Rear delts';
+    if(ex.id==='db_front_raise')ex.details='Front deltoid emphasis; shown within the combined Shoulders heat zone';
+    if(['db_overhead_press','seated_db_press','arnold_press','single_arm_db_press',
+      'barbell_overhead_press','machine_shoulder_press','kb_press','kb_clean_press',
+      'standing_db_high_pull','db_snatch','pike_push_up','db_front_raise'].includes(ex.id)){
+      ex.displayMuscle='Shoulders (front / side)';
+    }
+    if(LOAD_OPTIONAL.has(ex.id)){
+      ex.equipment=ex.equipment.filter(g=>g!=='dumbbells');
+      ex.optionalEquipment=['dumbbells'];
+      ex.load='optional';
+      if(ex.id==='reverse_lunge')ex.name='Reverse lunge';
+      if(ex.id==='walking_lunge')ex.name='Walking lunge';
+      if(ex.id==='split_squat')ex.name='Static split squat';
+      if(ex.id==='bulgarian_split_squat')ex.name='Bulgarian split squat';
+      if(ex.id==='single_leg_db_rdl')ex.name='Single-leg Romanian deadlift';
+      if(ex.id==='db_glute_bridge')ex.name='Glute bridge';
+      if(ex.id==='db_step_up'){
+        ex.name='Step-up';
+        ex.equipment=[];
+        ex.equipmentAlternatives=[['bench'],['step']];
+      }
+    }
+    curated.push(ex);
+  }
+  entries.splice(0,entries.length,...curated);
+  add('russian_twist','Russian twist','Core',[],'optional',3,16,30,
+    'Alternating total reps; use 0 kg without a weight, or hold one dumbbell');
+  // The newly added movement is included before canonical indexing.
+  const russian=entries[entries.length-1];
+  russian.optionalEquipment=['dumbbells'];
   function inferPatternAndFamily(ex) {
     let pattern = 'isolation';
     let family = ex.id;
@@ -278,6 +359,9 @@
     } else if (/bridge|thrust/i.test(ex.id)) {
       pattern = 'glute_dominant';
       family = 'glute_bridges';
+    } else if (/russian_twist|side_bend|windmill/i.test(ex.id)) {
+      pattern = 'core_rotation';
+      family = 'core_rotation';
     } else if (/plank|dead_bug|bird_dog|hold|carry/i.test(ex.id)) {
       pattern = 'core_stability';
       family = 'core_stability';
@@ -303,9 +387,18 @@
     e.family = pf.family;
   });
   const byId=Object.fromEntries(entries.map(e=>[e.id,e]));
+  // Legacy aliases remain lookup-able without appearing as duplicate choices.
+  for(const [alias,id] of Object.entries(LEGACY_ALIASES)){
+    if(byId[id])byId[alias]=byId[id];
+  }
   if(byId['standing_rear_fly']){
     byId['standing_db_rear_fly'] = byId['standing_rear_fly'];
   }
-  const compatible=(ex,gear)=>!!ex&&(ex.equipment||[]).every(g=>gear.includes(g));
-  window.REPRIVAL_EXERCISE_LIBRARY={gear:GEAR,ownerDefault:OWNER_DEFAULT,entries,byId,compatible};
+  const compatible=(ex,gear=[])=>!!ex&&
+    (ex.equipment||[]).every(g=>gear.includes(g))&&
+    (!ex.equipmentAlternatives || ex.equipmentAlternatives.some(req=>req.every(g=>gear.includes(g))));
+  window.REPRIVAL_EXERCISE_LIBRARY={
+    gear:GEAR,ownerDefault:OWNER_DEFAULT,entries,byId,compatible,
+    legacyAliases:LEGACY_ALIASES,canonicalId
+  };
 })();
