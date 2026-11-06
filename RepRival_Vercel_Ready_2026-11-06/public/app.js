@@ -2505,8 +2505,8 @@
         <p class="subhead" style="margin-bottom:10px; color:#94a3b8;">${a.restSeconds}s planned recovery</p>
         ${bar(a.restSeconds-remaining,a.restSeconds)}
         <div class="rest-controls mt16" style="display:flex; gap:10px;">
-          ${btn('+15 seconds','rest-add','outline','style="flex:1; height:46px; font-size:14px; font-weight:700;"')}
-          ${btn('Ready Now · Start Set →','rest-skip','primary','style="flex:1.4; height:46px; font-size:14px; font-weight:800; background:#d97241;"')}
+          ${btn('+15 seconds','rest-add','outline rr-rest-add')}
+          ${btn('Ready now · Start set →','rest-skip','primary rr-rest-skip')}
         </div>
       </section>
 
@@ -4941,6 +4941,7 @@
     // Graphite is now the unified app appearance. Preserve all page rendering,
     // exercise/recovery state and existing functional interaction semantics.
     if(document.body?.classList)document.body.classList.add('rr-graphite-home');
+    if(document.body?.classList)document.body.classList.toggle('rr-active-session',page==='workout'&&!!state.active);
     const elementSheet=document.getElementById?.('rr-element-sheet');
     if(elementSheet)elementSheet.disabled=true;
     let body='';
