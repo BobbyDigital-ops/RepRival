@@ -1628,7 +1628,7 @@ try {
   const secOhp = intel.getSecondaryContributions(ohpLog);
   assert('Overhead press resolves to Side delts', intel.resolveLogMuscle(ohpLog) === 'Side delts');
   assert('Overhead press awards secondary Triceps (0.35)', secOhp.some(([m, f]) => m === 'Triceps' && f === 0.35));
-  assert('Overhead press awards secondary Rear delts (0.15)', secOhp.some(([m, f]) => m === 'Rear delts' && f === 0.15));
+  assert('Overhead press does not overcredit rear delts', !secOhp.some(([m, f]) => m === 'Rear delts' && f > 0));
 
   // Test 10: Back row distributions
   const rowLog = { exId: 'barbell_row', name: 'Barbell Row', muscle: 'Back', weight: 70, reps: 10, rir: 2 };
@@ -2547,7 +2547,7 @@ try {
   assert('Responsive Home supports muscle rows and workout-first overview',
     css.includes('.rr-g-muscle-row')&&css.includes('.rr-g-home-overview')&&css.includes('@media(max-width:360px)'));
   const index=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
-  assert('Second-pass assets cache-busted for mobile',index.includes('graphite-stage1.css?v=5')&&index.includes('app.js?v=auth-bluefix1'));
+  assert('Second-pass assets cache-busted for mobile',index.includes('graphite-stage1.css?v=5')&&index.includes('app.js?v=adaptive-catalog-audit1'));
 } catch(err) {
   assert('Suite 50 Exception: '+err.message,false);
 }
@@ -2562,7 +2562,7 @@ try {
   const source=fs.readFileSync(path.join(__dirname,'../public/graphite-polish.css'),'utf8');
   const index=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
   assert('Graphite polish stylesheet loads after the base stylesheet',
-    index.indexOf('graphite-polish.css?v=2')>index.indexOf('graphite-stage1.css?v=5'));
+    index.indexOf('graphite-polish.css?v=3')>index.indexOf('graphite-stage1.css?v=5'));
   assert('Adaptive programme actions receive explicit mobile grid layout',
     source.includes('.rr-element-mode-actions') &&
     source.includes('grid-template-columns:minmax(0,1fr)'));
@@ -2618,7 +2618,7 @@ try {
     css.includes('.rr-adaptive-frequency-choice input:checked+span') &&
     css.includes('.rr-adaptive-library-controls') &&
     css.includes('grid-template-columns:minmax(0,1fr)!important'));
-  assert('Adaptive Studio styling is cache-busted on Vercel',index.includes('graphite-polish.css?v=2'));
+  assert('Adaptive Studio styling is cache-busted on Vercel',index.includes('graphite-polish.css?v=3'));
   assert('Rendering the preference picker leaves settings and workout history untouched',
     before===JSON.stringify(t.getProfile().adaptive||{}) &&
     historyBefore===t.getState().history.map(w=>w.id).join('|'));
@@ -2674,14 +2674,82 @@ try {
   assert('Established multi-week detraining stays distinguishable',deep.fill==='#5f88ad'&&deep.alpha>cooler.alpha);
   assert('Recent high training stimulus remains warm',trainedNow.fill===t.graphiteHeatColour(99));
   assert('Never-trained anatomy stays transparent',t.graphiteAtlasPalette({ever:false,daysSince:null,stimulusScore:0},{fill:'#18191d',alpha:0}).alpha===0);
-  assert('Heat Zone legend explains early cool stimulus without claiming detraining',t.graphiteHomeHeatmap().includes('fading stimulus after a week'));
+  assert('Heat Zone legend explains early cool stimulus without claiming detraining',t.graphiteHomeHeatmap().includes('Blue shows fading stimulus'));
   assert('Cloud auth observer reports authenticated state without awaiting Firestore',cloud.includes('void this.syncOrCreateProfile(u).catch') && cloud.includes('this.notifySubscribers();'));
   assert('Google popup resolves via genuine Firebase auth observer or times out visibly',cloud.includes('Promise.race([popup, authenticated, stalled])')&&cloud.includes('auth/popup-timeout'));
   assert('App closes auth overlay on a confirmed sign-in',source.includes("if(authDialog?.open)authDialog.close()"));
   assert('Cloud sync avoids simultaneous duplicate initial reads',source.includes('cloudSyncInFlight&&cloudSyncUserId===user.uid'));
-  assert('Phone app refreshes app JS and offline Graphite assets',index.includes('/app.js?v=auth-bluefix1')&&sw.includes('graphite-polish.css')&&sw.includes('graphite-session.css'));
+  assert('Phone app refreshes app JS and offline Graphite assets',index.includes('/app.js?v=adaptive-catalog-audit1')&&sw.includes('graphite-polish.css')&&sw.includes('graphite-session.css'));
 } catch(err) {
   assert('Suite 54 Exception: '+err.message,false);
+}
+
+// -----------------------------------------------------------------------------
+// SUITE 55: Curated exercise taxonomy, canonical IDs, and accurate Adaptive pairings
+// -----------------------------------------------------------------------------
+console.log('\n--- SUITE 55: Exercise catalogue + muscle intelligence audit ---');
+try {
+  const lib=window.REPRIVAL_EXERCISE_LIBRARY;
+  const v3=window.RepRivalAdaptiveV3;
+  const intel=window.RepRivalIntelligence;
+  const names=lib.entries.map(e=>e.id);
+  const owned=lib.ownerDefault;
+  assert('No duplicate exercise IDs in the displayed library',new Set(names).size===names.length);
+  assert('Only one standing DB calf raise appears in the picker',
+    lib.entries.filter(e=>e.name==='Standing DB calf raise').length===1);
+  assert('Historical second calf raise ID resolves to its canonical movement',
+    lib.canonicalId('standing_db_calf_raise')==='db_calf_raise'&&
+    lib.byId.standing_db_calf_raise===lib.byId.db_calf_raise);
+  assert('Legacy squats, curls and lunges remain resolvable for saved workouts',
+    ['db_goblet_squat','db_hammer_curl','db_reverse_lunge','bodyweight_reverse_lunge']
+      .every(id=>lib.byId[id]&&lib.canonicalId(id)!==id));
+  assert('Russian twists are offered as a Core movement',
+    lib.entries.some(e=>e.id==='russian_twist'&&e.muscle==='Core'&&e.load==='optional'));
+  assert('Zero-weight reverse lunge no longer needs a separate bodyweight exercise',
+    lib.byId.reverse_lunge.load==='optional'&&lib.compatible(lib.byId.reverse_lunge,[])&&
+    !names.includes('bodyweight_reverse_lunge'));
+  assert('Step-ups can use either a bench or suitable step',
+    lib.compatible(lib.byId.db_step_up,['bench'])&&lib.compatible(lib.byId.db_step_up,['step']));
+  assert('Swing is hip dominant, sumo squat is quad dominant, rear-delt row targets rear delts',
+    lib.byId.kb_swing.muscle==='Glutes'&&lib.byId.db_sumo_squat.muscle==='Quads'&&
+    lib.byId.db_rear_delt_row.muscle==='Rear delts');
+  assert('Existing historical swing/sumo exercise logs recalculate from corrected primary',
+    intel.resolveLogMuscle({exId:'kb_swing',muscle:'Hamstrings'})==='Glutes'&&
+    intel.resolveLogMuscle({exId:'db_sumo_squat',muscle:'Glutes'})==='Quads');
+  assert('Suitcase carry counts toward Core, with supporting non-hypertrophy Back contribution',
+    intel.resolveLogMuscle({exId:'suitcase_carry',muscle:'Core'})==='Core'&&
+    intel.getSupportingContributions({exId:'suitcase_carry',muscle:'Core'}).includes('Back'));
+  assert('Press, pullover, hip hinge and squat have distinct multi-muscle distributions',
+    intel.getSecondaryContributions({exId:'db_overhead_press',muscle:'Side delts'}).some(x=>x[0]==='Triceps')&&
+    intel.getSecondaryContributions({exId:'db_pullover',muscle:'Back'}).some(x=>x[0]==='Chest')&&
+    intel.getSecondaryContributions({exId:'db_romanian_deadlift',muscle:'Hamstrings'}).some(x=>x[0]==='Glutes')&&
+    intel.getSecondaryContributions({exId:'db_sumo_squat',muscle:'Quads'}).some(x=>x[0]==='Glutes'));
+  assert('Saved alias frequency preference still affects the canonical movement',
+    v3.pref({exerciseFrequency:{standing_db_calf_raise:0}},'db_calf_raise')===0);
+  assert('Seven-day frequency recognises old exercise IDs and never counts sets twice',
+    v3.weeklyOccurrences([{endedAt:new Date().toISOString(),logs:[
+      {exId:'standing_db_calf_raise',reps:10},{exId:'db_calf_raise',reps:10}
+    ]}]).db_calf_raise===1);
+  const four=v3.generate({focus:'upper_focused',supersets:4},[],owned,null,{variant:1});
+  const movement=four.pairs.flatMap(p=>p.exercises);
+  const upper=movement.filter(e=>v3.UPPER.has(e.muscle)).reduce((n,e)=>n+e.sets,0);
+  const total=movement.reduce((n,e)=>n+e.sets,0);
+  assert('Four-block Upper-focused plan dedicates at least 75% sets to upper body',total>0&&upper/total>=.75);
+  assert('Adaptive superset avoids placing two identical primary muscle groups together',
+    four.pairs.every(p=>p.exercises.length<2||p.exercises[0].muscle!==p.exercises[1].muscle));
+  assert('Adaptive workout does not repeat an exercise under a separate alias',
+    new Set(movement.map(e=>lib.canonicalId(e.id))).size===movement.length);
+  const when=new Date().toISOString();
+  const recent=[{id:'prior-session',endedAt:when,logs:[{exId:'standing_db_calf_raise',reps:14,muscle:'Calves'}]}];
+  const after=v3.generate({focus:'balanced',supersets:4},recent,owned,null,{variant:1});
+  assert('One-per-week frequency cap prevents calf-raise alias from returning too soon',
+    !after.pairs.flatMap(p=>p.exercises).some(e=>e.id==='db_calf_raise'));
+  assert('Adaptive focus next-workout override is explicit in the UI',
+    window.RepRivalTest.adaptiveStudioScreen().includes('resets after use'));
+  assert('Library includes fractional supporting-muscle explanation in cards',
+    window.RepRivalTest.adaptiveStudioScreen().includes('Also trains:'));
+} catch(err){
+  assert('Suite 55 Exception: '+err.message,false);
 }
 
 console.log('\n================================================================');
