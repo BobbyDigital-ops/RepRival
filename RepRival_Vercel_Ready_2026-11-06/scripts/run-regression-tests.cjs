@@ -1289,7 +1289,7 @@ try {
   const intelIdx = htmlContent.indexOf('src="/muscle-intelligence.js"');
   const bodyMapIdx = htmlContent.indexOf('src="/body-map.js"');
   const adaptiveIdx = htmlContent.indexOf('src="/adaptive.js"');
-  const appIdx = htmlContent.indexOf('src="/app.js"');
+  const appIdx = htmlContent.indexOf('src="/app.js');
 
   assert('muscle-intelligence.js is loaded before body-map.js', intelIdx !== -1 && bodyMapIdx !== -1 && intelIdx < bodyMapIdx);
   assert('muscle-intelligence.js is loaded before adaptive.js', intelIdx !== -1 && adaptiveIdx !== -1 && intelIdx < adaptiveIdx);
@@ -2503,7 +2503,7 @@ try {
   assert('Stage 1 map rendering does not edit training history',t.getState().history.map(w=>w.id).join('|')===prev);
   const entry=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
   const css=fs.readFileSync(path.join(__dirname,'../public/graphite-stage1.css'),'utf8');
-  assert('Graphite CSS is separately versioned and linked',entry.includes('/graphite-stage1.css?v=1'));
+  assert('Graphite CSS is separately versioned and linked',entry.includes('/graphite-stage1.css?v=2'));
   assert('Original Element stylesheet remains present for other screens',entry.includes('id="rr-element-sheet"'));
   assert('Graphite styles scoped exclusively to Home',css.includes('.rr-graphite-home .rr-g-home-heat')&&!css.includes('body.rr-element .card'));
   assert('Graphite CSS keeps figures side by side',css.includes('grid-template-columns:repeat(2,minmax(0,1fr))'));
