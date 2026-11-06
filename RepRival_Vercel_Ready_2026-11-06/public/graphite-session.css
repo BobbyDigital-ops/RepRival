@@ -1,0 +1,411 @@
+
+/* RepRival Graphite Pass 6 · active workout and rest screens.
+   Presentation only: all existing form names, handlers, workout calculations
+   and the coloured anatomical heatmaps remain unchanged. */
+body.rr-active-session .shell {
+  padding:14px 13px calc(100px + env(safe-area-inset-bottom))!important;
+}
+body.rr-active-session .topbar {display:none!important}
+body.rr-active-session .rr-session-compact,
+body.rr-active-session .rr-rest-screen {color:#ecf0f3!important;min-width:0!important}
+body.rr-active-session .rr-session-compact {display:flex!important;flex-direction:column!important;gap:9px!important}
+body.rr-active-session .rr-session-compact .workout-top-actions,
+body.rr-active-session .rr-rest-screen .session-controls{
+  display:flex!important;margin:0 0 1px!important;min-height:33px!important;
+  align-items:center!important;justify-content:space-between!important
+}
+body.rr-active-session .workout-timer{
+  background:linear-gradient(150deg,#343a42,#242930)!important;
+  color:#f1f3f4!important;border:1px solid #505a64!important;
+  border-radius:9px!important;padding:5px 10px!important;
+  font:680 11px/1.35 ui-monospace,Consolas,monospace!important;letter-spacing:.7px!important
+}
+body.rr-active-session .workout-timer:before{background:#bdc6ce!important;animation:none!important}
+body.rr-active-session :is(.workout-menu summary,.session-controls .quiet-link){
+  color:#d7dee5!important;font-size:12px!important;letter-spacing:.1px!important;
+  padding:7px 10px!important
+}
+body.rr-active-session .workout-menu .menu-items{
+  background:#252b32!important;border:1px solid #4f5964!important;z-index:80!important
+}
+
+/* One compact header instead of a large hero taking half the screen */
+body.rr-active-session .rr-session-header{
+  background:linear-gradient(150deg,#282d34,#191d22)!important;
+  border:1px solid #454d56!important;border-radius:14px!important;
+  padding:11px 13px!important;margin:0!important;
+  box-shadow:inset 0 1px 0 #ffffff0f,0 6px 14px #0004!important
+}
+body.rr-active-session .rr-session-header .row{gap:8px!important}
+body.rr-active-session .rr-session-header .eyebrow{
+  color:#cdd5dc!important;font-size:9px!important;letter-spacing:1.4px!important
+}
+body.rr-active-session .rr-session-header .eyebrow b{color:#d2dae1!important}
+body.rr-active-session .rr-session-header .rr153-set-counter{
+  color:#bdc7d1!important;font-size:10px!important;text-align:right!important
+}
+body.rr-active-session .rr-session-header h1{
+  font:680 clamp(17px,4.7vw,21px)/1.18 system-ui,-apple-system,'Segoe UI',sans-serif!important;
+  color:#f0f2f4!important;letter-spacing:-.45px!important;margin:7px 0 3px!important;
+  overflow-wrap:anywhere!important
+}
+body.rr-active-session .rr-session-header p{
+  font-size:10px!important;font-weight:700!important;letter-spacing:1.15px!important;
+  color:#aeb9c4!important;margin:0!important
+}
+body.rr-active-session .rr-session-header .meter{
+  height:3px!important;margin:8px 0 0!important;background:#373e46!important
+}
+body.rr-active-session .rr-session-header .meter>span{background:#c0cbd5!important}
+body.rr-active-session .round-form{display:flex!important;flex-direction:column!important;gap:9px!important}
+
+/* Tight but readable set cards: two movements should fit a normal phone
+   viewport without shrinking the weight/reps controls below tap-friendly sizes. */
+body.rr-active-session .compact-workout .rr-session-set-card{
+  background:linear-gradient(150deg,#292e35 0%,#1b1f25 85%)!important;
+  border:1px solid #4b535e!important;border-radius:15px!important;
+  padding:11px 12px!important;margin:0!important;
+  box-shadow:inset 0 1px 0 #ffffff13,0 7px 17px #0005!important;
+  min-width:0!important;
+}
+body.rr-active-session .rr-session-set-head{
+  min-height:0!important;align-items:flex-start!important;gap:8px!important;margin:0!important
+}
+body.rr-active-session .rr-session-set-card .mini-title{min-width:0!important}
+body.rr-active-session .rr-session-set-head .mini-title>.row{margin:0 0 4px!important}
+body.rr-active-session .rr-session-set-head .eyebrow{
+  color:#bbc6d1!important;font-size:9px!important;letter-spacing:.95px!important;
+}
+body.rr-active-session .rr-session-set-head .btn-exercise-options{
+  font-size:11px!important;min-height:31px!important;
+  color:#c9d3dc!important;border:1px solid #515b65!important;
+  border-radius:8px!important;background:#353b43!important;
+  padding:5px 9px!important;box-shadow:none!important
+}
+body.rr-active-session .rr-session-exercise-name{
+  font:700 16px/1.23 system-ui,-apple-system,'Segoe UI',sans-serif!important;
+  margin:1px 0 3px!important;color:#f2f4f5!important;
+  letter-spacing:-.25px!important;overflow-wrap:anywhere!important
+}
+body.rr-active-session .rr-session-set-number{
+  font-size:13px!important;white-space:nowrap!important;color:#bdc6d0!important;font-weight:600!important
+}
+body.rr-active-session .rr-session-set-head .tiny{
+  color:#adb7c1!important;font-size:11px!important;margin:0!important;line-height:1.3!important
+}
+body.rr-active-session .rr-session-set-card .cue-stack{flex:0 0 auto!important;max-width:54px!important}
+body.rr-active-session .rr-session-set-card .art-open{
+  width:52px!important;height:52px!important;padding:0!important;
+  background:#272e34!important;border:1px solid #525e68!important;
+  border-radius:10px!important;overflow:hidden!important
+}
+body.rr-active-session .rr-session-set-card .cue-stack .exercise-art{
+  display:block!important;width:50px!important;height:50px!important;
+  padding:2px!important;object-fit:contain!important;background:transparent!important;
+  filter:brightness(0) invert(.92)!important;opacity:.83!important
+}
+body.rr-active-session .rr-session-previous{
+  background:#171c22!important;border:1px solid #343e48!important;border-radius:8px!important;
+  display:flex!important;align-items:center!important;flex-wrap:wrap!important;gap:3px 6px!important;
+  margin:7px 0 5px!important;padding:5px 9px!important;
+  font-size:10.5px!important;line-height:1.25!important;min-height:23px!important
+}
+body.rr-active-session .rr-session-previous :is(span,i){color:#adb8c3!important;font-size:10.5px!important}
+body.rr-active-session .rr-session-previous span:first-child[style]{color:#e1e7ed!important}
+
+body.rr-active-session .rr-session-recommendation{
+  margin:0 0 8px!important;padding:7px 9px!important;
+  display:flex!important;align-items:center!important;justify-content:space-between!important;
+  gap:8px!important;border:1px solid #53606b!important;border-radius:9px!important;
+  background:linear-gradient(115deg,#303740,#252b32)!important;
+}
+body.rr-active-session .rr-session-recommendation>div{
+  color:#cbd5dd!important;font-size:10.5px!important;line-height:1.32!important;min-width:0!important
+}
+body.rr-active-session .rr-session-recommendation>div>span{
+  display:inline!important;margin:0 7px 0 0!important;
+  color:#d4dce3!important;font-size:9px!important;
+}
+body.rr-active-session .rr-session-recommendation strong{color:#edf0f3!important;font-weight:750!important}
+body.rr-active-session .rr-session-recommendation .btn-apply-overload{
+  min-height:35px!important;border-radius:8px!important;
+  font-size:11px!important;white-space:nowrap!important;
+  background:linear-gradient(145deg,#e5e9ec,#9ba5b0)!important;
+  border:1px solid #d7dce1!important;color:#181c20!important;
+  padding:6px 9px!important;box-shadow:none!important
+}
+body.rr-active-session .rr-session-numbers{
+  display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:10px!important;margin:0!important;min-width:0!important
+}
+body.rr-active-session .rr-session-numbers .stepper-field{min-width:0!important;margin:0!important;gap:3px!important}
+body.rr-active-session .rr-session-numbers .stepper-field>label{
+  color:#b9c3cd!important;font-size:9px!important;margin:0 0 4px!important;
+  letter-spacing:.55px!important;line-height:1.25!important;min-height:11px!important;
+}
+body.rr-active-session .rr-session-numbers .stepper-field>div:has(.btn-step){
+  display:flex!important;align-items:center!important;gap:4px!important;min-width:0!important
+}
+body.rr-active-session .rr-session-numbers .btn-step{
+  flex:0 0 35px!important;width:35px!important;min-width:35px!important;
+  max-width:35px!important;height:44px!important;min-height:44px!important;
+  padding:0!important;font-size:21px!important;font-weight:600!important;
+  background:linear-gradient(150deg,#4e5660,#343b44)!important;
+  border:1px solid #6e7781!important;border-radius:9px!important;color:#e8edf1!important;
+  box-shadow:inset 0 1px 0 #ffffff19!important
+}
+body.rr-active-session .rr-session-numbers .btn-step:disabled{
+  opacity:.36!important;background:#30353b!important;box-shadow:none!important
+}
+body.rr-active-session .rr-session-numbers :is(.rr-weight-input,.rr-reps-input){
+  flex:1 1 0!important;min-width:0!important;width:0!important;
+  height:44px!important;min-height:44px!important;
+  padding:5px 1px!important;font-size:20px!important;font-weight:740!important;
+  border:1px solid #5b6570!important;border-radius:9px!important;
+  background:#11161c!important;color:#f1f3f5!important;
+  box-shadow:inset 0 1px 5px #0007!important
+}
+body.rr-active-session .rr-session-numbers .rr-weight-input:disabled{
+  opacity:1!important;color:#d6dee5!important
+}
+body.rr-active-session .rr-session-numbers .weight-convention-subtext{
+  font-size:10px!important;color:#b0bcc8!important;
+  margin:3px 0 0!important;text-align:center!important;line-height:1.2!important
+}
+body.rr-active-session .rr-session-numbers .stepper-field>div:not(:has(.btn-step)){
+  font-size:9px!important;color:#ccd4dc!important;margin-top:1px!important
+}
+
+/* Grayscale, tactile RIR selector; selected value is not tied to old orange/
+   green inline styling. Retain the same radio inputs and labels. */
+body.rr-active-session .rr-session-rir{
+  margin:8px 0 0!important;padding:8px 9px 7px!important;
+  border:1px solid #3e4852!important;border-radius:10px!important;
+  background:linear-gradient(150deg,#252b31,#1b2025)!important
+}
+body.rr-active-session .rr-session-rir-title{
+  display:block!important;margin:0 0 6px!important;font-size:9px!important;
+  letter-spacing:.75px!important;font-weight:750!important;color:#bac5ce!important
+}
+body.rr-active-session .rr-session-rir-options{
+  display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:4px!important;
+  padding:2px!important;border-radius:9px!important;background:#131820!important;
+}
+body.rr-active-session .rr-session-rir-options label{position:relative!important;margin:0!important;min-width:0!important}
+body.rr-active-session .rr-session-rir-options input{
+  position:absolute!important;opacity:0!important;inset:0!important;
+  width:100%!important;height:100%!important;margin:0!important;pointer-events:auto!important;z-index:2!important
+}
+body.rr-active-session .rr-session-rir-options .rir-btn{
+  display:grid!important;place-items:center!important;min-height:42px!important;height:42px!important;
+  padding:0!important;border-radius:7px!important;
+  color:#c5ced7!important;background:#30363e!important;
+  border:1px solid #4d5762!important;font-size:13px!important;font-weight:760!important;
+  box-shadow:none!important
+}
+body.rr-active-session .rr-session-rir-options input:checked+.rir-btn{
+  color:#12171b!important;
+  background:linear-gradient(145deg,#e4e9ed,#a3aeba)!important;
+  border:1px solid #e9edf0!important;
+  box-shadow:inset 0 1px 0 #fff8,0 1px 7px #d0dbe126!important
+}
+body.rr-active-session .rr-session-rir-options input:focus-visible+.rir-btn{
+  outline:2px solid #f1f5f8!important;outline-offset:2px!important
+}
+body.rr-active-session .rr-session-rir-labels{
+  display:flex!important;justify-content:space-between!important;
+  margin:5px 0 0!important;padding:0 2px!important
+}
+body.rr-active-session .rr-session-rir-labels small{
+  font-size:8px!important;font-weight:600!important;color:#aab5bf!important
+}
+body.rr-active-session .rr-session-rir-labels small:first-child,
+body.rr-active-session .rr-session-rir-labels small:last-child{color:#b7c1ca!important}
+body.rr-active-session .rr-session-up-next{
+  background:#20262d!important;border:1px solid #454e58!important;
+  padding:8px 11px!important;border-radius:10px!important;margin:0!important
+}
+body.rr-active-session .rr-session-up-next :is(.eyebrow,strong,span){color:#c7d1d9!important}
+body.rr-active-session .rr-session-up-next strong{color:#ebeff2!important;font-size:12px!important}
+body.rr-active-session .rr-session-up-next .next-rest{
+  background:transparent!important;color:#bdc8d1!important;border:0!important;
+  font-size:10px!important;white-space:nowrap!important
+}
+body.rr-active-session .rr-session-up-next .next-rest strong{color:#f0f2f4!important}
+body.rr-active-session .rr-session-submit{
+  display:block!important;min-height:51px!important;border-radius:12px!important;
+  font-size:14px!important;font-weight:750!important;
+  padding:11px 15px!important;line-height:1.25!important;
+  color:#192027!important;border:1px solid #dde3e8!important;
+  background:linear-gradient(135deg,#e7eaee,#adb6c0 54%,#8d98a3)!important;
+  box-shadow:inset 0 1px 0 #ffffffb3,0 5px 13px #0007!important;
+  position:sticky!important;bottom:max(9px,env(safe-area-inset-bottom))!important;
+  z-index:22!important;
+  text-shadow:none!important
+}
+body.rr-active-session .rr-session-roadmap{
+  margin:3px 0 0!important;border:1px solid #444e59!important;
+  background:#1a2026!important;border-radius:12px!important;padding:0!important
+}
+body.rr-active-session .rr-session-roadmap>summary{
+  cursor:pointer!important;min-height:44px!important;display:flex!important;
+  align-items:center!important;gap:5px!important;padding:11px 13px!important;
+  color:#e1e7ec!important;font-size:12px!important;font-weight:700!important;
+  list-style:none!important
+}
+body.rr-active-session .rr-session-roadmap>summary::-webkit-details-marker{display:none!important}
+body.rr-active-session .rr-session-roadmap>summary:after{content:'⌄';margin-left:auto;font-size:17px;color:#bfc9d2}
+body.rr-active-session .rr-session-roadmap[open]>summary:after{content:'⌃'}
+body.rr-active-session .rr-session-roadmap>summary span{color:#a6b3c0!important}
+body.rr-active-session .rr-session-roadmap .roadmap-section{
+  margin:0!important;padding:11px!important;border:0!important;
+  border-top:1px solid #414950!important;border-radius:0 0 12px 12px!important
+}
+body.rr-active-session .roadmap-block,
+body.rr-active-session .roadmap-ex-row{
+  border-color:#424b54!important;background:#22282f!important
+}
+body.rr-active-session .roadmap-block-head :is(span,strong){color:#d7dfe6!important}
+body.rr-active-session .roadmap-ex-name{color:#d9e0e7!important}
+body.rr-active-session .roadmap-ex-meta{color:#a7b3bf!important}
+body.rr-active-session .roadmap-status-tag{filter:grayscale(1)!important}
+
+/* Rest: large timer remains clear; hide redundant full block list until opened. */
+body.rr-active-session .rr-rest-screen{display:flex!important;flex-direction:column!important;gap:10px!important}
+body.rr-active-session .rr-rest-screen>.eyebrow{
+  margin-top:3px!important;color:#b9c5cf!important;font-size:9px!important
+}
+body.rr-active-session .rr-rest-screen>.page-title{
+  font:700 24px/1.16 system-ui,-apple-system,'Segoe UI',sans-serif!important;
+  letter-spacing:-.55px!important;margin:0!important;color:#eff1f3!important
+}
+body.rr-active-session .rr-rest-screen>.lead{
+  font-size:12px!important;color:#aebbc6!important;margin:0!important;line-height:1.4!important
+}
+body.rr-active-session .rr-rest-countdown{
+  padding:16px 14px!important;margin:0!important;
+  background:radial-gradient(ellipse at 50% -30%,#c5ced619,transparent 65%),
+             linear-gradient(155deg,#292e34,#1a1f25)!important;
+  border:1px solid #515a64!important;border-radius:17px!important;
+  box-shadow:inset 0 1px 0 #ffffff16,0 9px 23px #0007!important
+}
+body.rr-active-session .rr-rest-countdown>.eyebrow{color:#c2ccd5!important}
+body.rr-active-session .rr-rest-countdown>.timer{
+  font:700 clamp(54px,13vw,72px)/1.12 system-ui,-apple-system,'Segoe UI',sans-serif!important;
+  color:#f0f2f4!important;letter-spacing:-2px!important;
+  margin:5px 0 3px!important;font-variant-numeric:tabular-nums!important
+}
+body.rr-active-session .rr-rest-countdown>.subhead{
+  font-size:12px!important;color:#aeb9c5!important;margin:0 0 9px!important
+}
+body.rr-active-session .rr-rest-countdown>.meter{
+  height:6px!important;margin:5px 0 9px!important;background:#3a424b!important
+}
+body.rr-active-session .rr-rest-countdown>.meter>span{background:#c0cbd4!important}
+body.rr-active-session .rr-rest-countdown .rest-controls{
+  display:grid!important;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr)!important;
+  gap:8px!important;margin:10px 0 0!important
+}
+body.rr-active-session .rr-rest-countdown :is(.rr-rest-add,.rr-rest-skip){
+  width:100%!important;min-height:49px!important;padding:8px!important;
+  line-height:1.25!important;font-size:13px!important;border-radius:11px!important
+}
+body.rr-active-session .rr-rest-countdown .rr-rest-add{
+  background:linear-gradient(145deg,#3b434c,#272d34)!important;color:#e3eaf0!important;
+  border:1px solid #5f6974!important
+}
+body.rr-active-session .rr-rest-countdown .rr-rest-skip{
+  background:linear-gradient(145deg,#e3e7ec,#a1abb6)!important;color:#1a2026!important;
+  border:1px solid #e0e5e9!important
+}
+body.rr-active-session .rr-rest-progress{
+  display:flex!important;align-items:center!important;justify-content:space-between!important;gap:11px!important;
+  margin:0!important;padding:11px 13px!important;border:1px solid #3b4651!important;
+  border-radius:12px!important;background:#191e23!important
+}
+body.rr-active-session .rr-rest-progress strong{color:#ebf0f4!important;font-size:13px!important}
+body.rr-active-session .rr-rest-progress>div>span{color:#aebbc6!important}
+body.rr-active-session .rr-rest-progress .label-tag{
+  color:#e9edef!important;background:#303841!important;border-color:#58626c!important
+}
+body.rr-active-session .rr-rest-next-panel{
+  margin:0!important;padding:13px!important;
+  border:1px solid #424e59!important;border-radius:15px!important;
+  background:linear-gradient(155deg,#252a31,#181d22)!important
+}
+body.rr-active-session .rr-rest-next-panel>.row{margin:0 0 10px!important}
+body.rr-active-session .rr-rest-next-panel .eyebrow{color:#bac6cf!important}
+body.rr-active-session .rr-rest-next-panel h3{color:#edf1f4!important;font-size:15px!important}
+body.rr-active-session .rr-rest-next-panel .btn-edit-rest{
+  min-height:34px!important;padding:6px 11px!important;
+  color:#dbe4eb!important;background:#343b44!important;
+  border:1px solid #59636d!important;border-radius:9px!important;font-size:12px!important
+}
+body.rr-active-session .rr-rest-up-next{
+  margin:0!important;padding:12px!important;
+  background:linear-gradient(145deg,#303741,#252b32)!important;
+  border:1px solid #616c77!important;border-radius:12px!important
+}
+body.rr-active-session .rr-rest-up-next .eyebrow,
+body.rr-active-session .rr-rest-up-next :is(span,strong){color:#e4e9ee!important}
+body.rr-active-session .rr-rest-up-next .label-tag{background:#353d46!important;color:#d4dde5!important}
+body.rr-active-session .rr-rest-up-next .row{gap:8px!important}
+body.rr-active-session .rr-rest-up-next .row strong{font-size:14px!important;line-height:1.25!important}
+body.rr-active-session .rr-rest-up-next .row span{font-size:11px!important}
+body.rr-active-session .rr-rest-up-next>div>div[style*="margin-top"]{
+  border-color:#47515b!important;padding-top:8px!important;margin-top:8px!important
+}
+body.rr-active-session .rr-rest-up-next div[style*="color:#ff9f66"],
+body.rr-active-session .rr-rest-up-next span[style*="color:#ff9f66"]{color:#c5ced7!important}
+body.rr-active-session .rr-rest-structure{
+  margin:10px 0 0!important;border-top:1px solid #424b54!important
+}
+body.rr-active-session .rr-rest-structure>summary{
+  cursor:pointer!important;display:flex!important;align-items:center!important;gap:6px!important;
+  min-height:44px!important;padding:10px 1px!important;
+  color:#cfd8e0!important;font-size:12px!important;font-weight:680!important;list-style:none!important
+}
+body.rr-active-session .rr-rest-structure>summary::-webkit-details-marker{display:none!important}
+body.rr-active-session .rr-rest-structure>summary span{color:#a3b1be!important}
+body.rr-active-session .rr-rest-structure>summary::after{
+  content:'⌄';margin-left:auto;font-size:17px;color:#b5c3ce
+}
+body.rr-active-session .rr-rest-structure[open]>summary::after{content:'⌃'}
+body.rr-active-session .rr-rest-summary-blocks{display:flex!important;flex-direction:column!important;gap:8px!important}
+body.rr-active-session .rr-rest-structure .rest-summary-blocks>div{
+  background:#1b222a!important;border:1px solid #404c57!important;
+  border-radius:9px!important;padding:9px 11px!important;opacity:1!important
+}
+body.rr-active-session .rr-rest-structure .rest-summary-blocks :is(span,div){
+  color:#bfcad3!important
+}
+body.rr-active-session .rr-rest-structure .rest-summary-blocks div[style*="color:#d97241"]{
+  color:#dce4ea!important
+}
+body.rr-active-session .rr-rest-structure .rest-summary-blocks>div:first-child{
+  border-color:#76818c!important
+}
+body.rr-active-session :is(.rr-session-roadmap>summary,.rr-rest-structure>summary):focus-visible{
+  outline:2px solid #e6ecf2!important;outline-offset:2px!important
+}
+@media(max-width:390px){
+  body.rr-active-session .shell{padding:9px 10px calc(84px + env(safe-area-inset-bottom))!important}
+  body.rr-active-session .rr-session-compact{gap:7px!important}
+  body.rr-active-session .compact-workout .rr-session-set-card{padding:9px 10px!important}
+  body.rr-active-session .rr-session-numbers{gap:7px!important}
+  body.rr-active-session .rr-session-numbers .btn-step{
+    flex-basis:32px!important;min-width:32px!important;width:32px!important;max-width:32px!important
+  }
+  body.rr-active-session .rr-session-numbers :is(.rr-weight-input,.rr-reps-input){font-size:18px!important}
+  body.rr-active-session .rr-session-up-next{padding:6px 9px!important}
+}
+@media(max-height:790px){
+  body.rr-active-session .rr-session-set-card .cue-stack{max-width:42px!important}
+  body.rr-active-session .rr-session-set-card .art-open,
+  body.rr-active-session .rr-session-set-card .cue-stack .exercise-art{width:41px!important;height:41px!important}
+  body.rr-active-session .rr-session-previous{margin:4px 0!important}
+  body.rr-active-session .rr-session-rir{margin-top:6px!important;padding:6px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  body.rr-active-session :is(.rir-btn,.btn-step,.rr-session-submit){transition:none!important}
+}
