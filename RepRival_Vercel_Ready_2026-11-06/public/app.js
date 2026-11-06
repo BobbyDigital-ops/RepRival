@@ -1271,7 +1271,7 @@
     const status=esc(m.readinessState||'Insufficient data'),pct=r==null?'—':r+'%';
     const color=graphiteHeatColour(s);
     return `<div class="rr-g-muscle-row" aria-label="${esc(m.name)}: stimulus ${s} percent, readiness ${esc(pct)}, ${esc(sets)}">
-      <div class="rr-g-muscle-identity"><span class="rr-g-muscle-symbol">${graphiteMuscleIcon(m.name,color)}</span><div class="rr-g-muscle-title"><strong>${esc(m.name)}</strong><small>${esc(sets)}</small></div></div>
+      <div class="rr-g-muscle-identity"><div class="rr-g-muscle-title"><strong>${esc(m.name)}</strong><small>${esc(sets)}</small></div></div>
       <div class="rr-g-muscle-dose">
         <div class="rr-g-metric-head"><span>STIMULUS</span><strong style="color:${color}">${s}%</strong></div>
         <div class="rr-g-track" role="progressbar" aria-label="${esc(m.name)} stimulus" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${s}"><i style="width:${s}%;background:${color}"></i></div>
@@ -1334,8 +1334,7 @@
     const planCycle=Math.floor(done/Math.max(1,SESSION_ORDER.length))+1;
     const currentStrength=calculateStrengthGainPct();
     const signedIn=Boolean(window.RepRivalCloud?.getCurrentUser?.());
-    return `${graphiteHomeHeatmap()}
-      <section class="rr-g-home-overview" aria-label="Your training overview">
+    return `<section class="rr-g-home-overview" aria-label="Your training overview">
         <div class="rr-g-welcome">
           <div>
             <span class="rr-g-section-eyebrow">YOUR TRAINING</span>
@@ -1368,6 +1367,7 @@
         </div>
       </section>
       ${state.holiday?.active?'<p class="rr-g-holiday-active">Holiday mode is active. Your regular workout rotation is paused.</p>':''}
+      ${graphiteHomeHeatmap()}
       ${signedIn?'':cloudBanner()}`;
   }
 
