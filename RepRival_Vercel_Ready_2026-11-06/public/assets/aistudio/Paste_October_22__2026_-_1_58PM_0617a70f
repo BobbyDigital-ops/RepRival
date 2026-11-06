@@ -1,0 +1,862 @@
+# REPRIVAL — COMPREHENSIVE WORKOUT SYSTEM REFINEMENT, PROGRESSIVE OVERLOAD AUDIT & BUG FIX
+
+## Project instructions
+
+You are working on the existing RepRival fitness application.
+
+This is a comprehensive functional improvement, reliability and usability task affecting workout execution, logging, supersets, rest timers, exercise substitutions, progressive overload, session persistence and mobile presentation.
+
+**Do not rebuild the app, replace existing functionality with simplified components, or unnecessarily redesign the interface.**
+
+Inspect the existing application architecture, data models, components, workout configuration, persistence layer and historical logging logic before making changes.
+
+The primary objective is to make RepRival feel like a polished, reliable fitness application in which the user can concentrate on training rather than managing the interface.
+
+Implement the requirements below as one coherent improvement, not as disconnected patches.
+
+---
+
+# PART 1 — CRITICAL DATA PROTECTION
+
+## 1. Preserve all existing workout history
+
+This is a non-negotiable requirement.
+
+There is an existing Workout C session containing recorded exercise performance. It may currently be stuck in an active/resumable state even though all 21 sets have been logged.
+
+**DO NOT DELETE, RESET, REPLACE OR RECREATE THIS SESSION.**
+
+Before changing workout logic:
+
+- Inspect how active sessions and historical sessions are stored.
+- Identify potential risks of migrations, plan changes or session-state modifications.
+- Preserve all previously recorded weights, repetitions, exercises, set records, timestamps and performance history.
+- Ensure exercise substitutions do not corrupt old sessions.
+- Ensure plan changes only affect the intended current or future workouts.
+- Maintain correct athlete-profile ownership of all records.
+- Avoid duplicate workout records.
+- Provide a safe recovery path for fully logged but not formally completed sessions.
+
+Where possible, create a non-destructive migration or backup mechanism before changing data structures.
+
+Do not automatically overwrite existing workout data with sample or default data.
+
+### Specific situation to protect
+
+During the latest Workout C, the user performed a **standing rear-delt fly rather than the programmed chest-supported rear-delt fly**, because the existing pairing required inconvenient bench adjustments.
+
+The original workout performance must be preserved.
+
+Provide a way to correct the exercise identity in that historical session, if it was logged under the wrong variant, without losing its actual weight/repetition records. This should be an explicit user-confirmed correction, not an automatic bulk replacement.
+
+Separately, update the future Workout C plan so the unsuitable pairing does not recur.
+
+---
+
+# PART 2 — REBUILD THE SET-TO-REST WORKFLOW
+
+## 2. Make resting the preparation period for the next set
+
+This is the most important user-experience change.
+
+### Required workflow
+
+1. The user finishes performing a set.
+2. The user taps a prominent **Complete set** action.
+3. The set is immediately recorded using its already prepared values.
+4. The appropriate rest countdown starts immediately.
+5. During the countdown, the user can inspect and edit the upcoming weights and reps.
+6. The adjusted values carry directly into the next set.
+7. Once rested, the user proceeds with the next exercise or round.
+8. No unnecessary extra data-entry screen is required.
+
+The user should not have to finish a set, enter multiple values, confirm a second time, and only then start resting.
+
+### Logging behaviour
+
+The values for a set should already have been prepared from the previous round or historical performance.
+
+- Make the values editable before confirming completion.
+- Allow retrospective correction if the user completed a different number of reps.
+- Avoid saving duplicate records if Complete set is tapped repeatedly.
+- Do not treat prepared next-set values as completed performance.
+- Persist all changes reliably.
+
+### Superset transitions
+
+Distinguish between:
+
+**Movement transitions:** Brief 15–30-second transitions between exercises within the same superset round.
+
+**Round rest:** Longer prescribed recovery between completed superset rounds.
+
+Do not introduce a lengthy rest between exercises intended to be completed back-to-back.
+
+After the final set of the workout, do not start another rest countdown.
+
+---
+
+## 3. Adjust rest durations
+
+The requested automatic rest timer should deduct 15 seconds from prescribed recovery times.
+
+Examples:
+
+| Prescribed rest | Actual countdown |
+|---|---|
+| 120 seconds | 105 seconds |
+| 90 seconds | 75 seconds |
+| 60 seconds | 45 seconds |
+| 30 seconds | 15 seconds |
+
+Requirements:
+
+- Start counting when the completed set/round is confirmed.
+- Apply this deduction once only.
+- Do not apply the deduction to short within-superset transitions.
+- Explain the relationship between prescribed and actual rest without cluttering the screen.
+- Retain +15 seconds and Skip rest.
+- Ensure timers continue accurately when the browser is backgrounded or the screen is locked.
+- Use actual timestamps/deadlines rather than an unreliable interval counter.
+- Never reset the timer because the user changes a weight or rep value.
+- Allow workout continuation even if the countdown has expired.
+
+The 15-second reduction should be a configurable rule, rather than scattered hardcoded adjustments.
+
+---
+
+# PART 3 — SMART SET PREPARATION
+
+## 4. Remember previous weights and repetitions
+
+Automatically prepare the upcoming exercise using previous actual performance.
+
+Example:
+
+Incline DB curl, round 1:
+12 kg × 12 reps.
+
+When preparing round 2, automatically populate:
+12 kg × 12 reps.
+
+The user may adjust either field during the rest interval.
+
+### Rules
+
+- Prefer the most recent confirmed set for that exact exercise within the current session.
+- At the beginning of a workout, refer to historical performance for the same exercise and any progressive-overload recommendation.
+- Never use an unrelated exercise's values.
+- Preserve independent performance for both movements in a superset.
+- Respect individual athlete profiles.
+- Do not overwrite manually edited values unexpectedly.
+- Do not substitute historical targets for actual completed performance.
+- Correctly support bodyweight exercises and exercises with additional loading.
+
+Display previous performance for context while making the next planned values easily editable.
+
+---
+
+## 5. Turn the rest screen into a functional preparation screen
+
+The rest screen should be the main control centre between sets and rounds.
+
+### Suggested layout
+
+**REST — 01:45**
+
+Next: Superset C · Round 2
+
+**DB lateral raise**
+
+Previous: 8 kg × 12  
+Next weight: [8 kg]  
+Next reps: [12]
+
+**Ab rollout**
+
+Previous: Bodyweight × 10  
+Next reps: [10]
+
+Actions:
+- +15 seconds
+- Skip rest
+- Swap exercise
+- Skip remaining exercise
+- Continue to next round
+
+The specific layout can be adapted to existing components.
+
+### Requirements
+
+- Show each upcoming exercise with its suggested weight and reps.
+- Include prescribed rep ranges.
+- Allow editing directly within the rest screen.
+- Save the changes to the pending set immediately and reliably.
+- Use the same prepared values when the user proceeds.
+- Avoid opening another screen merely to change a number.
+- Make controls mobile-friendly.
+- Keep the rest timer prominent without wasting most of the screen.
+- Avoid unnecessary scrolling.
+- Keep all relevant actions accessible even after the timer expires.
+
+Never mark a set completed merely because its fields have been edited.
+
+---
+
+# PART 4 — WORKOUT ROADMAP AND TRACKING
+
+## 6. Fix incorrect completion counts
+
+The current roadmap can display individual movements as 0/3 even though the main workout counter correctly shows completed sets.
+
+This is a significant state-management bug.
+
+All completion indicators must derive from the same authoritative set records.
+
+Examples:
+
+- 1 completed set out of 3 → 1/3.
+- 2 completed sets out of 3 → 2/3.
+- All sets completed → 3/3 and Completed.
+- A completed workout with 21 recorded sets must not display all movements as upcoming.
+
+Ensure that:
+
+- Superset progress is calculated correctly.
+- Editing a completed set updates the relevant view.
+- Skipped sets do not count as completed.
+- Swapped exercises retain their actual completed records.
+- Workout totals and individual exercise counts agree.
+- Saved progress survives app refreshes and reopening.
+
+Do not fix this by cosmetically changing the numbers in the interface. Correct the underlying data mapping and state logic.
+
+---
+
+## 7. Reorganise the workout roadmap
+
+On rest screens, show the most relevant information first.
+
+Order:
+
+1. Current/next superset.
+2. Remaining incomplete supersets.
+3. Completed supersets.
+4. Skipped or replaced movements, where relevant.
+
+Completed exercises should move towards the bottom and become collapsed or visually de-emphasised.
+
+Maintain the ability to expand and edit previous sets.
+
+Keep superset groups intact and preserve the logical sequence of workout rounds.
+
+A completed superset should not occupy a large amount of space on every subsequent rest screen.
+
+The roadmap should be collapsed by default when appropriate, with clear and accurate progress information.
+
+---
+
+# PART 5 — EXERCISE SWAPPING AND WORKOUT CUSTOMISATION
+
+## 8. Allow swaps during active training
+
+Add exercise replacement controls to both the workout logging view and the rest view.
+
+For example, replace a chest-supported rear-delt fly with a standing rear-delt fly.
+
+Requirements:
+
+- Suggest exercises working the same primary muscle group.
+- Prefer comparable movement patterns and available equipment.
+- Allow browsing the existing exercise library.
+- Update subsequent sets, superset labels, roadmap and rest-screen preparation.
+- Preserve completed sets under the movement actually performed.
+- Allow substitutions to be undone where safe.
+- Do not accidentally change other workout programmes.
+
+### Permanent-change checkbox
+
+Include an explicit checkbox:
+
+**☐ Make this change permanent for future workouts**
+
+Default: Unchecked.
+
+**If unchecked:**
+- Change only today's workout.
+- Keep the original programme unchanged.
+
+**If checked:**
+- Update the relevant workout template for future sessions.
+- Apply changes to the remaining work in the active workout where appropriate.
+- Preserve historical workouts and their original actual performance.
+- Confirm that the permanent change has been saved.
+
+If the action changes a superset, ensure the plan's exercise order, rounds, set counts and rest guidance remain consistent.
+
+Avoid silently making changes to other Workout A/B/C programmes.
+
+---
+
+## 9. Allow exercises or remaining sets to be dropped
+
+Provide the option to:
+
+- Skip an entire upcoming exercise.
+- Drop the remaining sets of a partially completed exercise.
+- Remove an exercise from future versions of the workout.
+
+Use the same checkbox:
+
+**☐ Make this change permanent for future workouts**
+
+Default: Unchecked.
+
+Temporary removal should not change future training plans.
+
+Permanent removal should modify only the appropriate workout template.
+
+### Progress requirements
+
+- Keep already completed sets.
+- Mark skipped work clearly.
+- Adjust the number of remaining required sets.
+- Never count skipped work as completed.
+- Avoid deleting historical records.
+- Correctly update completion and progress tracking.
+- Allow early workout completion where appropriate.
+
+Where a permanent change alters weekly training volume, flag the change so the user understands the consequence.
+
+---
+
+# PART 6 — FIX WORKOUT C PAIRING
+
+## 10. Remove the inconvenient rear-delt pairing
+
+Review the current Workout C programme.
+
+The existing incline DB curl and chest-supported rear-delt fly pairing requires inconvenient bench-angle and positioning changes.
+
+The user performed a standing rear-delt fly instead.
+
+For future Workout C sessions, prefer using the **standing rear-delt fly** as an alternative, allowing the incline bench to remain set up for curls.
+
+Make the necessary programme adjustment while maintaining:
+
+- Intended rear-delt stimulus.
+- Appropriate working sets.
+- Existing rep targets where suitable.
+- Sensible superset recovery.
+- The original session's recorded performance.
+
+Do not confuse a standing rear-delt fly with a standing lateral raise. They are different exercises.
+
+### Review all workout pairings
+
+Inspect the existing Full Body A/B/C routines for similar inefficiencies.
+
+Prioritise:
+- Minimal bench-angle changes.
+- Minimal equipment repositioning.
+- Logical muscle-group combinations.
+- Appropriate recovery.
+- Efficient completion within the user's approximately 40-minute workout target.
+
+Do not blindly replace exercises or alter the total training programme.
+
+Make minimal, justified improvements and report any revised pairings.
+
+If a change materially alters muscle-group volume or exercise stimulus, make it a proposed adjustment rather than silently committing it.
+
+---
+
+# PART 7 — PROGRESSIVE OVERLOAD AUDIT
+
+## 11. Verify the entire progressive-overload system
+
+This requires a thorough functional audit, not simply checking whether the interface displays progression suggestions.
+
+Inspect how RepRival:
+
+- Reads previous exercise performance.
+- Calculates progressive-overload recommendations.
+- Handles exercise-specific rep ranges.
+- Determines when additional weight is appropriate.
+- Displays the Ready flag.
+- Stores personal bests.
+- Updates movement progression charts.
+- Associates performance with the correct athlete.
+- Handles swaps, missed sets and incomplete sessions.
+
+### Intended progression method
+
+RepRival should use a sensible double-progression approach based on the existing programme.
+
+For example, with an 8–12-rep target:
+
+- Begin at an appropriate working weight.
+- Progress repetitions over successive workouts.
+- Increase repetitions incrementally, generally by one rep per set when appropriate.
+- Do not prescribe reps above the configured upper limit.
+- Once all required working sets meet the upper rep threshold, flag the exercise as ready for a weight increase.
+- Suggest a sensible next weight based on the exercise and available equipment.
+- Return to an achievable repetition target after increasing weight.
+- Continue progressing using the new load.
+
+Do not automatically increase training weights simply because one isolated set reaches the maximum rep range.
+
+A partial workout or skipped exercise should not falsely trigger progression readiness.
+
+Use per-set performance where necessary, not just the best set.
+
+### Important distinction
+
+There are three different values:
+
+1. **Previous actual performance:** What the user really lifted.
+2. **Next recommended performance:** What progressive overload suggests attempting.
+3. **Current editable target:** What the user has chosen for the next set.
+
+These must remain logically distinct.
+
+Do not let automatic prepopulation erase a valid progressive-overload recommendation, and do not let the recommendation overwrite actual completed performance.
+
+### Exercise-specific progression
+
+Handle:
+
+- Dumbbell exercises, including clear per-dumbbell weight representation.
+- Barbell or machine exercises where present.
+- Bodyweight-only movements.
+- Bodyweight exercises with external loading.
+- Different rep ranges.
+- Exercises with different numbers of sets.
+- Small accessory movements where weight increments may be relatively large.
+
+Allow manual overrides.
+
+### Ready flag
+
+Audit the Ready indicator.
+
+It should accurately represent when progression is appropriate according to the configured rule.
+
+Ensure it:
+- Updates after completed sessions.
+- Does not activate prematurely.
+- Does not remain incorrectly active after a progression has been applied.
+- Handles manual weight adjustments.
+- Works across successive workouts.
+- Correctly responds to skipped or incomplete sets.
+
+### Historical performance and PBs
+
+Verify that:
+
+- Completed sessions feed the correct exercise history.
+- Personal bests are genuinely calculated from valid logged performance.
+- Weight-based and volume-based achievements are not confused.
+- Exercise substitutions use distinct identities.
+- Standing and chest-supported rear-delt flies do not incorrectly share records.
+- Performance is never assigned to the wrong athlete.
+- Editing past sets recalculates relevant derived statistics where necessary.
+- Existing league functionality continues to use valid performance data.
+
+Do not fabricate missing historical data.
+
+### Progressive-overload tests
+
+Test at minimum:
+
+- 8 → 9 reps at the same weight.
+- 11 → 12 reps at the same weight.
+- All prescribed sets reach 12 reps.
+- Only one of three sets reaches 12.
+- An appropriate load increase is recommended.
+- The new load is accepted.
+- The user manually chooses a different load.
+- A set is skipped.
+- An exercise is substituted.
+- The same exercise is performed again in another session.
+- An exercise has never been performed before.
+
+Document the expected result and the verified actual result for each case.
+
+---
+
+# PART 8 — RESUME, SAVE AND FINISH RELIABILITY
+
+## 12. Fix active workout resuming
+
+Currently, Resume workout may fail to return the user to the active workout.
+
+Investigate and correct the underlying issue.
+
+Requirements:
+
+- Save active workout progress reliably.
+- Preserve the current superset, round, exercise and step.
+- Preserve completed sets and prepared next-set values.
+- Restore timer deadlines accurately.
+- Support page reloads and app reopening.
+- Correctly handle the user navigating to another tab.
+- Never create a duplicate active session accidentally.
+- Ensure session ownership belongs to the selected athlete.
+- Make Resume workout actually functional.
+
+Avoid relying solely on fragile component-local state.
+
+---
+
+## 13. Fix finishing a workout
+
+The existing app can report all 21 sets recorded but still offer Resume workout.
+
+This must be fixed.
+
+After completing the final required set:
+
+- Immediately provide the option to finish.
+- Do not trigger a final rest interval.
+- Save the session.
+- Mark the workout as completed.
+- Display the workout summary.
+- Remove the session from active/resumable status.
+- Update exercise progression.
+- Update relevant historical charts and performance records.
+- Update league performance where applicable.
+- Prevent duplicate workout completion.
+
+### Already completed but stuck session
+
+Provide a safe way to detect an existing active session where all required sets have been logged but the completion flow failed.
+
+Allow the user to finalise that existing session without repeating the workout or losing data.
+
+Use the original session identifier and recorded performance.
+
+Do not create a second workout record.
+
+### Finish early
+
+Allow users to end a workout early with confirmation.
+
+Preserve completed work, and record outstanding work as incomplete or skipped according to the actual user action.
+
+Do not falsely present an incomplete session as a fully completed one.
+
+---
+
+# PART 9 — READABILITY AND MOBILE POLISH
+
+## 14. Improve visual clarity
+
+The existing RepRival visual design is attractive, but workout screens are becoming difficult to read.
+
+Preserve the dark theme, coral/orange accents, premium styling and overall design identity.
+
+However, simplify the visual hierarchy substantially.
+
+### Main problems to address
+
+- Too many competing headings.
+- Small grey text with insufficient contrast.
+- Long labels wrapping awkwardly.
+- Crowded superset headings.
+- Excessive vertical spacing.
+- Too much information repeated in several places.
+- Important performance figures being visually less prominent than decorative content.
+- Rest timer occupying too much screen space.
+- Completed exercise information cluttering the active workflow.
+
+### Readability improvements
+
+- Use clear, consistent typography.
+- Increase contrast for secondary information.
+- Use comfortable mobile font sizes.
+- Avoid tiny uppercase tracking labels for essential information.
+- Make set progress, weights and reps easy to identify immediately.
+- Reduce unnecessary explanatory text during workouts.
+- Separate movement names from timing metadata.
+- Use consistent padding, spacing and alignment.
+- Simplify cards with too many nested borders.
+- Ensure touch controls meet practical mobile accessibility requirements.
+- Avoid horizontal overflow.
+- Keep essential actions accessible on portrait screens.
+- Preserve compatibility with typical Android mobile viewport sizes.
+
+Use concise labels such as:
+
+"2/3 sets"  
+"Next round"  
+"Previous: 12 kg × 10"  
+"Ready to increase"  
+"Complete set"
+
+Keep the interface professional rather than overly decorative.
+
+### Rest screen priority
+
+The user's attention should naturally go to:
+
+1. Remaining rest time.
+2. Next exercise.
+3. Prepared weight and reps.
+4. Controls for adjusting the next set.
+5. Continue action.
+
+The complete workout roadmap should be secondary.
+
+### Workout overview
+
+Clearly distinguish between:
+- Start workout.
+- Resume workout.
+- Finish an already fully logged session.
+- Review a completed workout.
+
+Never display misleading actions.
+
+---
+
+# PART 10 — GENERAL BUG-FIXING SWEEP
+
+## 15. Perform a systematic application audit
+
+Beyond the issues specified above, investigate the workout-related codebase for other bugs, inconsistencies and fragile behaviour.
+
+Check:
+
+### Application state
+- Stale component state.
+- Duplicated sources of truth.
+- Race conditions.
+- Asynchronous save problems.
+- Incorrect render dependencies.
+- Counters becoming desynchronised.
+- Invalid or undefined exercise data.
+
+### Persistence
+- Missing saved data.
+- Overwritten sessions.
+- Duplicate records.
+- Incorrect active session restoration.
+- Cross-profile data leakage.
+- Invalid references after exercises are changed.
+- Historical records being modified when templates are updated.
+
+### Navigation
+- Broken back navigation.
+- Resume failures.
+- Losing changes when switching tabs.
+- Incorrect screen restoration.
+- Accidental workout restarts.
+- Unreachable finish controls.
+
+### Workout behaviour
+- Incorrect set counts.
+- Incorrect exercise order.
+- Superset progression bugs.
+- Incorrect rest durations.
+- Timer reset issues.
+- Swap/drop inconsistencies.
+- Incorrect completion detection.
+- Duplicate submission from rapid tapping.
+
+### Performance
+- Excessive unnecessary component re-renders.
+- Slow workout screen transitions.
+- Input lag during weight or rep entry.
+- Timer-induced re-rendering of unrelated components.
+- Inefficient persistence updates.
+
+### General quality
+- Console errors.
+- Unhandled promise rejections.
+- Build errors.
+- Type errors.
+- Invalid database queries.
+- Mobile layout regressions.
+- Accessibility issues.
+
+Fix confirmed issues that can be safely corrected within the existing architecture.
+
+Do not carry out speculative large-scale refactors unrelated to these improvements.
+
+---
+
+# PART 11 — IMPLEMENTATION SAFETY
+
+## 16. Required development approach
+
+Follow this implementation order:
+
+### Phase 1 — Inspect and protect
+
+- Inspect current architecture.
+- Identify session and workout-template data structures.
+- Identify the source of the roadmap progress mismatch.
+- Identify why completed sessions remain resumable.
+- Protect existing workout history.
+- Identify progressive-overload calculations.
+- Establish or improve relevant regression tests.
+
+### Phase 2 — Repair critical reliability issues
+
+Fix:
+- Save and resume behaviour.
+- Set completion tracking.
+- Roadmap progress.
+- Workout finishing.
+- Finalising already fully logged sessions.
+- Cross-profile ownership.
+
+### Phase 3 — Improve the workout flow
+
+Implement:
+- One-tap set completion.
+- Automatic rest.
+- Editing upcoming values during rest.
+- Previous-round prepopulation.
+- Correct transition and recovery timers.
+- Compact rest-screen layout.
+
+### Phase 4 — Improve customisation
+
+Implement:
+- Temporary swaps.
+- Permanent swaps.
+- Temporary skips.
+- Permanent removals.
+- Safe historical-record preservation.
+- Workout C pairing changes.
+
+### Phase 5 — Audit progression and presentation
+
+- Verify progressive overload.
+- Correct Ready indicators.
+- Validate PB calculations.
+- Refine roadmap layout.
+- Improve readability.
+- Check mobile accessibility.
+
+### Phase 6 — Regression testing
+
+Test all related workflows end-to-end.
+
+Do not stop after changing only the visible components.
+
+---
+
+# PART 12 — ACCEPTANCE TESTS
+
+## 17. Required end-to-end tests
+
+Verify the following real application behaviours.
+
+| Test | Expected result |
+|---|---|
+| Finish first set | Recorded once, rest starts immediately |
+| Edit upcoming reps during rest | Correct values appear in next set |
+| Complete second round | Previous round's values are correctly prefilled or updated |
+| Finish six sets | Roadmap totals accurately sum to six |
+| Complete superset | Group moves below incomplete work |
+| Swap exercise temporarily | Current workout changes, template does not |
+| Swap exercise permanently | Future template updates, history remains intact |
+| Skip exercise temporarily | Today's remaining work changes only |
+| Remove exercise permanently | Future template updates, history remains intact |
+| Change Workout C rear fly | Standing variant used in future; old results preserved |
+| Refresh during rest | Timer and workout state recover accurately |
+| Close and reopen app | Resume restores existing session |
+| Complete final set | Finish action appears without unnecessary rest |
+| Finish workout | Session saved once, no longer resumable |
+| Recover 21/21 active workout | Existing record can be finalised safely |
+| Reach top of rep range | Progression recommendation follows configured rules |
+| Accept increased weight | New target and Ready state update correctly |
+| Switch athlete profile | Workout records remain properly isolated |
+| Use narrow mobile viewport | Controls remain readable and accessible |
+
+Also run available project-level linting, type checking, build validation and automated tests.
+
+Where automated tests do not exist, add focused tests for the most critical state transitions and calculations.
+
+Do not claim a test has passed unless it has actually been executed and verified.
+
+---
+
+# PART 13 — FINAL DELIVERY REQUIREMENTS
+
+When finished, provide a concise implementation report containing:
+
+**1. Changes implemented**  
+Describe the functional improvements.
+
+**2. Bugs discovered and fixed**  
+Explain the cause of each significant bug, not merely its visible symptom.
+
+**3. Existing data preservation**  
+Confirm how workout history was protected, including the latest Workout C session.
+
+**4. Workout programme changes**  
+List any exercise pairings or workout templates modified.
+
+**5. Progressive overload results**  
+Explain the actual progression algorithm and what was tested.
+
+**6. Testing results**  
+Clearly distinguish passed, failed, untested and manually verified cases.
+
+**7. Outstanding issues**  
+Identify anything not completed rather than claiming unsupported success.
+
+---
+
+# NON-NEGOTIABLE RULES
+
+- Preserve the existing RepRival application.
+- Preserve all historical workout data.
+- Preserve existing athlete profiles.
+- Preserve functioning league features.
+- Do not reset progress.
+- Do not silently alter historical sets.
+- Do not confuse exercise templates with completed session snapshots.
+- Do not apply permanent programme changes without explicit selection.
+- Do not mark prepared sets as completed.
+- Do not report skipped sets as completed.
+- Do not fabricate personal bests or progression history.
+- Do not introduce duplicate workout sessions.
+- Do not replace working functionality with placeholders.
+- Do not make unnecessary visual redesigns.
+- Do not hide underlying bugs with cosmetic workarounds.
+- Do not claim successful testing without executing the tests.
+
+If a requirement cannot be safely implemented because of an architectural limitation, explain the specific limitation and implement the safest compatible improvement possible. Do not risk existing workout data.
+
+## Definition of success
+
+RepRival should support the following uninterrupted experience:
+
+I open Workout C and resume exactly where I left off.
+
+I complete a set with one tap.
+
+My rest timer begins immediately.
+
+While resting, I see the next exercises with appropriate suggested weights and repetitions, which I can adjust.
+
+When I continue, everything is already prepared.
+
+The roadmap accurately reflects my completed work.
+
+I can swap or remove exercises and choose whether the change applies only today or permanently.
+
+My historical performance remains intact.
+
+Progressive overload recommends sensible next targets using my actual performance.
+
+When I finish the final set, I can immediately finish and save the workout.
+
+The app remains readable, fast and reliable throughout.
+
+**Implement this directly in the existing application, retaining all established functionality and historical data.**

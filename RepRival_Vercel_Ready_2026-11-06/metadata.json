@@ -1,0 +1,6 @@
+{
+  "name": "RepRival",
+  "description": "An elegant guided workout app for set-by-set training, personal records, progress charts and fair competition.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

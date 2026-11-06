@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <radialGradient id="bgGrad" cx="50%" cy="22%" r="85%">
+      <stop offset="0%" stop-color="#1c2225"/>
+      <stop offset="45%" stop-color="#0e1214"/>
+      <stop offset="100%" stop-color="#050708"/>
+    </radialGradient>
+
+    <!-- Front Champion R Gradient -->
+    <linearGradient id="frontRGrad" x1="15%" y1="0%" x2="90%" y2="100%">
+      <stop offset="0%" stop-color="#ff8867"/>
+      <stop offset="40%" stop-color="#fa5533"/>
+      <stop offset="85%" stop-color="#db2c0e"/>
+      <stop offset="100%" stop-color="#b81f06"/>
+    </linearGradient>
+
+    <!-- Back Shadow R Gradient -->
+    <linearGradient id="backRGrad" x1="10%" y1="0%" x2="90%" y2="100%">
+      <stop offset="0%" stop-color="#323b3f"/>
+      <stop offset="45%" stop-color="#1e2528"/>
+      <stop offset="100%" stop-color="#111517"/>
+    </linearGradient>
+
+    <!-- Outer Rim Gradient -->
+    <linearGradient id="rimGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff6b4a" stop-opacity="0.7"/>
+      <stop offset="50%" stop-color="#2e373b" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#ff6b4a" stop-opacity="0.2"/>
+    </linearGradient>
+
+    <!-- High-Impact 3D Cast Shadow from Front R onto Back R -->
+    <filter id="castShadow" x="-40%" y="-40%" width="190%" height="190%">
+      <feDropShadow dx="-8" dy="11" stdDeviation="7" flood-color="#000000" flood-opacity="0.98"/>
+      <feDropShadow dx="-2" dy="4" stdDeviation="3" flood-color="#000000" flood-opacity="0.75"/>
+    </filter>
+
+    <!-- Ambient Shadow & Crimson Underglow under Back R -->
+    <filter id="deepShadow" x="-40%" y="-40%" width="190%" height="190%">
+      <feDropShadow dx="-7" dy="13" stdDeviation="11" flood-color="#000000" flood-opacity="0.92"/>
+      <feDropShadow dx="0" dy="2" stdDeviation="18" flood-color="#fa5533" flood-opacity="0.32"/>
+    </filter>
+
+    <!-- Subtle Athletic Carbon Fiber Mesh Pattern -->
+    <pattern id="carbonMesh" width="8" height="8" patternUnits="userSpaceOnUse">
+      <rect width="8" height="8" fill="#000000" fill-opacity="0"/>
+      <path d="M0 4L4 0L8 4L4 8Z" fill="#ffffff" fill-opacity="0.025"/>
+    </pattern>
+  </defs>
+
+  <!-- Base Squircle Container -->
+  <rect width="256" height="256" rx="56" fill="url(#bgGrad)"/>
+  <rect width="256" height="256" rx="56" fill="url(#carbonMesh)"/>
+  <rect x="3.5" y="3.5" width="249" height="249" rx="52.5" fill="none" stroke="url(#rimGrad)" stroke-width="3"/>
+  <rect x="9" y="9" width="238" height="238" rx="47" fill="none" stroke="#ffffff" stroke-opacity="0.05" stroke-width="1.5"/>
+
+  <!-- Athletic Slanted Twin-R Assembly -->
+  <g transform="skewX(-9) translate(14, 13)">
+    
+    <!-- ============================================== -->
+    <!-- 1. BACK SHADOW R (The Chaser / Previous Record) -->
+    <!-- ============================================== -->
+    <g filter="url(#deepShadow)">
+      <!-- Shadow R Body -->
+      <path fill="url(#backRGrad)" stroke="#ff6b4a" stroke-width="2.2" stroke-opacity="0.55" stroke-linejoin="round" fill-rule="evenodd" d="
+        M 38,40 
+        L 98,40 
+        C 126,40 140,56 140,78 
+        C 140,95 128,107 110,113 
+        L 142,174 
+        L 114,174 
+        L 86,117 
+        L 62,117 
+        L 62,174 
+        L 38,174 
+        Z 
+        M 62,60 
+        L 62,97 
+        L 94,97 
+        C 109,97 116,90 116,78 
+        C 116,67 109,60 94,60 
+        Z"/>
+      <!-- Top Crest Specular Accent on Shadow R -->
+      <path d="M 40,41 L 96,41 C 114,41 125,48 131,60" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-opacity="0.3"/>
+    </g>
+
+    <!-- ============================================== -->
+    <!-- 2. FRONT CHAMPION R (The Leader / New PB)      -->
+    <!-- ============================================== -->
+    <g filter="url(#castShadow)" transform="translate(52, 20)">
+      <!-- Champion R Body -->
+      <path fill="url(#frontRGrad)" stroke="#ffe9e3" stroke-width="1.4" stroke-opacity="0.5" stroke-linejoin="round" fill-rule="evenodd" d="
+        M 38,40 
+        L 98,40 
+        C 126,40 140,56 140,78 
+        C 140,95 128,107 110,113 
+        L 142,174 
+        L 114,174 
+        L 86,117 
+        L 62,117 
+        L 62,174 
+        L 38,174 
+        Z 
+        M 62,60 
+        L 62,97 
+        L 94,97 
+        C 109,97 116,90 116,78 
+        C 116,67 109,60 94,60 
+        Z"/>
+      
+      <!-- Vivid Light Sheen Highlights -->
+      <path d="M 39,41 L 97,41 C 117,41 129,49 135,63" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-opacity="0.75"/>
+      <path d="M 40,43 L 40,172" fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-opacity="0.35"/>
+      <!-- Inner Bowl Accent -->
+      <path d="M 63,61 L 94,61 C 105,61 112,66 114,75" fill="none" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" stroke-opacity="0.4"/>
+    </g>
+
+  </g>
+</svg>

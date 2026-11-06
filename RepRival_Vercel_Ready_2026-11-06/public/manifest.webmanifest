@@ -1,0 +1,30 @@
+{
+  "name": "RepRival — Train. Compete. Improve.",
+  "short_name": "RepRival",
+  "description": "An elegant guided workout app for set-by-set training, personal records, progress charts and fair competition.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#080b0c",
+  "theme_color": "#080b0c",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

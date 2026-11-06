@@ -1,0 +1,1095 @@
+# RepRival — Intelligent Training Analytics, UX Refinement, One-Off Workouts & Holiday Mode
+
+## Overall Objective
+
+RepRival's core workout logging, progressive overload, equipment inventory, session recovery and exercise management are now functioning.
+
+The next development phase should make the application more intelligent, flexible and pleasant to use.
+
+Implement four major improvements:
+
+1. Accurate, understandable Strength Trend and Muscle Heat Zone calculations.
+2. A comprehensive application-wide readability, usability and workout-flow refinement.
+3. A flexible one-off workout generator based on available equipment, duration, goals and environment.
+4. A temporary Holiday Mode with optional equipment-free training plans that preserve the athlete's existing programme.
+
+Expand the exercise catalogue to support a wide variety of genuine no-equipment, floor-based and calisthenics movements.
+
+**Work within the existing application. Preserve all athlete profiles, workout history, progressive overload records, league functionality, exercise customisations and active training programmes.**
+
+Do not rebuild the app or replace established functionality with mock-ups.
+
+---
+
+# PART 1 — IMPROVE STRENGTH TREND CALCULATIONS
+
+## 1. Audit the existing Strength Trend algorithm
+
+The current dashboard displays approximately:
+
+- Athlete Rating: 109.8.
+- Strength Trend: +9.9%.
+- Current Pump Plan: 10% complete.
+
+These are different measurements and must remain clearly distinguished.
+
+The Strength Trend percentage should represent a meaningful change in estimated strength from comparable logged performance.
+
+It should **not** simply represent:
+
+- Average dumbbell weight.
+- Total workout tonnage.
+- Number of completed workouts.
+- RepRival Athlete Rating growth.
+- Programme completion percentage.
+
+First inspect the current calculation and identify exactly how the +9.9% value is produced.
+
+Document its data sources and assumptions.
+
+## 2. Introduce a reliable estimated-strength calculation
+
+For suitable loaded resistance exercises, use estimated one-repetition maximum as a performance indicator.
+
+A reasonable starting formula is the Epley estimate:
+
+**Estimated 1RM = Weight × (1 + Repetitions / 30)**
+
+Use this within a sensible rep range where estimates are reasonably informative, rather than extrapolating indiscriminately from very high-repetition sets.
+
+For example:
+
+25 kg × 8 reps:
+
+Estimated 1RM = 31.67 kg.
+
+25 kg × 10 reps:
+
+Estimated 1RM = 33.33 kg.
+
+This represents approximately 5.3% improvement in estimated performance despite the dumbbell weight remaining unchanged.
+
+### Important calculation rules
+
+- Use qualifying actual completed working sets.
+- Never use prepared targets or uncompleted sets.
+- Exclude skipped work.
+- Preserve the existing per-dumbbell logging convention.
+- Compare the same exercise identity against itself.
+- Do not directly compare different exercises or exercise variations.
+- Do not treat estimated 1RM as a measured maximum.
+- Avoid interpreting isolated performance fluctuations as definite strength gains.
+- Handle erroneous or missing performance values defensively.
+- Consider RIR for context, but avoid introducing unreliable corrections without appropriate validation.
+- Avoid using unloaded bodyweight movements in formulas that require an external weight.
+
+For bodyweight movements, maintain separate appropriate performance indicators such as repetitions, duration and progression in movement difficulty.
+
+### Overall Strength Trend
+
+Calculate an aggregate using comparable exercises with valid performances at both ends of the selected comparison period.
+
+A sensible approach is:
+
+1. Find eligible movements with sufficient recorded history.
+2. Establish an earlier performance benchmark for each movement.
+3. Establish its latest comparable performance.
+4. Calculate the percentage change per movement.
+5. Aggregate the movement-level changes using a robust method, such as the median, so one unusual result cannot dominate the entire metric.
+
+Avoid letting the number of sets logged for one exercise give that exercise disproportionate influence.
+
+Use consistent comparison windows and do not present an overall change when there is insufficient comparable data.
+
+Clearly indicate a **Provisional trend** when the history is still limited.
+
+### Time periods
+
+Support:
+
+- 4 weeks.
+- 12 weeks.
+- 6 months.
+- All time.
+
+Where insufficient valid comparisons exist, show an informative state rather than inventing a percentage.
+
+### Strength Trend explanation
+
+Tapping the dashboard Strength value should reveal:
+
+- Comparison period.
+- Estimated percentage improvement.
+- Number of exercises included.
+- Which movements improved, maintained or declined.
+- Previous and latest qualifying performance.
+- How the overall percentage was calculated.
+
+Use approachable language rather than exposing a complicated technical formula on the Home screen.
+
+For example:
+
+**Estimated strength: +5.3%**
+
+Based on comparable logged performances across 6 movements over 12 weeks.
+
+This is a training-performance estimate, not a laboratory measurement.
+
+### Data protection
+
+Do not rewrite historical weights, reps or personal bests.
+
+If the new calculation changes the previously displayed +9.9%, present the corrected result rather than preserving an inaccurate number.
+
+Keep the Athlete Rating and league calculations unchanged unless there is a separately justified and explicitly documented dependency.
+
+---
+
+# PART 2 — REDESIGN MUSCLE HEAT ZONE CALCULATIONS
+
+## 3. Make muscle heat measurements meaningful
+
+The current dashboard displays values such as:
+
+- Chest: 100%.
+- Back: 77%.
+- Shoulders: 93%.
+- Arms: 99%.
+
+These figures currently appear more precise than their explanation supports.
+
+A value of Chest 100% should not suggest:
+
+- Maximum possible chest growth.
+- Complete muscular recovery.
+- Maximum strength.
+- An ideal physiological state.
+- A scientifically measured muscle activation percentage.
+
+Improve the underlying calculation and presentation so that the figures communicate useful training information.
+
+## 4. Separate training volume from training recency
+
+Treat these as two related but distinct measurements.
+
+**Weekly training coverage**
+
+How much relevant training a muscle group has received relative to an explicit weekly training target.
+
+**Training recency**
+
+How recently the muscle group received meaningful training stimulus.
+
+Do not combine these into an unexplained percentage.
+
+### Weekly training coverage
+
+Calculate from actual completed qualifying working sets.
+
+Determine sensible muscle-group targets from the athlete's active training programme where possible.
+
+For example:
+
+Chest:
+- Weekly target: 10 effective sets.
+- Completed: 8 effective sets.
+- Coverage: 80%.
+
+At 10 sets:
+
+Coverage: 100% — weekly target achieved.
+
+If the user performs 12 sets, preserve and show the actual 12/10 rather than hiding the surplus. The visual bar can cap at 100%, but its label must make clear that additional work occurred.
+
+### Muscle contributions
+
+Different exercises should contribute appropriately to primary and secondary muscle groups.
+
+For example:
+- Bench press: primary chest contribution; secondary triceps and anterior delts.
+- DB row: primary back contribution; secondary biceps and rear delts.
+- Lateral raise: primary side-delt contribution.
+- Squat: primary quadriceps contribution with relevant secondary muscles.
+
+Use an explicit, consistent contribution model.
+
+Do not count every secondary muscle as though it had received a full independent working set.
+
+Avoid excessive complexity or unsupported precision.
+
+For bodyweight exercises, assess meaningful working effort rather than crediting every easy repetition as equivalent to a challenging resistance-training set.
+
+When RIR or effort data is missing, handle the uncertainty transparently.
+
+### Training recency
+
+Use timestamps of completed work to provide a visually intuitive indication of recent training.
+
+For example:
+- Recently trained muscles appear warmer/redder.
+- Older training stimulus gradually fades.
+- Muscles not meaningfully trained recently become cooler.
+
+This colour system represents training recency and stimulus, not a medically validated recovery assessment.
+
+### When no programme target exists
+
+For ad-hoc or holiday workouts, do not invent a precise percentage without a denominator.
+
+If no meaningful weekly target can be established, display actual recent training volume and a descriptive indicator rather than a misleading 100%.
+
+### Dashboard presentation
+
+Prefer concise information such as:
+
+**Chest — Target reached**  
+10/10 weekly effective sets.
+
+**Back — Building**  
+7/10 weekly effective sets.
+
+**Rear delts — Low recent volume**  
+2/6 weekly effective sets.
+
+Keep the anatomical heat map as an attractive visualisation, but add understandable labels and an explanation on demand.
+
+### Holiday and one-off integration
+
+One-off and holiday sessions must contribute appropriately to muscle coverage and heat maps.
+
+Do not treat a short 10-minute bodyweight workout as equivalent to an entire heavy gym session merely because both contain chest exercises.
+
+Conversely, genuine challenging bodyweight sets should not be ignored.
+
+---
+
+# PART 3 — APPLICATION-WIDE UX AND READABILITY REFINEMENT
+
+## 5. Perform a systematic interface review
+
+RepRival has a strong visual identity, but some screens contain too much explanatory text, repeated instructions, large cards and excessive scrolling.
+
+Refine the interface to feel polished, modern, intuitive and fast.
+
+Preserve:
+- Premium dark theme.
+- Coral/orange accent colours.
+- Existing brand identity.
+- Distinctive typography where appropriate.
+- Existing navigation and features.
+
+### Improvements required
+
+- Increase readability of essential secondary text.
+- Use consistent font sizes and spacing.
+- Reduce excessive uppercase labels.
+- Remove repeated instructions once their meaning is obvious.
+- Avoid oversized cards for minor information.
+- Reduce nested borders and visual clutter.
+- Improve button alignment.
+- Use consistent action labels.
+- Prevent awkward text wrapping.
+- Use clearly differentiated primary and secondary actions.
+- Maintain practical touch targets on Android.
+- Prevent mobile keyboards from obscuring input fields.
+- Avoid excessive vertical scrolling during workouts.
+
+### Navigation
+
+Review the organisation of:
+
+- Home.
+- Workout.
+- Leagues.
+- Progress.
+- My Plan.
+- Admin/Account.
+
+Make common actions easy to locate.
+
+Do not remove existing functionality.
+
+Avoid adding extra top-level navigation tabs if the features can live naturally within the existing structure.
+
+### Workout flow
+
+The ideal interaction remains:
+
+**Prepare → Perform → Log → Rest & Prepare → Continue → Finish**
+
+Preserve:
+- One-tap logging.
+- Previous-round values.
+- Progressive-overload recommendations.
+- Set and rep steppers.
+- Swap, Drop, Restore and Add.
+- Active session persistence.
+- Workout roadmaps.
+
+Keep the next required action visually obvious.
+
+### Dashboard
+
+Prioritise information that helps the athlete decide what to do next.
+
+Make Strength Trend, Muscle Heat Zones, Plan Progress and Athlete Rating clearly distinct.
+
+Avoid displaying several percentages without immediately clear meaning.
+
+Use concise labels with expandable explanations rather than lengthy text visible by default.
+
+### Important
+
+This is a usability refinement, not an instruction to redesign every screen or replace working components.
+
+---
+
+# PART 4 — ONE-OFF WORKOUT GENERATOR
+
+## 6. Add a "One-Off Workout" option
+
+Introduce a prominent action on the Workout screen:
+
+**Generate one-off workout**
+
+The athlete should be able to generate a suitable workout without changing their current training programme.
+
+This is intended for situations such as:
+
+- A spare 10 minutes.
+- Travelling.
+- Staying in a hotel.
+- Working out with different equipment.
+- Wanting a quick alternative session.
+- Training away from the usual gym.
+
+## 7. Simple setup flow
+
+Keep the setup deliberately lightweight.
+
+### Step 1 — Available equipment
+
+Ask:
+
+**What equipment do you have available?**
+
+Options should include:
+
+- None — bodyweight only.
+- My usual equipment.
+- Choose available equipment.
+
+If choosing equipment, reuse the existing equipment catalogue and allow temporary selection of dumbbells, kettlebells, a bench, pull-up bar, resistance bands and other supported equipment.
+
+If dumbbells are selected, allow the athlete to choose the specific weights actually available.
+
+**Temporary selections must not overwrite their permanent equipment inventory.**
+
+### Step 2 — Duration
+
+Offer:
+
+- 10 minutes.
+- 15 minutes.
+- 20 minutes.
+- 30 minutes.
+- 40 minutes.
+- Custom duration.
+
+The generator should adapt exercise count, sets, recovery periods and structure to fit the chosen time.
+
+Account for warm-up, transitions and reasonable rest.
+
+A 10-minute workout must genuinely be achievable in approximately 10 minutes.
+
+Do not merely generate a 40-minute session and relabel it.
+
+### Step 3 — Workout focus
+
+Offer:
+
+- Full body — default.
+- Upper body.
+- Lower body.
+- Core.
+- Strength maintenance.
+- Mobility/recovery.
+
+Use existing athlete preferences where relevant, but do not introduce excessive mandatory questions.
+
+### Optional settings
+
+Allow adjustments for:
+
+- Beginner / Intermediate / Advanced.
+- Low impact.
+- Quiet / no jumping.
+- Small space.
+- No floor exercises.
+- Avoid specific movements.
+
+Keep optional preferences collapsed unless needed.
+
+---
+
+# PART 5 — INTELLIGENT WORKOUT GENERATION
+
+## 8. Generate balanced, achievable sessions
+
+The generator should use exercise metadata and deterministic selection rules, not randomly choose unrelated exercises.
+
+Consider:
+
+- Available equipment.
+- Available space.
+- Selected duration.
+- Athlete experience.
+- Workout goal.
+- Muscle-group balance.
+- Recent recorded training.
+- Current soreness/readiness information, where available.
+- Movement suitability.
+- Rest requirements.
+- Exercise repetition or time targets.
+
+### For a 10-minute hotel-room session
+
+An illustrative equipment-free workout might contain:
+
+- Bodyweight reverse lunges.
+- Push-ups.
+- Single-leg glute bridges.
+- Dead bugs.
+
+Use an efficient short-session structure with appropriate work and rest.
+
+Do not make 10-minute sessions unnecessarily complicated.
+
+### For longer sessions
+
+Include more complete movement coverage, sufficient meaningful working sets and appropriate recovery.
+
+Avoid generating repetitive variations of essentially the same movement unless justified.
+
+### Balance and limitations
+
+Where equipment is limited, select the best achievable workout.
+
+Do not pretend that prone back exercises are equivalent to loaded rowing or pull-ups.
+
+If meaningful pulling resistance is unavailable, acknowledge the limitation rather than claiming a perfectly balanced resistance programme.
+
+Prioritise appropriate exercises within the actual equipment constraints.
+
+## 9. Shuffle and regenerate
+
+Add a clear **Shuffle** control.
+
+Before starting:
+
+- Shuffle the entire suggested workout.
+- Replace an individual exercise.
+- Preserve the selected equipment, duration and focus.
+- Avoid immediately reproducing the identical session where suitable alternatives exist.
+
+Allow the user to lock an exercise they like so subsequent shuffles retain it.
+
+After starting:
+
+- Retain normal Swap/Add/Drop functionality.
+- Never silently overwrite already completed sets.
+- Do not regenerate the entire active workout without explicit confirmation.
+
+### Workout preview
+
+Display:
+
+- Workout name.
+- Estimated duration.
+- Equipment required.
+- Exercises.
+- Sets/reps or duration.
+- Rest guidance.
+- Muscle-group emphasis.
+
+Provide **Begin workout** and **Shuffle** as the main actions.
+
+---
+
+# PART 6 — EQUIPMENT-FREE EXERCISE LIBRARY EXPANSION
+
+## 10. Build a comprehensive bodyweight and calisthenics catalogue
+
+Expand the current exercise library substantially.
+
+Include at least 40 genuinely distinct, useful movements or progression variations across the main movement categories.
+
+Every movement should have appropriate metadata:
+
+- Stable exercise ID.
+- Name.
+- Primary and secondary muscle groups.
+- Equipment requirements.
+- Space requirements.
+- Impact/noise classification.
+- Difficulty.
+- Rep-based or timed format.
+- Unilateral or bilateral format.
+- Suggested repetitions or hold durations.
+- Progression and regression options.
+- Suitability for small-space workouts.
+
+Do not inflate the catalogue with duplicate names for identical movements.
+
+### Example movement families
+
+**Chest / pushing**
+
+- Standard push-up.
+- Knee push-up.
+- Wide push-up.
+- Close-grip push-up.
+- Tempo push-up.
+- Paused push-up.
+- Pike push-up.
+- Scapular push-up.
+- Push-up hold variations.
+
+**Lower body**
+
+- Bodyweight squat.
+- Tempo squat.
+- Squat pulses.
+- Reverse lunge.
+- Split squat.
+- Alternating lunge.
+- Lateral lunge.
+- Cossack squat.
+- Single-leg calf raise.
+- Single-leg bodyweight hip hinge.
+- Squat hold.
+- Glute bridge.
+- Single-leg glute bridge.
+- Hamstring walkout.
+- Side-lying hip abduction.
+
+**Core**
+
+- Front plank.
+- Side plank.
+- Dead bug.
+- Bird dog.
+- Hollow-body hold.
+- Hollow rocks.
+- Reverse crunch.
+- Heel taps.
+- Lying leg raises.
+- Mountain climbers.
+- Bear plank.
+- Bear plank shoulder taps.
+- Seated knee tucks.
+
+**Posterior chain / upper back**
+
+- Prone Y raise.
+- Prone T raise.
+- Prone W raise.
+- Reverse snow angel.
+- Prone swimmer.
+- Superman hold.
+- Prone scapular retraction.
+
+**Mobility and movement**
+
+- World's greatest stretch.
+- Thoracic rotations.
+- Cat-cow.
+- Hip flexor mobility.
+- Deep squat hold.
+- Glute activation movements.
+- Controlled spinal and shoulder mobility.
+
+These are examples, not a requirement to use every movement in every plan.
+
+### Exercise suitability
+
+Clearly distinguish truly equipment-free exercises from movements needing:
+
+- A wall.
+- A chair.
+- A bed.
+- A doorframe.
+- A towel.
+- A bench.
+- A pull-up bar.
+
+Do not assume such objects are available or safe to use.
+
+A **No equipment / Floor only** session must be executable without external equipment or furniture.
+
+Use progression variations appropriate to the athlete's ability.
+
+Avoid requiring jumping or noisy movements when Quiet or Low Impact is selected.
+
+### Exercise presentation
+
+Reuse the existing exercise card and demonstration system.
+
+Add exercise illustrations or demonstrations where appropriate, but do not sacrifice accuracy or introduce misleading movement depictions.
+
+---
+
+# PART 7 — INTEGRATE ONE-OFF WORKOUTS WITH REPRIVAL
+
+## 11. Use the existing workout engine
+
+Generated workouts must use the established RepRival logging and persistence system.
+
+Support:
+
+- Actual sets and repetitions.
+- RIR.
+- Timed exercise duration.
+- Rest intervals.
+- Exercise swapping.
+- Exercise dropping.
+- Exercise addition.
+- Pause and resume.
+- Workout completion.
+- History and summaries.
+
+Avoid creating a second, incompatible workout-recording system.
+
+### Training analytics
+
+One-off sessions should update:
+
+- Relevant Muscle Heat Zones.
+- Recent activity.
+- Training history.
+- Appropriate movement progression.
+- Legitimate personal bests.
+- Appropriate strength metrics where comparable performance exists.
+
+A one-off bodyweight session should contribute to meaningful bodyweight progression without being incorrectly converted into a dumbbell 1RM.
+
+### Protect the normal plan
+
+One-off sessions must not:
+
+- Advance the Pump Plan A/B/C rotation.
+- Change the Pump Plan's exercise definitions.
+- Reset progressive overload.
+- Consume a scheduled Pump Plan workout.
+- Reset plan completion statistics.
+- Create duplicate session records.
+
+Give each one-off workout a distinct persistent session identity and source.
+
+---
+
+# PART 8 — HOLIDAY MODE
+
+## 12. Add a dedicated Holiday Mode
+
+Allow athletes to temporarily pause their active training programme.
+
+Under **My Plan**, introduce:
+
+**Holiday Mode**
+
+The user should be able to pause normal training without losing their programme or recorded progress.
+
+### Activating Holiday Mode
+
+Offer two choices:
+
+**Option A — Pause plan and train freely**
+
+Pause the normal programme and allow the athlete to perform one-off workouts whenever they wish.
+
+**Option B — Pause plan and create a holiday training plan**
+
+Temporarily activate a simple programme designed around travel constraints.
+
+### Plan protection
+
+Before activating Holiday Mode, preserve:
+
+- Current Pump Plan.
+- Workout A/B/C rotation position.
+- Next scheduled workout.
+- Existing exercise targets.
+- Progressive overload state.
+- Workout history.
+- Programme customisations.
+- Programme completion history.
+
+Holiday Mode must never permanently replace or overwrite the normal Pump Plan.
+
+If a normal workout is currently in progress, ask the user to pause, finish or explicitly resolve that session before switching modes.
+
+---
+
+# PART 9 — GENERATE A HOLIDAY TRAINING PLAN
+
+## 13. Holiday Plan Setup
+
+Ask for:
+
+**Duration**
+
+For example:
+- 3 days.
+- 1 week.
+- 2 weeks.
+- Custom.
+
+**Training frequency**
+
+- 2 sessions per week.
+- 3 sessions per week.
+- Flexible / when I have time.
+
+**Session duration**
+
+- 10 minutes.
+- 15 minutes.
+- 20 minutes.
+- 30 minutes.
+- Custom.
+
+**Equipment**
+
+- None.
+- Selected temporary equipment.
+- My normal equipment.
+
+**Space**
+
+- Small hotel room.
+- Normal indoor room.
+- Outdoors.
+- Gym available.
+
+Keep the setup simple, with sensible defaults.
+
+### Holiday programme generation
+
+Create a practical alternating plan such as:
+
+**Holiday Workout A — Full Body**
+
+- Push movement.
+- Squat/lunge movement.
+- Posterior-chain movement.
+- Core movement.
+
+**Holiday Workout B — Full Body**
+
+- Alternative push movement.
+- Different lower-body emphasis.
+- Hip-hinge/hamstring movement.
+- Upper-back/scapular movement where appropriate.
+- Core movement.
+
+Use a sensible number of sets and appropriate recovery.
+
+The aim is to maintain as much training quality as reasonably possible while travelling, rather than replicating the entire normal gym programme without equipment.
+
+### Flexible scheduling
+
+Holiday sessions should be easy to complete or skip.
+
+Do not impose strict daily schedules unnecessarily.
+
+The athlete should be able to shuffle a session, replace individual exercises, adjust duration and regenerate remaining sessions.
+
+If the user selects 10-minute workouts, generate genuine short workouts.
+
+### Progression
+
+Holiday workouts should support their own progression using:
+
+- Additional reps.
+- Longer holds.
+- Better movement control.
+- More challenging bodyweight variations.
+- Appropriate external resistance if equipment is available.
+
+Do not alter normal dumbbell progression records merely because a bodyweight movement was completed.
+
+---
+
+# PART 10 — RETURNING FROM HOLIDAY
+
+## 14. Resume the original plan seamlessly
+
+Add a clear:
+
+**Return to my normal plan**
+
+action.
+
+When selected:
+
+- Restore the original active programme.
+- Resume the original A/B/C rotation position.
+- Retain existing programme targets.
+- Preserve all historic training.
+- Preserve holiday workouts in history.
+- Retain any genuine separate improvements recorded during holiday sessions.
+- Recalculate recent training stimulus from actual completed work.
+
+Do not reset the athlete's strength baseline or personal bests.
+
+A holiday pause should not falsely count as abandoning or failing the normal programme.
+
+### Plan consistency
+
+Clearly distinguish:
+
+- Programme adherence while active.
+- Time spent on an intentional plan pause.
+- Actual completed workouts.
+
+For example:
+
+**Pump Plan — Paused for holiday**
+
+Next workout when you return: Full Body A.
+
+Avoid automatically reporting a lower adherence score simply because the plan was deliberately paused.
+
+However, do not silently change competitive league inactivity rules or artificially freeze unrelated athlete rankings. Any such interaction should be separately defined and documented.
+
+---
+
+# PART 11 — HOLIDAY MODE DASHBOARD
+
+## 15. Make the current training mode obvious
+
+When Holiday Mode is active, the Home screen should adapt.
+
+For example:
+
+**Holiday Mode**
+
+Normal Pump Plan paused.
+
+Next: Holiday Workout A  
+15 minutes · No equipment
+
+Actions:
+
+- Start workout.
+- Shuffle workout.
+- Generate one-off workout.
+- Return to normal plan.
+
+Keep the existing Athlete Rating, training history and muscle heat information accessible.
+
+Avoid displaying normal programme deadlines as if the athlete were failing to meet them.
+
+---
+
+# PART 12 — DATA MODEL AND IMPLEMENTATION SAFETY
+
+## 16. Extend existing architecture carefully
+
+Inspect the current implementation before making changes.
+
+Use existing components and persistence mechanisms where practical.
+
+Provide appropriate distinctions between:
+
+- Normal programme workout.
+- One-off generated workout.
+- Holiday plan workout.
+- Paused programme.
+- Completed workout.
+- Discarded workout.
+
+### Critical safeguards
+
+- Do not overwrite programme templates with temporary generated workouts.
+- Do not confuse generated workouts with historical Pump Plan sessions.
+- Do not lose active workout data when switching modes.
+- Do not merge exercise identities incorrectly.
+- Do not create artificial progressive-overload records.
+- Do not count skipped sets as performed training.
+- Do not reset athlete profiles.
+- Do not modify unrelated athletes' settings.
+- Do not interfere with the existing league system.
+- Preserve backwards compatibility with existing workout history and backups.
+
+Generated workouts should be reproducible from saved session records rather than changing unexpectedly if catalogue definitions change later.
+
+If new exercise metadata or migration logic is required, preserve stable historical references.
+
+---
+
+# PART 13 — IMPLEMENTATION ORDER
+
+Implement in controlled phases.
+
+## Phase 1 — Inspect and protect
+
+- Review the current Strength Trend and heat-map calculations.
+- Inspect programme, session and progression architecture.
+- Ensure existing historical data remains protected.
+- Identify reusable components for generated workouts and holiday plans.
+
+## Phase 2 — Analytics
+
+- Correct Strength Trend.
+- Improve heat-map calculations.
+- Add clear explanations.
+- Validate historical comparisons.
+- Preserve ratings and league functionality.
+
+## Phase 3 — Exercise catalogue
+
+- Add equipment-free exercises.
+- Add required metadata.
+- Add bodyweight progression support.
+- Verify exercise identities and avoid duplicates.
+
+## Phase 4 — One-off workouts
+
+- Build the generator.
+- Add equipment and duration selection.
+- Implement Shuffle.
+- Integrate with the existing logging engine.
+- Integrate history and analytics.
+
+## Phase 5 — Holiday Mode
+
+- Implement plan pausing.
+- Implement temporary holiday plans.
+- Implement plan resumption.
+- Verify normal progression and adherence preservation.
+
+## Phase 6 — UI refinement
+
+- Review all new and existing screens.
+- Improve readability and flow.
+- Reduce duplicated content.
+- Verify Android portrait usability.
+
+## Phase 7 — Regression testing
+
+Test the complete application and address confirmed issues.
+
+Do not silently omit unfinished phases. Report any incomplete implementation accurately.
+
+---
+
+# PART 14 — ACCEPTANCE TESTS
+
+At minimum, verify the following:
+
+### Analytics
+
+1. Strength Trend calculates comparable estimated performance rather than average load alone.
+2. Increasing repetitions at the same weight can register genuine improvement.
+3. Different exercises are not directly compared using their absolute loads.
+4. Bodyweight-only exercises do not create invalid zero-weight 1RM calculations.
+5. Incomplete workouts and skipped sets do not artificially improve performance.
+6. Strength Trend displays the comparison period and contributing exercises.
+7. Heat Zones calculate from actual qualifying performed sets.
+8. Chest at 100% has an explicit target-based meaning rather than an unexplained percentage.
+9. A one-off workout appropriately updates recent muscle stimulus.
+10. Missing data does not generate false precision.
+
+### One-off workouts
+
+11. Generate a 10-minute no-equipment workout.
+12. Verify it requires no external equipment and fits the selected time.
+13. Select quiet/small-space mode and verify no unsuitable movements appear.
+14. Shuffle and receive an appropriate alternative.
+15. Replace one generated exercise without regenerating the others.
+16. Generate a workout using a restricted dumbbell inventory.
+17. Complete and save a generated workout.
+18. Confirm it appears in history and updates relevant analytics.
+19. Confirm it does not advance the normal A/B/C rotation.
+
+### Holiday Mode
+
+20. Pause the Pump Plan.
+21. Generate a one-week holiday plan with no equipment.
+22. Select 10-minute sessions.
+23. Complete a holiday workout.
+24. Shuffle or modify another holiday workout.
+25. Save and resume an unfinished holiday session.
+26. Return to the normal Pump Plan.
+27. Confirm the original next workout and progression targets are unchanged.
+28. Confirm holiday training remains in workout history.
+29. Verify multiple athlete profiles remain isolated.
+
+### User experience and reliability
+
+30. Test Android portrait widths and mobile touch controls.
+31. Test browser refresh and session restoration.
+32. Test navigation between standard, one-off and holiday workout screens.
+33. Verify no duplicate or overwritten workout sessions.
+34. Verify existing history corrections, Swap, Drop, Restore, Add and progressive-overload Apply still work.
+35. Run available build, type-checking, linting and automated tests.
+
+Do not report tests as passing unless they were actually executed.
+
+---
+
+# PART 15 — COMPLETION REPORT
+
+At completion, provide:
+
+**1. Analytics audit**
+
+Describe the original Strength Trend and Heat Zone formulas and explain what changed.
+
+**2. Exercise library**
+
+List the exercise categories introduced and the number of distinct validated movements added.
+
+**3. Workout generator**
+
+Explain duration, equipment, exercise-selection and Shuffle behaviour.
+
+**4. Holiday Mode**
+
+Explain plan pausing, programme generation and safe restoration.
+
+**5. User experience**
+
+Summarise readability and navigation improvements.
+
+**6. Data protection**
+
+Confirm what was done to protect original workout plans, historical results, athlete profiles and league functionality.
+
+**7. Testing**
+
+Provide actual passed, failed and unexecuted test results.
+
+**8. Outstanding issues**
+
+Clearly identify anything incomplete.
+
+## Final Product Goal
+
+RepRival should become a flexible training companion that works whether the athlete has:
+
+- A fully equipped home gym.
+- A few dumbbells.
+- A kettlebell.
+- A small hotel room.
+- Ten minutes with no equipment.
+
+The athlete should be able to generate a useful workout, shuffle it, complete it, log actual performance and receive meaningful training feedback.
+
+Their regular programme should remain safe and easy to resume.
+
+Strength improvements should be supported by real performance comparisons, muscle heat maps should communicate actual recent training, and the whole application should feel clean, responsive and effortless to operate.
+
+**Build these features into the existing RepRival application without sacrificing historical accuracy, workout reliability or the established premium design.**

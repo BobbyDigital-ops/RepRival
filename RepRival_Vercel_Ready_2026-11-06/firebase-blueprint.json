@@ -1,0 +1,65 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "RepRival athlete account profile with role and training settings",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "username": { "type": "string", "maxLength": 60 },
+        "role": { "type": "string", "enum": ["admin", "athlete"] },
+        "planId": { "type": "string" },
+        "equipment": { "type": "array" },
+        "selectedMovements": { "type": "array" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["uid", "email", "username", "role"]
+    },
+    "Workout": {
+      "title": "Workout",
+      "description": "Logged workout session containing individual exercise sets",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "session": { "type": "string" },
+        "sessionName": { "type": "string" },
+        "planId": { "type": "string" },
+        "startedAt": { "type": "string" },
+        "endedAt": { "type": "string" },
+        "logs": { "type": "array" },
+        "feeling": { "type": "string" },
+        "recovery": { "type": "number" },
+        "prs": { "type": "array" }
+      },
+      "required": ["id", "userId", "session", "logs", "startedAt"]
+    },
+    "AdminRecord": {
+      "title": "AdminRecord",
+      "description": "Trusted administrator identity",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin"] },
+        "grantedAt": { "type": "string" }
+      },
+      "required": ["email", "role"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profile document storing account role and athlete settings"
+    },
+    "/users/{userId}/workouts/{workoutId}": {
+      "schema": { "$ref": "#/entities/Workout" },
+      "description": "Workout sessions logged by the user, synced across laptop and phone"
+    },
+    "/admins/{adminId}": {
+      "schema": { "$ref": "#/entities/AdminRecord" },
+      "description": "Trusted administrators record for RBAC verification"
+    }
+  }
+}
