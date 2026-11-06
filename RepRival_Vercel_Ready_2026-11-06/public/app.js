@@ -6409,8 +6409,11 @@
     if(window.RepRivalCloud){
       cloudAuthChecked = true;
       window.RepRivalCloud.onAuth((user) => {
-        if(user && (!activeProfile || !activeProfile.startsWith('user-' + user.uid))){
-          syncWithCloudUser(user);
+        // Always reconcile Firestore on authenticated launch, including when the
+        // selected local athlete profile already matches the signed-in account.
+        // Otherwise a page refresh can display stale local workout history.
+        if(user){
+          syncWithCloudUser(user).catch(err => console.error('Cloud history refresh failed', err));
         } else {
           render();
         }
