@@ -3629,6 +3629,24 @@
     const style = options.style || profile().quickWorkoutPreference || 'mixed';
     const availability = options.availability || 'all';
 
+    // Shared heatmap-driven generator for the modern One-Off focus modes.
+    // One-offs contribute to history but never touch the A/B/C or Adaptive rotation.
+    const modernFocus=ADAPT_V3.normaliseFocus(focus);
+    const useModernFocus=ADAPT_V3.FOCUSES.some(([key])=>key===modernFocus);
+    if(useModernFocus){
+      const owned=gearMode==='bodyweight'?[]:gearMode==='dumbbells'?['dumbbells','bench']:
+        gearMode==='all'?Object.keys(window.REPRIVAL_EXERCISE_LIBRARY.gear):profile().equipment||[];
+      const blocks=duration<=10?1:duration<=20?2:duration<=30?3:4;
+      const cfg={...(profile().adaptive||{}),focus:modernFocus,supersets:blocks};
+      const fresh=ADAPT_V3.generate(cfg,state.history,owned,lastReadinessForAdaptive(),{
+        focus:modernFocus,supersets:blocks,variant:Math.floor(Date.now()/1000)%97,
+        style,availability,equipmentMetadata:profile().equipmentMetadata||{}
+      });
+      return {code:'Quick',isOneOff:true,duration,focus,gearMode,style,availability,
+        pairs:fresh.pairs,readinessSuggestion:fresh.warning?{message:fresh.warning}:null,
+        gapExplanation:fresh.explanation};
+    }
+
     let allowedGear = [];
     if (gearMode === 'bodyweight') {
       allowedGear = [];
@@ -3921,10 +3939,13 @@
 
 
     const focusOptions = [
-      ['heatmap_gaps', 'Heat Map Gaps (Undertrained Areas)'],
-      ['full_body', 'Full Body (Balanced)'],
-      ['upper_body', 'Upper Body (Push/Pull)'],
-      ['lower_body', 'Lower Body & Core'],
+      ['heatmap_gaps', 'Greatest Heat Map Gaps'],
+      ['full_body', 'Balanced Full Body'],
+      ['upper_only', 'Upper Only — strict'],
+      ['upper_focused', 'Upper Focused — mostly upper'],
+      ['lower_only', 'Lower Only — strict'],
+      ['lower_focused', 'Lower Focused — mostly lower'],
+      ['mixed', 'Mixed / Variety'],
       ['chest_triceps', 'Chest & Triceps'],
       ['back_biceps', 'Back & Biceps'],
       ['shoulders_arms', 'Shoulders & Arms'],
@@ -6206,6 +6227,7 @@
       document.querySelectorAll('.rr160-focus-slider').forEach((input,i)=>{input.value=t.levels[i];document.querySelector(`[data-focus-name="${i}"]`).textContent=ADAPT.LEVELS[t.levels[i]];});
       const desc=document.querySelector('#adaptiveTemplateDesc');if(desc)desc.textContent=t.desc;return;
     }
+    if(e.target.id==='adaptiveExerciseSearch')return;
     if(e.target.id==='exerciseMuscle'){catalogueFilter.muscle=e.target.value;render();return;}
     if(e.target.id==='exerciseKit'){catalogueFilter.kit=e.target.value;render();return;}
     if(e.target.id==='exerciseDay'){state.settings.editDay=e.target.value;save();render();return;}
