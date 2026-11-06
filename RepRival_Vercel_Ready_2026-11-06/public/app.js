@@ -6029,6 +6029,18 @@
     if(action==='clear'){showToast('Export your backup before clearing data in browser settings.');}
   });
   document.addEventListener('input',e=>{
+    if(e.target?.id==='adaptiveExerciseSearch'){
+      const query=String(e.target.value||'').toLowerCase().trim();
+      document.querySelectorAll('[data-adaptive-item]').forEach(item=>{
+        item.hidden=!item.dataset.adaptiveItem.includes(query);
+      });
+      document.querySelectorAll('.rr-element-muscle-group').forEach(group=>{
+        const hasVisible=[...group.querySelectorAll('[data-adaptive-item]')].some(item=>!item.hidden);
+        group.hidden=!hasVisible;
+        if(query&&hasVisible)group.open=true;
+      });
+      return;
+    }
     if(e.target.classList?.contains('rr160-focus-slider')){
       const i=Number(e.target.name.replace('level',''));const label=document.querySelector(`[data-focus-name="${i}"]`);if(label)label.textContent=ADAPT.LEVELS[Number(e.target.value)];return;
     }
