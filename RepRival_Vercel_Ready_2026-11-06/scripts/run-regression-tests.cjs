@@ -2497,7 +2497,7 @@ try {
   assert('Stage 1 low/high stimulus is visually distinguishable',t.graphiteHeatColour(10)!==t.graphiteHeatColour(95));
   const blue=t.graphiteAtlasPalette({ever:true,daysSince:25,isDetraining:true,stimulusScore:2},{fill:'#123456',alpha:.5});
   const red=t.graphiteAtlasPalette({ever:true,daysSince:2,isDetraining:false,stimulusScore:99},{fill:'#aabbcc',alpha:.6});
-  assert('Stage 1 detraining zones remain cool blue',blue.fill==='#7d9eaf');
+  assert('Stage 1 detraining zones remain cool blue',blue.fill==='#7296b5');
   assert('Stage 1 higher stimulus uses muted rose instead of neon',red.fill===t.graphiteHeatColour(99)&&red.alpha<.8);
   assert('Stage 1 never colours untrained baseline',t.graphiteAtlasPalette(null,{fill:'#18191d',alpha:0}).alpha===0);
   assert('Stage 1 map rendering does not edit training history',t.getState().history.map(w=>w.id).join('|')===prev);
@@ -2547,7 +2547,7 @@ try {
   assert('Responsive Home supports muscle rows and workout-first overview',
     css.includes('.rr-g-muscle-row')&&css.includes('.rr-g-home-overview')&&css.includes('@media(max-width:360px)'));
   const index=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
-  assert('Second-pass assets cache-busted for mobile',index.includes('graphite-stage1.css?v=5')&&index.includes('app.js?v=graphite-pass3'));
+  assert('Second-pass assets cache-busted for mobile',index.includes('graphite-stage1.css?v=5')&&index.includes('app.js?v=auth-bluefix1'));
 } catch(err) {
   assert('Suite 50 Exception: '+err.message,false);
 }
@@ -2652,6 +2652,36 @@ try {
   assert('Active session hides redundant large app header on mobile',css.includes('body.rr-active-session .topbar {display:none!important}'));
 } catch(err){
   assert('Suite 53 Exception: '+err.message,false);
+}
+
+// -----------------------------------------------------------------------------
+// SUITE 54: Responsive Google login and cool stimulus visualisation
+// -----------------------------------------------------------------------------
+console.log('\n--- SUITE 54: Google login / blue heatmap regression ---');
+try {
+  const t=window.RepRivalTest;
+  const fs=require('fs'),path=require('path');
+  const source=fs.readFileSync(path.join(__dirname,'../public/app.js'),'utf8');
+  const cloud=fs.readFileSync(path.join(__dirname,'../src/firebase-sync.ts'),'utf8');
+  const sw=fs.readFileSync(path.join(__dirname,'../public/sw.js'),'utf8');
+  const index=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+  const cool=t.graphiteAtlasPalette({ever:true,daysSince:9,stimulusScore:8,isDetraining:false},{fill:'#aabbcc',alpha:.2});
+  const cooler=t.graphiteAtlasPalette({ever:true,daysSince:15,stimulusScore:3,isDetraining:false},{fill:'#aabbcc',alpha:.2});
+  const deep=t.graphiteAtlasPalette({ever:true,daysSince:29,stimulusScore:2,isDetraining:true},{fill:'#aabbcc',alpha:.2});
+  const trainedNow=t.graphiteAtlasPalette({ever:true,daysSince:1,stimulusScore:99,isDetraining:false},{fill:'#aabbcc',alpha:.4});
+  assert('Previously trained muscle visibly cools blue after a week of low exposure',cool.fill==='#829caf'&&cool.alpha>=.35);
+  assert('Longer low-exposure periods gain greater blue contrast',cooler.fill==='#7799b3'&&cooler.alpha>cool.alpha);
+  assert('Established multi-week detraining stays distinguishable',deep.fill==='#5f88ad'&&deep.alpha>cooler.alpha);
+  assert('Recent high training stimulus remains warm',trainedNow.fill===t.graphiteHeatColour(99));
+  assert('Never-trained anatomy stays transparent',t.graphiteAtlasPalette({ever:false,daysSince:null,stimulusScore:0},{fill:'#18191d',alpha:0}).alpha===0);
+  assert('Heat Zone legend explains early cool stimulus without claiming detraining',t.graphiteHomeHeatmap().includes('fading stimulus after a week'));
+  assert('Cloud auth observer reports authenticated state without awaiting Firestore',cloud.includes('void this.syncOrCreateProfile(u).catch') && cloud.includes('this.notifySubscribers();'));
+  assert('Google popup resolves via genuine Firebase auth observer or times out visibly',cloud.includes('Promise.race([popup, authenticated, stalled])')&&cloud.includes('auth/popup-timeout'));
+  assert('App closes auth overlay on a confirmed sign-in',source.includes("if(authDialog?.open)authDialog.close()"));
+  assert('Cloud sync avoids simultaneous duplicate initial reads',source.includes('cloudSyncInFlight&&cloudSyncUserId===user.uid'));
+  assert('Phone app refreshes app JS and offline Graphite assets',index.includes('/app.js?v=auth-bluefix1')&&sw.includes('graphite-polish.css')&&sw.includes('graphite-session.css'));
+} catch(err) {
+  assert('Suite 54 Exception: '+err.message,false);
 }
 
 console.log('\n================================================================');
