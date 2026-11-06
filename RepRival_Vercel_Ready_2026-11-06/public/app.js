@@ -2838,6 +2838,7 @@
     }
     state.lastSummary = finished.id;
     save();
+    if(!a.isOneOff&&adaptivePlan())persistAdaptiveConfig();
     page = 'summary';
     render();
     showToast(a.isOneOff ? 'Ad-hoc session complete! Plan rotation preserved.' : 'Workout complete! Saved to history.');
@@ -4462,6 +4463,15 @@
     return {space:'small',experience:'intermediate',exclusions:activeProfile==='admin'?['carries','overhead']:['carries'],...cfg,levels:[...(cfg.levels||runnerLvl)]};
   }
 
+  function persistAdaptiveConfig(){
+    const cfg=profile().adaptive;
+    if(!cfg)return;
+    cfg.updatedAt=new Date().toISOString();save();
+    const cloud=window.RepRivalCloud;
+    if(cloud?.getCurrentUser() && typeof cloud.saveAdaptiveConfig==='function'){
+      Promise.resolve(cloud.saveAdaptiveConfig(structuredClone(cfg))).catch(err=>console.warn('Adaptive cloud preference save failed',err));
+    }
+  }
   function pauseProgrammeForAdaptive(){
     if(state.active){showToast('Finish or cancel the current workout before switching modes.');return false;}
     const athlete=profile(), cfg=athlete.adaptive||(athlete.adaptive={});
@@ -4476,7 +4486,7 @@
     if(!athlete.plans)athlete.plans={};
     createAdaptiveNext(cfg.variant||0);
     athlete.planTracking={planId:ADAPT_ID,start:todayLocal(),weeklyGoal:cfg.frequency||3};
-    cfg.updatedAt=new Date().toISOString();save();return true;
+    persistAdaptiveConfig();return true;
   }
   function resumePausedProgramme(){
     if(state.active){showToast('Finish or cancel the current workout before switching modes.');return false;}
@@ -4488,7 +4498,7 @@
     SESSION_ORDER=Object.keys(athlete.plans[planId]||PLAN);
     state.next=SESSION_ORDER.includes(paused.next)?paused.next:SESSION_ORDER[0];
     athlete.planTracking=structuredClone(paused.tracking||{planId,start:todayLocal(),weeklyGoal:3});
-    cfg.active=false;cfg.updatedAt=new Date().toISOString();save();return true;
+    cfg.active=false;persistAdaptiveConfig();return true;
   }
   function adaptiveStudioScreen(){
     const athlete=profile(),cfg=athlete.adaptive||{},v3=ADAPT_V3;
@@ -4896,6 +4906,28 @@
         // First device login: backup existing local workouts to the cloud
         await window.RepRivalCloud.syncLocalWorkoutsToCloud(state.history);
       }
+
+      // Sync Adaptive preferences and paused programme cursor separately from workouts.
+      try {
+        const remote=await window.RepRivalCloud.loadAdaptiveConfig?.();
+        const local=profile().adaptive;
+        const remoteDate=Date.parse(remote?.updatedAt||'')||0;
+        const localDate=Date.parse(local?.updatedAt||'')||0;
+        if(remote && (!local || remoteDate>localDate)){
+          profile().adaptive=remote;
+          if(!state.active){
+            if(remote.active){
+              profile().planId=ADAPT_ID;selectedPlan=ADAPT_ID;SESSION_ORDER=['A'];
+              createAdaptiveNext(remote.variant||0);
+              profile().planTracking={planId:ADAPT_ID,start:remote.startedAt||todayLocal(),weeklyGoal:remote.frequency||3};
+            }else if(selectedPlan===ADAPT_ID){
+              resumePausedProgramme();
+            }
+          }
+        }else if(local && localDate>remoteDate){
+          await window.RepRivalCloud.saveAdaptiveConfig?.(structuredClone(local));
+        }
+      }catch(err){console.warn('Adaptive preferences could not be synced; local settings preserved',err);}
 
       // Attach real-time listener for multi-device sync
       window.RepRivalCloud.subscribeToWorkouts((workouts) => {
@@ -5792,7 +5824,7 @@
       const cfg=profile().adaptive;const old=structuredClone(profile().plans.adaptive||{});
       const newDay=createAdaptiveNext((cfg.variant||0)+1);
       if(!newDay){profile().plans.adaptive=old;showToast(cfg.lastReason||'No eligible movements for this focus');return;}
-      save();page='workout-intro';render();return;
+      persistAdaptiveConfig();page='workout-intro';render();return;
     }
     if(action==='adaptive-wizard-next'||action==='adaptive-wizard-back'){
       const steps=[...document.querySelectorAll('[data-wizard-step]')],current=steps.findIndex(step=>!step.hidden);
@@ -6221,18 +6253,18 @@
       const id=e.target.dataset.adaptiveFrequency;
       const cfg=profile().adaptive||(profile().adaptive={});
       cfg.exerciseFrequency=cfg.exerciseFrequency||{};cfg.exerciseFrequency[id]=Number(e.target.value);
-      cfg.updatedAt=new Date().toISOString();save();return;
+      persistAdaptiveConfig();return;
     }
     if(e.target.matches('[data-adaptive-default-focus]')){
-      const cfg=profile().adaptive||(profile().adaptive={});cfg.focus=e.target.value;cfg.updatedAt=new Date().toISOString();save();return;
+      const cfg=profile().adaptive||(profile().adaptive={});cfg.focus=e.target.value;persistAdaptiveConfig();return;
     }
     if(e.target.matches('[data-adaptive-next-focus]')){
-      const cfg=profile().adaptive||(profile().adaptive={});cfg.nextFocus=e.target.value||null;cfg.updatedAt=new Date().toISOString();save();return;
+      const cfg=profile().adaptive||(profile().adaptive={});cfg.nextFocus=e.target.value||null;persistAdaptiveConfig();return;
     }
     if(e.target.matches('[data-adaptive-blocks]')||e.target.matches('[data-adaptive-weekly]')){
       const cfg=profile().adaptive||(profile().adaptive={});
       cfg[e.target.matches('[data-adaptive-blocks]')?'supersets':'frequency']=Number(e.target.value);
-      cfg.updatedAt=new Date().toISOString();save();return;
+      persistAdaptiveConfig();return;
     }
     if(e.target.id==='adaptiveTemplate'){
       const t=ADAPT.TEMPLATES[e.target.value]||(profile().adaptivePresets||[]).find(p=>p.id===e.target.value);if(!t)return;
