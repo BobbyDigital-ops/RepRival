@@ -2318,7 +2318,7 @@
     const completedHtml = completedBlocks.map(b => b.html).join('');
 
     return `
-      <section class="roadmap-section card section mt16" style="background:#161a20; border:1px solid #2a313d; border-radius:14px; padding:16px;">
+      <details class="rr-session-roadmap"><summary>Workout plan <span>· ${completedCount}/${tasks.length} sets</span></summary><section class="roadmap-section card section mt16">
         <div class="row" style="width:100%; align-items:center; justify-content:space-between; margin-bottom:12px;">
           <h3 style="margin:0; font-size:15px; font-weight:800; color:#fff;">Workout Roadmap — ${completedCount}/${tasks.length} sets${skippedCount ? ` <small style="color:#94a3b8; font-weight:normal;">(${skippedCount} skp)</small>` : ''}</h3>
           <button type="button" class="btn sm outline btn-edit-roadmap" data-action="open-roadmap-edit-modal" style="font-size:11px; padding:4px 10px; border-color:#3a424e; color:#cbd5e1; border-radius:6px; font-weight:700;">✎ Edit</button>
@@ -2334,7 +2334,7 @@
             </div>
           </details>
         ` : ''}
-      </section>
+      </section></details>
     `;
   }
 
@@ -2368,8 +2368,8 @@
     const pair=group.task.pair,isSolo=activeGroupItems.length===1,next=fullRound(tasks,group.end+1);
     const hasDroppedInRound = group.items.some(t => a.logs[t.index]?.skipped);
 
-    return `<div class="compact-workout"><div class="row workout-top-actions"><div class="workout-timer"><span class="workout-timer-value">${formatDuration(a.accumulatedTime + (a.lastStartTime ? (Date.now() - a.lastStartTime) / 1000 : 0))}</span></div><details class="workout-menu"><summary>••• Options</summary><div class="menu-items">${btn('Finish & Save early','finish-partial','outline full')}${btn('Pause & exit','pause','outline full')}${btn('Discard workout','discard','text full')}</div></details></div>
-      <div class="rr153-active-header"><div class="row"><span class="eyebrow">LIVE SESSION <b>●</b></span><span class="rr153-set-counter">${completedCount} of ${tasks.length} sets logged${skippedCount ? ` (${skippedCount} skipped)` : ''}</span></div><h1>${esc(planFor(a.session).name||'WORKOUT '+a.session)}</h1><p>${isSolo?'MOVEMENT':'SUPERSET ' + (group.task.pi + 1)} · ROUND ${group.task.round} OF ${group.task.rounds}</p>${bar(resolvedCount,tasks.length)}</div>
+    return `<div class="compact-workout rr-session-compact"><div class="row workout-top-actions"><div class="workout-timer"><span class="workout-timer-value">${formatDuration(a.accumulatedTime + (a.lastStartTime ? (Date.now() - a.lastStartTime) / 1000 : 0))}</span></div><details class="workout-menu"><summary>••• Options</summary><div class="menu-items">${btn('Finish & Save early','finish-partial','outline full')}${btn('Pause & exit','pause','outline full')}${btn('Discard workout','discard','text full')}</div></details></div>
+      <div class="rr153-active-header rr-session-header"><div class="row"><span class="eyebrow">LIVE SESSION <b>●</b></span><span class="rr153-set-counter">${completedCount} of ${tasks.length} sets logged${skippedCount ? ` (${skippedCount} skipped)` : ''}</span></div><h1>${esc(planFor(a.session).name||'WORKOUT '+a.session)}</h1><p>${isSolo?'MOVEMENT':'SUPERSET ' + (group.task.pi + 1)} · ROUND ${group.task.round} OF ${group.task.rounds}</p>${bar(resolvedCount,tasks.length)}</div>
       ${hasDroppedInRound ? `<div class="dropped-round-note" style="background:rgba(148,163,184,0.1); border:1px dashed rgba(148,163,184,0.3); border-radius:8px; padding:6px 12px; margin-bottom:12px; font-size:11px; color:#cbd5e1;">⚡ <em>Dropped in this round:</em> ${group.items.filter(t => a.logs[t.index]?.skipped).map(t => esc(t.ex.name)).join(', ')} (skipped)</div>` : ''}
       <form id="roundForm" class="round-form" novalidate>${activeGroupItems.map((t,i)=>{
         const ex=t.ex, idx=t.index;
@@ -2388,26 +2388,26 @@
         const weightConvention = formatWeightConvention(resolved.weight, ex);
         const selectedRir = (resolved.rir !== undefined && resolved.rir !== '' && resolved.rir !== null) ? Number(resolved.rir) : 2;
 
-        return `<section class="movement-entry mini-exercise" style="background:#161a20; border:1px solid #2a313d; border-radius:14px; padding:16px; margin-bottom:14px;">
-          <div class="mini-head">
+        return `<section class="movement-entry mini-exercise rr-session-set-card">
+          <div class="mini-head rr-session-set-head">
             <div class="mini-title" style="width:100%;">
               <div class="row" style="align-items:center; justify-content:space-between; width:100%; margin-bottom:4px;">
                 <span class="eyebrow" style="color:#d97241; font-weight:800; font-size:10px; letter-spacing:1px;">${isSolo ? 'MOVEMENT' : 'ROUND ' + group.task.round + ' · EXERCISE ' + (i+1) + '/' + activeGroupItems.length}</span>
                 <button type="button" class="btn text btn-compact-action btn-exercise-options" data-action="open-active-exercise-edit-modal" data-pair="${t.pi}" data-ex="${t.ei}" data-index="${idx}" style="font-size:11px; padding:3px 8px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:#cbd5e1; font-weight:700;">••• Edit</button>
               </div>
-              <h2 style="font-size: 20px; font-weight:800; margin: 4px 0 2px 0; color:#fff;">${esc(ex.name)} — Set ${t.round}/${ex.sets}</h2>
+              <h2 class="rr-session-exercise-name">${esc(ex.name)} <span class="rr-session-set-number">· ${t.round}/${ex.sets}</span></h2>
               <p class="tiny muted" style="margin:0 0 6px 0;">${esc(ex.muscle)} · Target: ${ex.min}–${ex.max} ${esc(ex.unit||'reps')}</p>
             </div>
             <div class="cue-stack">${movementCue(ex)}</div>
           </div>
 
-          <div class="mini-previous" style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:11px; margin:8px 0 10px 0; background:rgba(0,0,0,0.25); padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.05);">
+          <div class="mini-previous rr-session-previous">
             ${personalBests(ex.id)?.best ? `<span style="font-weight:700; color:#7dc9a2;">🏆 Best: ${esc(scoreLabel(personalBests(ex.id).best))}</span> <i style="color:#4a5568;">•</i> ` : ''}
             <span style="color:#94a3b8;">${resolved.prevRoundLog ? 'Prev: ' + esc(scoreLabel(resolved.prevRoundLog)) : (resolved.histLog ? 'Benchmark: ' + esc(scoreLabel(resolved.histLog)) : 'First session')}</span>
           </div>
 
           <!-- Progressive Overload Recommendation -->
-          <div class="overload-badge ${differsFromRec || resolved.hasOverload ? 'has-overload' : ''}" style="margin:8px 0 12px 0; padding:8px 10px; background:rgba(217,114,65,0.12); border-radius:8px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
+          <div class="overload-badge rr-session-recommendation ${differsFromRec || resolved.hasOverload ? 'has-overload' : ''}">
             <div style="font-size:11px; line-height:1.3; color:#cbd5e1;">
               <span style="font-weight:800; color:#ff9f66; font-size:9px; letter-spacing:0.5px; display:block;">⚡ RECOMMENDED</span>
               <div>${esc(resolved.rec.reason)}: <strong>${resolved.rec.weight!==''?(ex.load==='bodyweight'?'BW':formatWeightConvention(resolved.rec.weight, ex)):''} × ${resolved.rec.reps}</strong></div>
@@ -2419,7 +2419,7 @@
             ` : ''}
           </div>
 
-          <div class="form-grid compact-edit" data-edit-fields="${idx}" style="grid-template-columns:1fr 1fr; gap:16px; margin-top:8px;">
+          <div class="form-grid compact-edit rr-session-numbers" data-edit-fields="${idx}">
             <div class="field stepper-field" style="margin:0;">
               <label style="font-size:10px; color:#aaa8a5; margin-bottom:6px; display:block; text-transform:uppercase; letter-spacing:0.8px; font-weight:800;">Weight (${ex.load==='bodyweight'?'BW':(perDb?(isSingle?'kg (single DB)':'kg (combined)'):'kg')})</label>
               <div style="display:flex; align-items:center; gap:6px;">
@@ -2442,25 +2442,25 @@
             </div>
           </div>
 
-          <div class="rir-row mt16" style="background:rgba(255,255,255,0.02); padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.04);">
-            <span style="font-size:10px; color:#aaa8a5; text-transform:uppercase; letter-spacing:1px; font-weight:800; display:block; margin-bottom:8px;">Difficulty (Reps in Reserve)</span>
-            <div class="rir-options segmented-rir" style="grid-template-columns: repeat(6, 1fr); gap:4px; background:#0d1117; padding:4px; border-radius:8px;">
+          <div class="rir-row rr-session-rir">
+            <span class="rr-session-rir-title">EFFORT · REPS IN RESERVE</span>
+            <div class="rir-options segmented-rir rr-session-rir-options">
               ${[0,1,2,3,4,5].map(n=>`
                 <label style="margin:0; cursor:pointer;">
                   <input type="radio" name="rir-${idx}" value="${n}" ${selectedRir===n?'checked':''} style="position:absolute; opacity:0; pointer-events:none;">
-                  <span class="rir-btn ${selectedRir===n?'active':''}" style="display:grid; place-items:center; height:44px; border-radius:6px; font-size:14px; font-weight:900; color:${selectedRir===n?'#fff':'#888'}; background:${selectedRir===n?(n<=1?'#e11d48':n===2?'#d97241':'#22c55e'):'transparent'}; transition:all 0.15s ease;">${n===5?'5+':n}</span>
+                  <span class="rir-btn ${selectedRir===n?'active':''}">${n===5?'5+':n}</span>
                 </label>
               `).join('')}
             </div>
-            <div class="rir-labels" style="display:flex; justify-content:space-between; margin-top:6px; padding:0 4px;">
+            <div class="rir-labels rr-session-rir-labels">
               <small style="font-size:9px; color:#ee8d85; font-weight:700;">FAILURE (0)</small>
               <small style="font-size:9px; color:#aaa8a5;">RESERVE</small>
               <small style="font-size:9px; color:#7dc9a2; font-weight:700;">EASY (5+)</small>
             </div>
           </div>
         </section>`;
-      }).join('')}<div class="up-next"><div><span class="eyebrow">UP NEXT</span><strong>${next.items.length?next.task.pair.id===pair.id?'Round '+next.task.round+' of '+next.task.rounds:next.items.map(t=>t.ex.name).join(' + '):'Finish workout'}</strong><span>${next.items.length?next.task.pair.id===pair.id?'Same exercises':'Prepare next movement(s)':'Review and save your session'}</span></div><div class="next-rest">${next.items.length?`Rest<strong>${Math.max(15, pair.restMin-15)}–${Math.max(15, pair.restMax-15)}s</strong>`:''}</div></div>
-      <button class="btn primary full round-log-button" type="submit" style="min-height:54px; font-size:16px; font-weight:800; cursor:pointer;">${activeGroupItems.some(t=>a.logs[t.index])?'Update':'Log & Start Rest'} ${isSolo?'set':'superset round'} →</button></form>
+      }).join('')}<div class="up-next rr-session-up-next"><div><span class="eyebrow">UP NEXT</span><strong>${next.items.length?next.task.pair.id===pair.id?'Round '+next.task.round+' of '+next.task.rounds:next.items.map(t=>t.ex.name).join(' + '):'Finish workout'}</strong><span>${next.items.length?next.task.pair.id===pair.id?'Same exercises':'Prepare next movement(s)':'Review and save your session'}</span></div><div class="next-rest">${next.items.length?`Rest<strong>${Math.max(15, pair.restMin-15)}–${Math.max(15, pair.restMax-15)}s</strong>`:''}</div></div>
+      <button class="btn primary full round-log-button rr-session-submit" type="submit">${activeGroupItems.some(t=>a.logs[t.index])?'Update':'Log & Start Rest'} ${isSolo?'set':'superset round'} →</button></form>
       ${workoutRoadmap(tasks, a.taskIndex, a.logs)}
       </div>`;
   }
@@ -2492,13 +2492,14 @@
     const pairs = currentSessionPairs();
 
     return `
+      <div class="rr-rest-screen">
       <div class="row session-controls"><div class="workout-timer"><span class="workout-timer-value">${formatDuration(a.accumulatedTime + (a.lastStartTime ? (Date.now() - a.lastStartTime) / 1000 : 0))}</span></div><button class="quiet-link" type="button" data-action="pause">Pause & exit</button></div>
       <div class="eyebrow" style="color:#d97241; font-weight:800; letter-spacing:1px;">WORKOUT ${a.session} · RECOVERY &amp; REST</div>
       <h1 class="page-title" style="font-size:28px; margin:4px 0 6px 0;">Rest &amp; Recover</h1>
       <p class="lead" style="color:#aaa8a5; margin-bottom:16px;">${esc(a.restNote || 'Take a breath and recover for your next set.')}</p>
 
       <!-- Rest Countdown Card -->
-      <section class="card section center" style="background:#161a20; border:1px solid #2a313d; border-radius:14px; padding:20px; margin-bottom:16px;">
+      <section class="card section center rr-rest-countdown">
         <div class="eyebrow" style="font-size:10px; letter-spacing:1.2px; color:#888;">REST TIMER</div>
         <div class="timer" style="font-size:54px; font-weight:900; letter-spacing:1px; margin:4px 0; color:#f5ede6; font-variant-numeric:tabular-nums;">${time}</div>
         <p class="subhead" style="margin-bottom:10px; color:#94a3b8;">${a.restSeconds}s planned recovery</p>
@@ -2510,7 +2511,7 @@
       </section>
 
       <!-- Compact Workout Progress Bar -->
-      <div style="background:#121518; border:1px solid #222831; border-radius:10px; padding:10px 14px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between;">
+      <div class="rr-rest-progress">
         <div>
           <span style="font-size:10px; text-transform:uppercase; letter-spacing:0.8px; color:#888; font-weight:700; display:block;">Workout Progress</span>
           <strong style="font-size:13px; color:#fff;">${completedCount} of ${tasks.length} sets completed${skippedCount ? ` <span style="color:#94a3b8; font-weight:normal;">(${skippedCount} skipped)</span>` : ''}</strong>
@@ -2519,7 +2520,7 @@
       </div>
 
       <!-- Read-Only Workout Summary with Single Top-Right Edit Button -->
-      <section class="card section" style="background:#161a20; border:1px solid #2a313d; border-radius:14px; padding:16px; margin-bottom:16px;">
+      <section class="card section rr-rest-next-panel">
         <div class="row" style="align-items:center; justify-content:space-between; margin-bottom:12px;">
           <div>
             <span class="eyebrow" style="color:#d97241; font-weight:800; font-size:10px; letter-spacing:1px;">WORKOUT SUMMARY</span>
@@ -2529,7 +2530,7 @@
         </div>
 
         <!-- Highlighted Up Next Block (Read-Only) -->
-        <div class="rest-up-next-card" style="background:rgba(217,114,65,0.08); border:1.5px solid rgba(217,114,65,0.45); border-radius:10px; padding:12px 14px; margin-bottom:14px;">
+        <div class="rest-up-next-card rr-rest-up-next">
           <div class="row" style="align-items:center; justify-content:space-between; margin-bottom:6px;">
             <span class="eyebrow" style="color:#ff9f66; font-weight:800; font-size:10px; letter-spacing:0.8px;">⚡ UP NEXT</span>
             <span class="label-tag" style="background:rgba(217,114,65,0.2); color:#ff9f66; font-size:10px; font-weight:700;">${isSuperset ? 'Superset Round ' + group.task.round : 'Set ' + group.task.round}</span>
@@ -2555,7 +2556,7 @@
         </div>
 
         <!-- Read-Only Movement Structure Overview -->
-        <div class="rest-summary-blocks" style="display:flex; flex-direction:column; gap:8px;">
+        <details class="rr-rest-structure"><summary>View full workout structure <span>${pairs.length} blocks</span></summary><div class="rest-summary-blocks">
           ${pairs.map((p, pi) => {
             const isSup = p.exercises.length > 1;
             const blockTasks = tasks.filter(tk => tk.pi === pi);
@@ -2580,10 +2581,9 @@
               </div>
             `;
           }).join('')}
-        </div>
+        </div></details>
       </section>
-
-      <div class="section mt16">${btn('Pause & exit','pause','outline full')}</div>
+      </div>
     `;
   }
 
