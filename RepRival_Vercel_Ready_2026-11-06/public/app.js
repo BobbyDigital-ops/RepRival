@@ -4433,6 +4433,34 @@
     athlete.planTracking=structuredClone(paused.tracking||{planId,start:todayLocal(),weeklyGoal:3});
     cfg.active=false;persistAdaptiveConfig();return true;
   }
+  // Keep the exercise-library selection as UI-only state. Exercise frequency
+  // selections continue saving immediately into the existing adaptive config.
+  let adaptiveLibraryMuscle = null;
+  function filterAdaptiveExerciseLibrary(){
+    const selector=document.getElementById('adaptiveMuscleSelect');
+    if(!selector)return;
+    const muscle=selector.value;
+    const search=document.getElementById('adaptiveExerciseSearch');
+    const query=String(search?.value||'').toLocaleLowerCase().trim();
+    let visible=0,total=0;
+    document.querySelectorAll('.rr-adaptive-group[data-adaptive-muscle]').forEach(group=>{
+      const selected=group.dataset.adaptiveMuscle===muscle;
+      group.hidden=!selected;
+      if(!selected)return;
+      group.querySelectorAll('[data-adaptive-item]').forEach(item=>{
+        total++;
+        const matches=(item.dataset.adaptiveItem||'').includes(query);
+        item.hidden=!matches;
+        if(matches)visible++;
+      });
+    });
+    const results=document.getElementById('adaptiveResults');
+    if(results)results.textContent=query
+      ?visible+' of '+total+' exercises shown'
+      :total+' exercises available for '+muscle;
+    const empty=document.getElementById('adaptiveEmpty');
+    if(empty)empty.hidden=visible>0;
+  }
   function adaptiveStudioScreen(){
     const athlete=profile(),cfg=athlete.adaptive||{},v3=ADAPT_V3;
     const owned=athlete.equipment||[],lib=window.REPRIVAL_EXERCISE_LIBRARY;
@@ -4440,12 +4468,24 @@
     const grouped=Object.fromEntries(v3.CATEGORIES.map(c=>[c,[]]));
     eligible.forEach(e=>grouped[v3.category(e)].push(e));
     const opts=(v)=>v3.FOCUSES.map(([key,label])=>'<option value="'+esc(key)+'" '+(key===v?'selected':'')+'>'+esc(label)+'</option>').join('');
-    const exercises=v3.CATEGORIES.map(cat=>{
+    const categories=v3.CATEGORIES.filter(cat=>(grouped[cat]||[]).length>0);
+    if(!categories.includes(adaptiveLibraryMuscle))adaptiveLibraryMuscle=categories[0]||null;
+    const muscleOptions=categories.map(cat=>'<option value="'+esc(cat)+'" '+(cat===adaptiveLibraryMuscle?'selected':'')+'>'+esc(cat)+' ('+grouped[cat].length+')</option>').join('');
+    const frequencyLabels=['Off','Once','Twice','Three'];
+    const exercises=categories.map(cat=>{
       const list=grouped[cat]||[];
-      return '<details class="rr-element-muscle-group"'+(cat==='Biceps'?' open':'')+'><summary><strong>'+esc(cat)+'</strong><span>'+list.length+' movements · configure ↓</span></summary><div class="rr-element-exercises">'+list.map(ex=>{
-        const value=v3.pref(cfg,ex.id);
-        return '<div class="rr-element-exercise" data-adaptive-item="'+esc((ex.name+' '+cat).toLowerCase())+'"><div><strong>'+esc(ex.name)+'</strong><small>'+esc((ex.equipment||[]).map(g=>lib.gear[g]?.name||g).join(' + ')||'No equipment')+'</small></div><fieldset aria-label="'+esc(ex.name)+' appearances per week"><legend class="sr-only">Appearances per week</legend>'+[0,1,2,3].map(n=>'<label><input type="radio" name="freq-'+esc(ex.id)+'" data-adaptive-frequency="'+esc(ex.id)+'" value="'+n+'" '+(value===n?'checked':'')+'><span>'+n+'</span></label>').join('')+'</fieldset></div>';
-      }).join('')+'</div></details>';
+      return '<section class="rr-adaptive-group" data-adaptive-muscle="'+esc(cat)+'" '+(cat===adaptiveLibraryMuscle?'':'hidden')+' aria-label="'+esc(cat)+' exercise preferences">'+
+        '<div class="rr-adaptive-group-heading"><h4>'+esc(cat)+'</h4><span>'+list.length+' movements</span></div>'+
+        '<div class="rr-adaptive-exercise-list">'+list.map(ex=>{
+          const value=v3.pref(cfg,ex.id);
+          const gear=(ex.equipment||[]).map(g=>lib.gear[g]?.name||g).join(' + ')||'No equipment';
+          return '<article class="rr-element-exercise rr-adaptive-exercise" data-adaptive-item="'+esc((ex.name+' '+gear).toLocaleLowerCase())+'">'+
+            '<div class="rr-adaptive-exercise-info"><strong>'+esc(ex.name)+'</strong><small>'+esc(gear)+'</small></div>'+
+            '<fieldset class="rr-adaptive-frequency" aria-label="'+esc(ex.name)+' appearances per rolling 7 days">'+
+              '<legend>APPEARANCES / 7 DAYS</legend><div class="rr-adaptive-frequency-options">'+
+              [0,1,2,3].map(n=>'<label class="rr-adaptive-frequency-choice"><input type="radio" name="freq-'+esc(ex.id)+'" data-adaptive-frequency="'+esc(ex.id)+'" value="'+n+'" '+(value===n?'checked':'')+'><span><b>'+n+'</b><small>'+frequencyLabels[n]+'</small></span></label>').join('')+
+              '</div></fieldset></article>';
+        }).join('')+'</div></section>';
     }).join('');
     return '<div class="rr-element-studio"><div class="eyebrow">ADAPTIVE TRAINING · PERSONALISE</div><h1 class="page-title">Train your way.</h1>'+
       '<p class="lead">Every workout follows your muscle stimulus and recovery heatmap. Choose the focus, then decide which movements can appear and how often.</p>'+
@@ -4457,10 +4497,17 @@
         '<div class="form-grid"><div class="field"><label for="adaptiveSessionCount">Workout blocks</label><select id="adaptiveSessionCount" data-adaptive-blocks>'+[2,3,4,5].map(n=>'<option value="'+n+'" '+((cfg.supersets||3)===n?'selected':'')+'>'+n+' blocks</option>').join('')+'</select></div>'+
         '<div class="field"><label for="adaptiveWeeklyGoal">Sessions / week</label><select id="adaptiveWeeklyGoal" data-adaptive-weekly>'+[2,3,4,5,6].map(n=>'<option value="'+n+'" '+((cfg.frequency||3)===n?'selected':'')+'>'+n+' per week</option>').join('')+'</select></div></div>'+
         '<button class="btn primary full mt12" data-action="adaptive-generate" '+(!cfg.active||state.active?'disabled':'')+' type="button">Generate next adaptive workout</button>','section')+
-      card('<div class="row"><div><h3>Exercise library</h3><p class="subhead">Only equipment-compatible movements. Choose 0–3 appearances per rolling 7 days.</p></div><span class="label-tag">'+eligible.length+' available</span></div>'+
-        '<label class="field mt12" for="adaptiveExerciseSearch">Search exercises</label><input id="adaptiveExerciseSearch" type="search" placeholder="Search biceps, triceps, rows…" autocomplete="off">'+
-        '<div class="rr-element-frequency-help"><span>0 = exclude</span><span>1 = occasionally</span><span>2 = often</span><span>3 = frequently</span></div>'+
-        '<div class="rr-element-groups">'+exercises+'</div>','section')+
+      card('<section class="rr-adaptive-library" aria-label="Adaptive exercise preferences">'+
+        '<div class="rr-adaptive-library-head"><div><div class="eyebrow">BUILD YOUR EXERCISE POOL</div><h3>Exercise preferences</h3><p class="subhead">Choose a muscle group, then set how often each exercise can appear.</p></div><span class="label-tag">'+eligible.length+' available</span></div>'+
+        '<div class="rr-adaptive-library-controls">'+
+          '<div class="field"><label for="adaptiveMuscleSelect">Muscle group</label><select id="adaptiveMuscleSelect" aria-controls="adaptiveExerciseGroups">'+muscleOptions+'</select></div>'+
+          '<div class="field"><label for="adaptiveExerciseSearch">Find an exercise</label><input id="adaptiveExerciseSearch" type="search" placeholder="Search this muscle group" autocomplete="off"></div>'+
+        '</div>'+
+        '<p class="rr-adaptive-frequency-help">Set the maximum appearances in any rolling 7 days: <strong>0</strong> excludes an exercise; <strong>1–3</strong> allows it more often.</p>'+
+        '<div id="adaptiveResults" class="rr-adaptive-results" role="status" aria-live="polite">'+((grouped[adaptiveLibraryMuscle]||[]).length)+' exercises available for '+esc(adaptiveLibraryMuscle||'your equipment')+'</div>'+
+        '<div id="adaptiveExerciseGroups" class="rr-adaptive-groups">'+exercises+'</div>'+
+        '<p id="adaptiveEmpty" class="rr-adaptive-empty" hidden>No exercises match your search in this muscle group.</p>'+
+        '<p class="rr-adaptive-autosave">Your choices save automatically.</p></section>','section')+
       '<button class="btn outline full" data-page="plan">← Back to My Plan</button></div>';
   }
 
@@ -6000,15 +6047,7 @@
   });
   document.addEventListener('input',e=>{
     if(e.target?.id==='adaptiveExerciseSearch'){
-      const query=String(e.target.value||'').toLowerCase().trim();
-      document.querySelectorAll('[data-adaptive-item]').forEach(item=>{
-        item.hidden=!item.dataset.adaptiveItem.includes(query);
-      });
-      document.querySelectorAll('.rr-element-muscle-group').forEach(group=>{
-        const hasVisible=[...group.querySelectorAll('[data-adaptive-item]')].some(item=>!item.hidden);
-        group.hidden=!hasVisible;
-        if(query&&hasVisible)group.open=true;
-      });
+      filterAdaptiveExerciseLibrary();
       return;
     }
     if(e.target.classList?.contains('rr160-focus-slider')){
@@ -6176,6 +6215,13 @@
     if(e.target.id==='feedbackForm'){e.preventDefault();const f=new FormData(e.target);completeWorkout(f.get('feel')||'normal');}
   });
   document.addEventListener('change',async e=>{
+    if(e.target?.id==='adaptiveMuscleSelect'){
+      adaptiveLibraryMuscle=e.target.value;
+      const search=document.getElementById('adaptiveExerciseSearch');
+      if(search)search.value='';
+      filterAdaptiveExerciseLibrary();
+      return;
+    }
     if((e.target.form?.id==='roundForm'||e.target.classList?.contains('rest-prep-input'))&&state.active){
       state.active.drafts=state.active.drafts||{};
       if(e.target.name){
