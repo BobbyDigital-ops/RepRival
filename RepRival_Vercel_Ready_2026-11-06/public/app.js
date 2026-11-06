@@ -1236,6 +1236,32 @@
     return {fill:graphiteHeatColour(stimulus),alpha:Math.min(.74,Math.max(.10,.17+stimulus*.0055))};
   }
   
+  function graphiteMuscleIcon(name,color){
+    const key=String(name).toLowerCase();
+    // A consistent outline anatomical figure with the selected muscle group tinted.
+    const base=`<circle cx="25" cy="8" r="5" fill="none" stroke="currentColor" stroke-width="1.3"/>
+      <path d="M19 15C16 14 12 17 11 21L7 34Q6 37 8 38Q11 39 12 35L16 24L17 40L19 44L17 57Q16 60 19 61L23 61L25 44L27 61L31 61Q34 60 33 57L31 44L33 40L34 24L38 35Q39 39 42 38Q44 37 43 34L39 21Q37 16 31 15L25 17Z"
+        fill="none" stroke="currentColor" stroke-width="1.45" stroke-linejoin="round"/>
+      <path d="M25 17V43M17 29L25 31L33 29M17 40L25 44L33 40M25 44L22 58M25 44L28 58"
+        fill="none" stroke="currentColor" stroke-width=".75" opacity=".65"/>`;
+    const highlight={
+      chest:`<path d="M17 20L24 19L24 29Q21 27 17 26ZM26 19L33 20L33 26Q29 27 26 29Z"/>`,
+      back:`<path d="M18 18L24 21L24 34L18 29ZM26 21L32 18L32 29L26 34Z"/>`,
+      shoulders:`<path d="M18 16Q13 16 12 21L15 25L19 20ZM32 16Q37 16 38 21L35 25L31 20Z"/>`,
+      arms:`<path d="M11 24L9 32L12 34L16 24ZM39 24L41 32L38 34L34 24Z"/>`,
+      quads:`<path d="M18 44L24 44L22 53L18 56ZM26 44L32 44L32 56L28 53Z"/>`,
+      hamstrings:`<path d="M18 44L22 45L20 57L17 57ZM28 45L32 44L33 57L30 57Z"/>`,
+      glutes:`<path d="M18 39Q21 40 24 43L24 47L18 48ZM26 43Q29 40 32 39L32 48L26 47Z"/>`,
+      calves:`<path d="M18 52L22 52L20 60L17 59ZM28 52L32 52L33 59L30 60Z"/>`,
+      core:`<path d="M20 28L24 29L24 38L20 39ZM26 29L30 28L30 39L26 38Z"/>`
+    };
+    const zones=highlight[key]||highlight.core;
+    return `<svg class="rr-g-muscle-icon" viewBox="0 0 50 64" aria-hidden="true" focusable="false" style="--rr-g-zone:${color}">
+      <g class="rr-g-icon-outline">${base}</g>
+      <g class="rr-g-icon-target" fill="var(--rr-g-zone)" fill-opacity=".34" stroke="var(--rr-g-zone)" stroke-width=".95">${zones}</g>
+      <path d="M19 15L25 17L31 15" fill="none" stroke="currentColor" stroke-width=".8"/>
+    </svg>`;
+  }
   function graphiteMuscleRow(m) {
     const s=Math.min(100,Math.max(0,Math.round(Number(m.stimulusScore)||0)));
     const r=m.readinessScore==null||!Number.isFinite(Number(m.readinessScore))?null:Math.max(0,Math.min(100,Math.round(Number(m.readinessScore))));
@@ -1245,7 +1271,7 @@
     const status=esc(m.readinessState||'Insufficient data'),pct=r==null?'—':r+'%';
     const color=graphiteHeatColour(s);
     return `<div class="rr-g-muscle-row" aria-label="${esc(m.name)}: stimulus ${s} percent, readiness ${esc(pct)}, ${esc(sets)}">
-      <div class="rr-g-muscle-title"><strong>${esc(m.name)}</strong><small>${esc(sets)}</small></div>
+      <div class="rr-g-muscle-identity"><span class="rr-g-muscle-symbol">${graphiteMuscleIcon(m.name,color)}</span><div class="rr-g-muscle-title"><strong>${esc(m.name)}</strong><small>${esc(sets)}</small></div></div>
       <div class="rr-g-muscle-dose">
         <div class="rr-g-metric-head"><span>STIMULUS</span><strong style="color:${color}">${s}%</strong></div>
         <div class="rr-g-track" role="progressbar" aria-label="${esc(m.name)} stimulus" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${s}"><i style="width:${s}%;background:${color}"></i></div>
@@ -1263,8 +1289,11 @@
     return `<section class="rr-g-home-heat" aria-labelledby="rr-g-title">
       <div class="rr-g-head">
         <div class="rr-g-kicker">STIMULUS / RECOVERY / READINESS</div>
-        <h1 id="rr-g-title">Muscle Heat Zones</h1>
-        <p>See which muscle groups have received productive training and how ready they are to work again.</p>
+        <div class="rr-g-headline">
+          <h1 id="rr-g-title">Muscle Heat Zones</h1>
+          <div class="rr-g-ready-summary"><strong>${ready}/${groups.length}</strong><small>READY</small></div>
+        </div>
+        <p>Training stimulus and recovery at a glance.</p>
       </div>
       <div class="rr-g-body-pair" aria-label="Front and back interactive anatomical muscle maps">
         <div class="rr-g-body-view"><div class="rr-g-body-svg">${front}</div><span>FRONT</span></div>
@@ -6658,6 +6687,7 @@
     setTodayReadiness:(r)=>{ const p=profile(); if(!Array.isArray(p.readinessLog))p.readinessLog=[]; const idx=p.readinessLog.findIndex(x=>x.day===r.day); if(idx>=0)p.readinessLog[idx]=r; else p.readinessLog.push(r); save(); },
     getProfile:()=>structuredClone(profile()),
     graphiteHomeHeatmap,
+    graphiteMuscleIcon,
     graphiteHeatColour,
     graphiteAtlasPalette,
     pauseProgrammeForAdaptive,
