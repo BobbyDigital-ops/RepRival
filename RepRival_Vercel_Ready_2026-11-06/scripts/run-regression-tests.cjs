@@ -45,6 +45,7 @@ require('../public/leagues.js');
 require('../public/muscle-intelligence.js');
 require('../public/body-map.js');
 require('../public/adaptive.js');
+require('../public/adaptive-v3.js');
 require('../public/app.js');
 
 const RepRivalTest = window.RepRivalTest;
