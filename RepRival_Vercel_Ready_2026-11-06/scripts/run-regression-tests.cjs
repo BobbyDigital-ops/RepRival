@@ -2489,7 +2489,7 @@ try {
   assert('Stage 1 Home exposes semantic heatmap heading',html.includes('Muscle Heat Zones')&&html.includes('rr-g-title'));
   assert('Stage 1 Home renders front and back anatomy',html.includes('front anatomical')&&html.includes('back anatomical'));
   assert('Stage 1 Home renders all 9 real muscle groups',(html.match(/class="rr-g-muscle-row"/g)||[]).length===9);
-  assert('Stage 1 shows stimulus and readiness independently',html.includes('STIMULUS')&&html.includes('READINESS')&&html.includes('separate recovery'));
+  assert('Stage 1 shows stimulus and readiness independently',html.includes('STIMULUS')&&html.includes('READINESS')&&html.includes('Readiness is separate'));
   assert('Stage 1 does not add yellow to heatmap visuals',!html.toLowerCase().includes('yellow')&&!html.includes('#ffd'));
   assert('Stage 1 map keeps muscle vector interactivity',html.includes('rr160-muscle-zone')&&html.includes('data-muscle='));
   assert('Stage 1 neutral→rose palette has valid RGB hex values',
