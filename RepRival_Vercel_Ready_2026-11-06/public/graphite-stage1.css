@@ -404,3 +404,122 @@ body.rr-graphite-home {
 @media(prefers-reduced-motion:reduce){
   .rr-graphite-home .rr-g-start{transition:none!important}
 }
+
+/* Graphite Pass 4 — shared monochrome app-wide system.
+   Namespaced to the graphite body; preserved heatmaps, muscle charts, scoring
+   colours, SVG muscle fills and all workout logic are not recoloured. */
+:root:has(body.rr-graphite-home){
+  --bg:#111315;--card:#202227;--soft:#292c31;--ink:#f1f2f3;--sub:#aeb5bd;
+  --edge:#454b53;--accent:#c9d0d7;--accent-dark:#e3e7ec;
+  --good:#b6d7c9;--bad:#e0b8bb;--shadow:0 16px 38px #0007;
+  --rr-bg:#101215;--rr-card:#202329;--rr-card-border:#434951;
+  --rr-surface:#2c3036;--rr-text:#edf0f2;--rr-sub:#acb4bc;--rr-dim:#8b949f;
+  --rr-coral:#c5cad0;--rr-orange:#b9c1ca;
+}
+body.rr-graphite-home{background:linear-gradient(180deg,#191b1e,#111315 34%,#0b0d10 100%) fixed!important;color:#e7ebee!important}
+.rr-graphite-home .shell{max-width:760px!important;padding-bottom:calc(127px + env(safe-area-inset-bottom))!important}
+.rr-graphite-home .page-title,.rr-graphite-home .feature-title{
+  color:#f1f3f4!important;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif!important;
+  font-weight:690!important;letter-spacing:-1.15px!important
+}
+.rr-graphite-home :is(h1,h2,h3,h4){color:#e9ecf0}
+.rr-graphite-home :is(.lead,.subhead,.fineprint,.muted,.stat-detail){color:#adb5be!important}
+.rr-graphite-home .eyebrow{color:#bbc3ca!important;letter-spacing:2px!important}
+.rr-graphite-home :is(.card,.movement-entry,.movement-tile,.listrow,.metric,.trend-card,.current-plan-card,.preworkout-block,.rr165-plan-card,.rr153-focus-card,.rr153-prep-start,.rr164-trend-tile,.rr164-spotlight,.history-edit-card){
+  background:linear-gradient(150deg,#292c32 0%,#202329 46%,#191c21 100%)!important;
+  border:1px solid #454a53!important;border-radius:18px!important;
+  box-shadow:0 10px 28px #0005,inset 0 1px 0 #ffffff0a!important;color:#e8eaed!important;
+}
+.rr-graphite-home :is(.card.hero,.metric.athlete,.card.subtle,.notice,.recommendation-box,.benchmark,.plan-strip){
+  background:linear-gradient(145deg,#33373d,#22252a)!important;
+  color:#e5e9ec!important;border-color:#4d5259!important;
+}
+.rr-graphite-home .card:before{filter:grayscale(1)!important;opacity:.23!important}
+.rr-graphite-home :is(.metric strong,.score-number,.movement-name,.current-plan-card .plan-name){color:#eff1f3!important}
+.rr-graphite-home :is(.metric>span,.metric .label,.label-tag,.pill,.session-row small,.listrow .tiny){color:#b7c0c7!important}
+.rr-graphite-home :is(.label-tag,.pill,.pill.green,.pill.purple,.pill.yellow){
+  background:#353a41!important;border:1px solid #50565e!important;color:#e2e5e8!important;
+}
+.rr-graphite-home :is(.btn,.btn.outline,.btn.green,.btn.primary,.btn.sm,.rr165-cta-btn,.rr153-prep-start){
+  color:#f0f2f3!important;border:1px solid #686f78!important;
+  background:linear-gradient(145deg,#494f57 0%,#333940 62%,#292e34 100%)!important;
+  box-shadow:inset 0 1px 0 #ffffff22,0 4px 13px #0005!important;
+}
+.rr-graphite-home :is(.btn.primary,.btn.green,.rr165-cta-btn){
+  background:linear-gradient(140deg,#e4e8eb,#b8c0c8 46%,#818c98)!important;
+  border-color:#d0d7de!important;color:#171b20!important;
+  box-shadow:inset 0 1px 0 #ffffffa8,0 5px 17px #0008!important;
+}
+.rr-graphite-home :is(.btn.text,.quiet-link){
+  background:transparent!important;border:0!important;box-shadow:none!important;color:#d7dde3!important;
+}
+.rr-graphite-home button:disabled{opacity:.48!important;box-shadow:none!important}
+.rr-graphite-home :is(.field input,.field select,textarea,select,input:not([type=checkbox]):not([type=radio]):not([type=range])){
+  background:#181b20!important;color:#f0f2f4!important;border:1px solid #565e67!important;
+  border-radius:11px!important;box-shadow:inset 0 1px 5px #0005!important;
+}
+.rr-graphite-home input::placeholder,.rr-graphite-home textarea::placeholder{color:#919aa5!important}
+.rr-graphite-home :is(.field label,.field,.rir-row>span){color:#c1c8d0!important}
+.rr-graphite-home :is(input[type=checkbox],input[type=radio],input[type=range]){accent-color:#c0c8cf!important}
+.rr-graphite-home :is(.rir-options span,.radio-row span,.rir-btn,.segmented-rir .rir-btn){
+  background:#30343a!important;border:1px solid #515963!important;color:#e1e5e9!important
+}
+.rr-graphite-home :is(.rir-options input:checked+span,.radio-row input:checked+span,.segmented-rir input:checked+.rir-btn){
+  background:linear-gradient(145deg,#d8dde1,#939ca7)!important;color:#171b20!important;border-color:#cbd2d9!important
+}
+.rr-graphite-home :is(.btn-step,.rest-controls button){
+  background:linear-gradient(150deg,#444950,#282c32)!important;color:#ecf0f3!important;border-color:#676e76!important
+}
+.rr-graphite-home :is(.progress-row span,.meter,.muscle-track){background:#353a41!important}
+.rr-graphite-home .progress-row span.done{background:#a6b0bb!important}
+.rr-graphite-home .progress-row span.current{background:#e4e7eb!important}
+.rr-graphite-home .meter>span{background:#aeb8c3!important}
+.rr-graphite-home :is(.movement-detail-summary>div,.movement-comparison>div,.preworkout-metrics>div,.overview-stats .metric){
+  background:#262a30!important;border-color:#4a525a!important;color:#e6e9ec!important
+}
+.rr-graphite-home :is(.movement-detail-summary span,.movement-comparison span,.movement-tile .change,.best-footnote){color:#aeb8c1!important}
+.rr-graphite-home :is(.movement-tile .change.up,.movement-tile .change.down){
+  background:#343941!important;border-color:#59616b!important
+}
+.rr-graphite-home :is(.workout-timer,.next-rest){
+  color:#e7eaed!important;background:#333840!important;border:1px solid #575e67!important
+}
+.rr-graphite-home .workout-timer:before{background:#c9d0d6!important}
+.rr-graphite-home .pb-toast{
+  background:linear-gradient(140deg,#34383f,#1b1e23)!important;color:#f7f8f8!important;
+  border:1px solid #818992!important;box-shadow:0 16px 55px #000b!important
+}
+.rr-graphite-home .pb-toast-title{color:#f0f2f4!important}
+.rr-graphite-home .pb-toast-value{color:#f4f5f6!important}
+.rr-graphite-home .pb-toast-value span{color:#c4cbd2!important}
+.rr-graphite-home :is(.modal,.modal-content,.modal-card,.rr165-modal,.rr165-modal-content,.rr-auth-dialog,.rr-logo-dialog,.rr-custom-dialog,.art-preview-modal){
+  background:linear-gradient(150deg,#2e3238,#171a1f)!important;color:#ecf0f2!important;
+  border:1px solid #545b64!important;box-shadow:0 18px 60px #000b!important
+}
+.rr-graphite-home :is(.modal-header h2,.modal-header strong,.modal-body label){color:#f0f2f3!important}
+.rr-graphite-home .scorecard :is(td,th){border-color:#444b54!important;color:#dce1e5!important}
+.rr-graphite-home :is(.toast,.workout-menu .menu-items){
+  background:#30353c!important;color:#f0f2f3!important;border:1px solid #4e5660!important
+}
+.rr-graphite-home :is(.rr165-plan-subtitle,.rr165-card-eyebrow,.rr165-plan-pct-badge small,.rr165-kpi-lbl){color:#b2bac4!important}
+.rr-graphite-home .rr165-progress-bar{background:#3c424b!important}
+.rr-graphite-home .rr165-progress-fill{background:linear-gradient(90deg,#949eaa,#e5e9ee)!important}
+.rr-graphite-home :is(.rr153-waves,.rr165-greeting-card .rr153-waves){filter:grayscale(1)!important;opacity:.12!important}
+.rr-graphite-home .topbar,.rr-graphite-home .topbar-user{color:#e5e8eb!important}
+.rr-graphite-home .tabnav{
+  background:linear-gradient(150deg,#22252aef,#171a20fa)!important;border:1px solid #50565d!important;
+  box-shadow:0 12px 35px #0009,inset 0 1px 0 #ffffff13!important;backdrop-filter:blur(18px)!important
+}
+.rr-graphite-home .tabnav button.active{
+  background:linear-gradient(145deg,#454a50,#2d3239)!important;color:#eff1f3!important
+}
+.rr-graphite-home .tabnav button.active :is(.ico,svg){color:#e9ecef!important;stroke:#e9ecef!important}
+.rr-graphite-home :is(.btn,button,input,select,textarea):focus-visible{
+  outline:2px solid #e0e5ea!important;outline-offset:3px!important
+}
+@media(max-width:530px){
+  .rr-graphite-home .shell{padding:13px 13px calc(128px + env(safe-area-inset-bottom))!important}
+  .rr-graphite-home :is(.card,.movement-entry,.metric){padding:16px!important}
+  .rr-graphite-home :is(.btn,button,input,select){touch-action:manipulation}
+}
+@media(prefers-reduced-motion:reduce){.rr-graphite-home *{scroll-behavior:auto!important}}
