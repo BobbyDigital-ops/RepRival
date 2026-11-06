@@ -7,6 +7,7 @@ on:
       - design/graphite-app-polish
       - design/adaptive-library-picker
       - design/graphite-compact-workout
+      - fix/google-auth-and-cool-heat-zones
   pull_request:
     branches:
       - migration/aistudio-to-vercel-2026-11-06
