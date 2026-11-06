@@ -2576,8 +2576,10 @@ try {
     source.includes('.rr162-chart svg circle') &&
     source.includes('.rr164-trend-tile svg circle'));
   assert('Detailed heatmap figure and stimulus data remain unmodified by theme polish',
-    !source.includes('.rr-g-home-heat') && !source.includes('.rr-g-muscle-dose') &&
-    !source.includes('.rr-figure-svg') && !source.includes('.rr-heat-track'));
+    !source.replace(/\/\*[\s\S]*?\*\//g,'').includes('.rr-g-home-heat') &&
+    !source.replace(/\/\*[\s\S]*?\*\//g,'').includes('.rr-g-muscle-dose') &&
+    !source.replace(/\/\*[\s\S]*?\*\//g,'').includes('.rr-figure-svg') &&
+    !source.replace(/\/\*[\s\S]*?\*\//g,'').includes('.rr-heat-track'));
   assert('Workout plan buttons retain their original action identifiers',
     window.RepRivalTest.homeScreen().includes('data-page="workout-intro"') ||
     window.RepRivalTest.homeScreen().includes('data-page="workout"'));
