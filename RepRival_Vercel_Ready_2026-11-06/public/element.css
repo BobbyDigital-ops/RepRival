@@ -252,3 +252,60 @@ body.rr-element{background:radial-gradient(ellipse at 80% 2%,#e5e9d5 0%,transpar
   .rr-element .rr165-title{font-size:21px!important}
   .rr-element .rr165-kpi-grid{gap:6px!important}
 }
+
+/* Accessible light-mode modal, history editor and progression chart surfaces */
+.rr-element .rr-auth-dialog,
+.rr-element .rr-logo-dialog,
+.rr-element .modal,
+.rr-element .modal-content,
+.rr-element .modal-card{
+ background:#fffefa!important;color:#263421!important;border-color:#dbe4d2!important;
+ box-shadow:0 20px 65px rgba(48,65,38,.16)!important;
+}
+.rr-element .rr-auth-dialog::backdrop{background:rgba(29,41,26,.54);backdrop-filter:blur(5px)}
+.rr-element .rr-auth-toggle{background:#ecf0e4!important;border:1px solid #d5e0ca!important}
+.rr-element .rr-auth-toggle-btn{color:#607354!important}
+.rr-element .rr-auth-toggle-btn.active{background:#5e7f3c!important;color:#fff!important;border-color:#527233!important;box-shadow:none!important}
+.rr-element .modal-header h2,.rr-element .modal-header strong{color:#293923!important}
+.rr-element .modal-header .subhead{color:#697c61!important}
+.rr-element .modal-body label,.rr-element .field label,.rr-element #historyEditForm label,.rr-element .history-edit-card label{color:#516847!important}
+.rr-element .history-edit-card,.rr-element .history-edit-set{
+ background:#fffefa!important;color:#293621!important;border-color:#d9e1d0!important;box-shadow:0 5px 20px rgba(51,71,38,.08)!important;
+}
+.rr-element .history-edit-head{border-bottom-color:#e0e6d6!important}
+.rr-element .history-edit-head h3{color:#26351e!important}
+.rr-element .history-edit-head small{color:#65765d!important}
+.rr-element .history-edit-actions button{background:#eff2e6!important;color:#426134!important;border-color:#cfddc0!important}
+.rr-element .history-edit-actions button.text-danger{color:#953d40!important;background:#faebea!important;border-color:#edc9c9!important}
+.rr-element #historyEditForm input,.rr-element #historyEditForm select,.rr-element .history-edit-grid input{
+ background:#fffefb!important;color:#243521!important;border-color:#c9d6bd!important;
+}
+.rr-element .rr164-trend-tile,.rr-element .rr164-spotlight,.rr-element .rr164-body-summary>div,.rr-element .rr164-spotlight-metrics>div{
+ background:#fffefa!important;color:#25351f!important;border:1px solid #dfe5d4!important;box-shadow:0 6px 20px rgba(53,70,35,.06)!important;
+}
+.rr-element .rr164-trend-tile.selected{background:#edf3e3!important;border-color:#729850!important;box-shadow:inset 0 0 0 1px #b5cba4!important}
+.rr-element .rr164-trend-tile strong,.rr-element .rr164-spotlight-metrics strong,.rr-element .rr164-body-summary strong{
+ color:#2b3b24!important;
+}
+.rr-element .rr164-tile-heading span,.rr-element .rr164-tile-bottom b,.rr-element .rr164-spotlight-summary strong{
+ color:#527d37!important;
+}
+.rr-element .rr164-trend-tile small,.rr-element .rr164-tile-bottom span,.rr-element .rr164-body-summary small,
+.rr-element .rr164-spotlight-metrics small,.rr-element .rr164-spotlight-summary span{color:#65785b!important}
+.rr-element .rr164-periods{background:#edf0e4!important;border-color:#dae3d1!important}
+.rr-element .rr164-periods button{color:#586d4d!important}
+.rr-element .rr164-periods button.active{background:#648340!important;color:#fff!important}
+.rr-element .info-trigger{background:#ebf1e1!important;color:#476d35!important;border-color:#bdd1ac!important}
+.rr-element .info-trigger:hover{background:#5f7e3e!important;color:white!important}
+.rr-element .rr-readiness-pill.ready{background:#e3f2df!important;color:#2e743a!important;border-color:#b6d9b3!important}
+.rr-element .rr-readiness-pill.mostly-ready{background:#eaf2dd!important;color:#587338!important;border-color:#cdddb4!important}
+.rr-element .rr-readiness-pill.recovering{background:#fff1d1!important;color:#885e16!important;border-color:#ead3a6!important}
+.rr-element .rr-readiness-pill.high-load{background:#fae8e5!important;color:#a14237!important;border-color:#ebc6c0!important}
+/* Preserve the heatmap's own SVG muscle fills and stimulus legend; never turn red/blue heat values olive. */
+.rr-element :is(.card,.modal,.rr164-trend-tile,.history-edit-card) :is(input,button,select){touch-action:manipulation}
+@media(max-width:430px){
+ .rr-element .rr-auth-dialog{width:calc(100vw - 22px);max-width:none!important;padding:17px!important;border-radius:18px!important}
+ .rr-element .rr164-spotlight{min-width:0!important;padding:12px!important}
+ .rr-element .rr164-spotlight-metrics{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+ .rr-element .rr164-spotlight-metrics>div{padding:9px 5px!important;min-width:0!important;overflow-wrap:anywhere}
+}
