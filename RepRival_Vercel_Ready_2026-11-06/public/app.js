@@ -947,7 +947,7 @@
       admin:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
       account:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'
     };
-    const links=[['home','Home'],['workout','Workout'],['leagues','Leagues'],['progress','Progress'],['plan','My plan'],[profile().role==='admin'?'admin':'account',profile().role==='admin'?'Admin':'Account']];
+    const links=[['home','Home'],['workout','Workout'],['progress','Progress'],['plan','My plan'],[profile().role==='admin'?'admin':'account',profile().role==='admin'?'Admin':'Account']];
     return `<nav class="tabnav" aria-label="Main navigation">${links.map(([id,label])=>`<button type="button" class="${(page===id||(id==='progress'&&page==='movement-trends')||(id==='workout'&&page==='workout-intro'))?'active':''}" data-page="${id}" aria-label="${label}"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[id]}</svg></span>${label}</button>`).join('')}</nav>`;
   }
 
@@ -4854,7 +4854,7 @@
     else if(page==='movement-trends'){page='progress';progressTab='movements';body=progress();}
     else if(page==='readiness')body=readinessScreen();
     else if(page==='muscle-detail')body=muscleDetailScreen();
-    else if(page==='leagues')body=leaguesScreen();
+    else if(page==='leagues'){page='home';body=home();}
     else if(page==='plan')body=plan();
     else if(page==='summary')body=summary();
     else if(page==='import-plan')body=importPlanScreen();
