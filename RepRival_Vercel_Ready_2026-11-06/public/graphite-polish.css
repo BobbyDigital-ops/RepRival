@@ -314,3 +314,165 @@ body.rr-graphite-home {
 @media(prefers-reduced-motion:reduce){
  .rr-graphite-home :is(.btn,button){transition:none!important}
 }
+
+/* Adaptive Training — single-muscle exercise picker (Graphite Pass 5).
+   Respects existing per-exercise 0–3 radio settings; layout only. */
+.rr-graphite-home .rr-adaptive-library {
+  display:block!important;min-width:0!important;
+}
+.rr-graphite-home .rr-adaptive-library-head {
+  display:flex!important;justify-content:space-between!important;align-items:flex-start!important;
+  flex-wrap:wrap!important;gap:12px!important;margin-bottom:20px!important;
+}
+.rr-graphite-home .rr-adaptive-library-head>div {
+  flex:1 1 180px!important;min-width:0!important
+}
+.rr-graphite-home .rr-adaptive-library-head h3 {
+  font-size:22px!important;letter-spacing:-.65px!important;
+  font-weight:700!important;margin:5px 0 7px!important;color:#f0f2f4!important
+}
+.rr-graphite-home .rr-adaptive-library-head .subhead {
+  margin:0!important;color:#afb9c3!important;line-height:1.5!important;max-width:520px!important
+}
+.rr-graphite-home .rr-adaptive-library-head .label-tag{
+  align-self:flex-start!important;border-radius:99px!important;font-size:11px!important
+}
+.rr-graphite-home .rr-adaptive-library-controls {
+  display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+  gap:12px!important;padding:15px!important;margin-bottom:13px!important;
+  border:1px solid #444d57!important;border-radius:15px!important;
+  background:linear-gradient(145deg,#242930,#1b2025)!important;
+}
+.rr-graphite-home .rr-adaptive-library-controls .field{
+  display:flex!important;flex-direction:column!important;gap:7px!important;min-width:0!important
+}
+.rr-graphite-home .rr-adaptive-library-controls .field label{
+  color:#cbd2d9!important;font-size:12px!important;font-weight:680!important
+}
+.rr-graphite-home .rr-adaptive-library-controls :is(select,input[type="search"]){
+  display:block!important;box-sizing:border-box!important;width:100%!important;min-width:0!important;
+  max-width:100%!important;min-height:48px!important;padding:10px 12px!important;
+  font-size:14px!important;line-height:1.3!important;
+  background:#151a20!important;border:1px solid #5a646e!important;border-radius:11px!important;
+  color:#eff2f5!important;box-shadow:inset 0 2px 6px #0005!important;
+}
+.rr-graphite-home .rr-adaptive-library-controls select{padding-right:27px!important}
+.rr-graphite-home .rr-adaptive-frequency-help{
+  color:#b7c0c9!important;font-size:12px!important;
+  line-height:1.55!important;margin:7px 1px 15px!important;
+}
+.rr-graphite-home .rr-adaptive-frequency-help strong{color:#edf1f4!important}
+.rr-graphite-home .rr-adaptive-results{
+  color:#b5bec8!important;font-size:12px!important;font-weight:600!important;
+  letter-spacing:.15px!important;border-bottom:1px solid #424952!important;
+  padding:0 1px 12px!important;margin:0 0 12px!important
+}
+.rr-graphite-home .rr-adaptive-group[hidden],
+.rr-graphite-home .rr-adaptive-exercise[hidden],
+.rr-graphite-home .rr-adaptive-empty[hidden]{
+  display:none!important
+}
+.rr-graphite-home .rr-adaptive-group-heading{
+  display:flex!important;align-items:baseline!important;justify-content:space-between!important;
+  gap:10px!important;margin:0 1px 12px!important;
+}
+.rr-graphite-home .rr-adaptive-group-heading h4{
+  font-size:18px!important;line-height:1.25!important;color:#f0f2f4!important;
+  font-weight:700!important;letter-spacing:-.35px!important
+}
+.rr-graphite-home .rr-adaptive-group-heading>span{
+  color:#a4afb9!important;font-size:11px!important;white-space:nowrap!important
+}
+.rr-graphite-home .rr-adaptive-exercise-list{
+  display:grid!important;grid-template-columns:repeat(auto-fit,minmax(min(100%,265px),1fr))!important;
+  gap:11px!important;min-width:0!important
+}
+.rr-graphite-home .rr-adaptive-exercise{
+  display:flex!important;flex-direction:column!important;gap:14px!important;
+  min-width:0!important;min-height:0!important;
+  background:linear-gradient(145deg,#2e333a,#23282e 58%,#1e2228)!important;
+  border:1px solid #48515b!important;border-radius:15px!important;
+  box-shadow:inset 0 1px 0 #ffffff11,0 5px 15px #0004!important;
+  padding:15px!important;margin:0!important;
+}
+.rr-graphite-home .rr-adaptive-exercise-info{
+  display:flex!important;flex-direction:column!important;gap:5px!important;
+  min-width:0!important
+}
+.rr-graphite-home .rr-adaptive-exercise-info strong{
+  display:block!important;color:#f0f2f4!important;
+  font-size:14px!important;font-weight:690!important;line-height:1.35!important;
+  letter-spacing:-.1px!important;overflow-wrap:break-word!important
+}
+.rr-graphite-home .rr-adaptive-exercise-info small{
+  display:block!important;color:#aeb9c3!important;font-size:11.5px!important;
+  line-height:1.4!important;overflow-wrap:break-word!important
+}
+.rr-graphite-home .rr-adaptive-frequency{
+  min-width:0!important;border:0!important;outline:0!important;
+  padding:0!important;margin:0!important;display:block!important
+}
+.rr-graphite-home .rr-adaptive-frequency legend{
+  padding:0!important;margin:0 0 8px!important;
+  font-size:9.5px!important;line-height:1.3!important;
+  font-weight:750!important;letter-spacing:1.1px!important;
+  color:#aab5c0!important
+}
+.rr-graphite-home .rr-adaptive-frequency-options{
+  display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px!important;
+  min-width:0!important
+}
+.rr-graphite-home .rr-adaptive-frequency-choice{
+  display:block!important;position:relative!important;min-width:0!important;
+  cursor:pointer!important
+}
+.rr-graphite-home .rr-adaptive-frequency-choice input{
+  position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+  z-index:1!important;opacity:0!important;cursor:pointer!important;margin:0!important
+}
+.rr-graphite-home .rr-adaptive-frequency-choice>span{
+  display:flex!important;flex-direction:column!important;justify-content:center!important;align-items:center!important;
+  gap:2px!important;min-height:49px!important;min-width:0!important;
+  padding:6px 2px!important;
+  background:linear-gradient(160deg,#22272d,#1b1f25)!important;
+  border:1px solid #505963!important;border-radius:10px!important;
+  color:#c6ced6!important;box-shadow:inset 0 1px 0 #ffffff07!important;
+  transition:background .12s ease,border-color .12s ease,filter .12s ease!important
+}
+.rr-graphite-home .rr-adaptive-frequency-choice>span b{
+  font-size:16px!important;line-height:1.2!important;font-weight:740!important;
+  color:inherit!important
+}
+.rr-graphite-home .rr-adaptive-frequency-choice>span small{
+  color:inherit!important;font-size:9.5px!important;line-height:1.15!important;
+  font-weight:550!important;white-space:nowrap!important
+}
+.rr-graphite-home .rr-adaptive-frequency-choice input:checked+span{
+  background:linear-gradient(150deg,#e1e5e9,#b1bac4 57%,#929da8)!important;
+  border:1px solid #e3e8ec!important;color:#141a20!important;
+  box-shadow:inset 0 1px 0 #ffffffb0,0 2px 12px #cbd4df14!important
+}
+.rr-graphite-home .rr-adaptive-frequency-choice input:focus-visible+span{
+  outline:2px solid #eff4f8!important;outline-offset:2px!important
+}
+.rr-graphite-home .rr-adaptive-frequency-choice input:active+span{filter:brightness(.9)!important}
+.rr-graphite-home .rr-adaptive-autosave{
+  color:#a6b1bc!important;font-size:11px!important;
+  margin:14px 1px 0!important;line-height:1.4!important
+}
+.rr-graphite-home .rr-adaptive-empty{
+  padding:18px 12px!important;background:#22272d!important;
+  border:1px dashed #505a65!important;border-radius:12px!important;
+  font-size:12px!important;color:#bac4ce!important;text-align:center!important;
+}
+@media(max-width:590px){
+  .rr-graphite-home .rr-adaptive-library-controls{
+    grid-template-columns:minmax(0,1fr)!important;gap:13px!important;padding:13px!important
+  }
+  .rr-graphite-home .rr-adaptive-exercise-list{grid-template-columns:minmax(0,1fr)!important}
+  .rr-graphite-home .rr-adaptive-exercise{padding:14px!important;gap:13px!important}
+  .rr-graphite-home .rr-adaptive-library-head{margin-bottom:15px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .rr-graphite-home .rr-adaptive-frequency-choice>span{transition:none!important}
+}
