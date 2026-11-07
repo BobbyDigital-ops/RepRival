@@ -2504,7 +2504,8 @@
       '<p>Next: '+esc(task?.ex?.name||'Next movement')+' · Round '+esc(task?.round||round+1)+'</p>'+
       '<button type="button" class="rr-kb-next" data-action="rest-skip">Ready · Next round →</button>'+
       '<button type="button" class="rr-kb-pause" data-action="rest-add">+15 seconds</button>'+
-      '<button type="button" class="rr-kb-pause" data-action="pause">Pause & exit</button></div>';
+      '<button type="button" class="rr-kb-pause" data-action="pause">Pause & exit</button>'+ 
+      '<button type="button" class="rr-kb-pause" data-action="discard" style="color:#f5a7a7">Discard & exit</button></div>';
   }
   function restView(tasks,nextTask){
     const a=state.active;
@@ -3056,7 +3057,7 @@
     const vol = (s.logs||[]).reduce((a,l)=>a+setVolume(l),0);
     const reps = completedLogs.reduce((a,l)=>a+l.reps,0);
     const rir = completedLogs.filter(l=>l.rir!=null);
-    return `<div class="eyebrow">WORKOUT HISTORY · ${dateText(s.endedAt)}</div><h1 class="page-title">${esc(s.sessionName||'Full Body '+s.session)}</h1><p class="lead">Your complete session, set by set — plus what changed since your previous matching workout.</p>
+    return `<div class="eyebrow">WORKOUT HISTORY · ${dateText(s.endedAt)}</div><h1 class="page-title">${esc(s.sessionName||'Full Body '+s.session)}</h1><p class="lead">Your complete session, set by set — plus what changed since your previous matching workout.</p><button type="button" class="btn outline" data-action="delete-workout" data-id="${esc(s.id)}" style="color:#f5a7a7">Delete this workout</button>
       <div class="three-stat section">
         <div class="metric"><strong>${completedLogs.length}${skippedLogs.length ? `<small>/${s.logs.length}</small>` : ''}</strong><span>${skippedLogs.length ? 'Completed (' + skippedLogs.length + ' skp)' : 'Working sets'}</span></div>
         <div class="metric"><strong>${fmt(reps)}</strong><span>Total reps</span></div>
@@ -4543,14 +4544,14 @@
       '<div class="rr-kb-options"><label>Focus<select id="circuitFocus" name="focus">'+builder.FOCUSES.map(x=>opt(x[0],x[1],focus)).join('')+'</select></label>'+
       '<label>Exercises<select id="circuitCount" name="count">'+[2,3,4,5,6,7,8].map(n=>opt(n,n+' movements',cfg.count||5)).join('')+'</select></label>'+
       '<label>Rounds<select id="circuitRounds" name="rounds">'+[1,2,3,4,5,6].map(n=>opt(n,n+' rounds',cfg.rounds||3)).join('')+'</select></label>'+
-      '<label>Reps each<select id="circuitReps" name="reps" type="number" min="1" max="40" value="'+esc(cfg.reps||10)+'"></label>'+
-      '<label>Rest<select id="circuitRest" name="rest">'+[30,45,60,75,90,120,150,180].map(n=>opt(n,n+' seconds',cfg.rest||75)).join('')+'</select></label></div>'+
+      '<label>Reps each<input id="circuitReps" name="reps" type="number" inputmode="numeric" min="1" max="40" value="'+esc(cfg.reps||10)+'" required></label>'+
+      '<input type="hidden" name="rest" value="90"></div>'+
       '<details class="rr-kb-pool"><summary><strong>My exercise pool</strong><span>'+(checked.size?checked.size+' selected':'All compatible exercises')+' · tap to edit</span></summary>'+
       '<p>Tick the exercises Adaptive may choose from. This is a pool, not a fixed workout. Leave all unticked for the full kettlebell library.</p>'+
       '<div class="rr-kb-pool-grid">'+pool+'</div>'+
       '<button type="button" class="btn outline" data-action="circuit-preset">Use entire pool</button></details>'+
-      '<p class="rr-kb-inventory">Your kettlebells: '+esc(inventory)+' kg · <button type="button" data-page="equipment">Edit equipment</button></p>'+
-      '<button class="rr-kb-go" type="submit">Start circuit <span aria-hidden="true">→</span></button></form>'+
+      '<p class="rr-kb-inventory">Your kettlebells: '+esc(inventory)+' kg · <button type="button" data-page="equipment">Add or remove weights</button></p>'+
+      '<button class="rr-kb-go" type="submit">Preview circuit <span aria-hidden="true">→</span></button></form>'+ (circuitDraft ? '<section class="rr-kb-preview" aria-label="Circuit preview" style="margin-top:18px;padding:18px;border:1px solid #56606e;border-radius:18px;background:#20252c"><div class="eyebrow">YOUR NEXT WORKOUT</div><h2 style="margin:8px 0">'+esc(circuitDraft.sessionName)+'</h2><p>'+circuitDraft.rounds+' rounds · '+circuitDraft.reps+' reps per move · 90 sec between rounds</p><ol style="padding-left:24px;line-height:2">'+circuitDraft.pairs[0].exercises.map(ex=>'<li>'+esc(ex.name)+'</li>').join('')+'</ol><div style="display:flex;gap:10px;flex-wrap:wrap"><button type="button" class="btn outline" data-action="shuffle-circuit">↻ Shuffle exercises</button><button type="button" class="rr-kb-go" data-action="start-circuit">Start workout →</button></div></section>' : '')+
       '<p class="rr-kb-footer">One movement at a time · rest after each round · automatically included in Heat Zones.</p>'+
       '</div>';
   }
@@ -4584,7 +4585,8 @@
       '<label>Reps in reserve<select id="rr-kb-rir-editor">'+[0,1,2,3,4,5].map(n=>'<option value="'+n+'" '+(n===rir?'selected':'')+'>'+n+(n===5?'+':'')+'</option>').join('')+'</select></label></div></details>'+
       '<button type="submit" class="rr-kb-next">'+(next?(lastInRound?'Finish round → Rest':'Next exercise →'):'Finish circuit →')+'</button></form>'+
       '<p class="rr-kb-next-hint">'+(next?lastInRound?'Rest after this move':'Next: '+esc(next.ex.name):'Last movement — review and save when finished')+'</p>'+
-      '<button class="rr-kb-pause" data-action="pause" type="button">Pause & exit</button></div>';
+      '<button class="rr-kb-pause" data-action="pause" type="button">Pause & exit</button>'+ 
+      '<button class="rr-kb-pause" data-action="discard" type="button" style="color:#f5a7a7">Discard & exit</button></div>';
   }
 
   function adaptiveStudioScreen(){
@@ -4869,6 +4871,7 @@
     const lib=window.REPRIVAL_EXERCISE_LIBRARY,owned=profile().equipment||[];
     const groups=[...new Set(Object.values(lib.gear).map(x=>x.group))];
     const dumbbells = getAvailableDumbbellLoads();
+    const kettlebells = Array.isArray(profile().kettlebellInventory)?profile().kettlebellInventory:[16];
     return `<div class="eyebrow">YOUR TRAINING SETUP</div><h1 class="page-title">Your equipment.</h1><p class="lead">Choose what you can actually use. Plans and the exercise catalogue will adapt to your kit; past sessions and your current plan are never automatically rewritten.</p>
       ${card(`<div class="row"><h3>Dumbbell Weight Inventory</h3><span class="label-tag">${dumbbells.length} weights</span></div>
         <form id="equipmentForm" class="stack mt12">
@@ -4877,6 +4880,7 @@
             <p class="fineprint" style="margin:4px 0 8px 0; color:#94a3b8;">Enter available hex/fixed dumbbell weights separated by commas or spaces. All dumbbell exercises (bench press, rows, curls, etc.) are logged and displayed per dumbbell. Overload recommendations and steppers strictly follow these available weights.</p>
             <input name="dumbbellInventory" value="${esc(dumbbells.join(', '))}" class="input" style="font-size:15px; font-weight:600; padding:10px;" required>
           </div>
+          <div class="field"><label style="font-weight:700;color:#f5ede6;font-size:13px;">Available Kettlebell Weights (kg)</label><p class="fineprint">Enter each kettlebell weight you own, separated by commas or spaces. These become your weight choices in KB workouts.</p><input name="kettlebellInventory" value="${esc(kettlebells.join(', '))}" class="input" inputmode="decimal" required></div>
           <div class="inventory-preview" style="background:#161a20; border:1px solid #2a313d; border-radius:10px; padding:12px; margin:8px 0;">
             <div style="font-size:12px; color:#cbd5e1; margin-bottom:4px;"><strong>Available Weights per Dumbbell:</strong></div>
             <div style="font-size:13px; font-weight:600; color:#d97241;">${dumbbells.map(w => w + ' kg').join(' · ')}</div>
@@ -5184,7 +5188,7 @@
     const prescribed=state.active.isCircuit
       ?prior.pair.restMin
       :prior.pair.id===next.pair.id?calcRest(prior.pair,rir):Math.max(60,calcRest(prior.pair,rir));
-    const seconds=state.active.isCircuit?prescribed:adjustedRestSeconds(prescribed,false);
+    const seconds=state.active.isCircuit?90:adjustedRestSeconds(prescribed,false);
     state.active.stage='rest';
     state.active.restSeconds=seconds;
     state.active.restNote=state.active.isCircuit?'Round complete · recover before the next circuit'
@@ -6184,6 +6188,16 @@
     if(action==='edit-history'){state.settings.editSessionId=String(state.lastSummary||state.history.at(-1)?.id||'');page='edit-history';render();return;}
     if(action==='last-summary'){state.lastSummary=String(state.history.at(-1)?.id||'');state.settings.editSessionId=state.lastSummary;page='summary';render();}
     if(action==='review-session'){const id=el.dataset.id; if(id){state.lastSummary=id; state.settings.editSessionId=id; page='summary'; render();window.scrollTo({top:0,left:0,behavior:'instant'});return;}}
+    if(action==='delete-workout'){
+      const id=String(el.dataset.id||'');const found=state.history.find(x=>String(x.id)===id);
+      if(found&&safeConfirm('Permanently delete this completed workout? Its sets will no longer count towards progress and Heat Zones.')){
+        state.history=state.history.filter(x=>String(x.id)!==id);
+        if(String(state.lastSummary)===id)state.lastSummary=state.history.at(-1)?.id||null;
+        if(String(state.settings.editSessionId)===id)state.settings.editSessionId=null;
+        save();page='progress';render();showToast('Workout deleted.');
+      }
+      return;
+    }
     if(action==='export')exportBackup();
     if(action==='import-v5')importV5Baseline();
     if(action==='open-generator'){openOneOffGeneratorModal();return;}
@@ -6202,6 +6216,12 @@
       return;
     }
     if(action==='start-circuit'){startCircuitFromDraft();return;}
+    if(action==='shuffle-circuit'&&circuitDraft){
+      const settings=profile().circuitSettings||{};
+      try{circuitDraft=window.RepRivalAdaptiveCircuits.create({...settings,rest:90,metrics:heatData(7),history:state.history,variant:Date.now()%100000});render();}
+      catch(error){showToast(error?.message||'Unable to shuffle circuit.');}
+      return;
+    }
     if(action==='shuffle-generator'){
       const dur = Number(document.querySelector('#genDurationSelect')?.value || generatorDraft?.duration || 15);
       const gear = document.querySelector('#genGearSelect')?.value || generatorDraft?.gearMode || 'owned';
@@ -6291,7 +6311,7 @@
       const settings={
         focus:String(f.get('focus')||'full_body'),
         count:Number(f.get('count')||5),rounds:Number(f.get('rounds')||3),
-        reps:Number(f.get('reps')||10),rest:Number(f.get('rest')||75),
+        reps:Math.max(1,Math.min(40,Number(f.get('reps')||10))),rest:90,
         selectedIds:f.getAll('circuitExercise').map(String)
       };
       settings.poolIds=settings.selectedIds;
@@ -6306,9 +6326,7 @@
         profile().workoutMode='kb';
         circuitDraft=fresh;
         save();
-        const startBtn=document.querySelector('[data-action="start-circuit"]');
-        if(startBtn)startBtn.click();
-        else startCircuitFromDraft();
+        page='workout';render();
       }catch(error){showToast(error?.message||'Check circuit settings.');}
       return;
     }
@@ -6381,7 +6399,12 @@
           profile().dumbbellInventory = [...new Set(parsed)].sort((a,b) => a - b);
         }
       }
-      save();render();showToast('Equipment and dumbbell inventory saved');return;
+      const kbRaw=String(f.get('kettlebellInventory')||'').trim();
+      const kbParsed=kbRaw.split(/[\s,]+/).map(Number).filter(n=>Number.isFinite(n)&&n>0&&n<=100);
+      if(!kbParsed.length){showToast('Add at least one valid kettlebell weight.');return;}
+      profile().kettlebellInventory=[...new Set(kbParsed)].sort((a,b)=>a-b);
+      circuitDraft=null;
+      save();render();showToast('Equipment and weight inventories saved');return;
     }
     if(id==='recoverySettingsForm'){
       e.preventDefault();const val=String(new FormData(e.target).get('recoveryHours'));
