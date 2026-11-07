@@ -4477,7 +4477,19 @@
     const owned=athlete.equipment||[],lib=window.REPRIVAL_EXERCISE_LIBRARY;
     const eligible=lib.entries.filter(e=>lib.compatible(e,owned));
     const grouped=Object.fromEntries(v3.CATEGORIES.map(c=>[c,[]]));
-    eligible.forEach(e=>grouped[v3.category(e)].push(e));
+    eligible.forEach(e=>{
+      const primaryCategory=v3.category(e);
+      grouped[primaryCategory].push(e);
+      // The selector is a discovery tool, not a muscle-credit calculation:
+      // strong secondary glute exercises can be FOUND under Glutes too.
+      // One exercise ID, one frequency preference, one generator entry.
+      if(primaryCategory!=='Glutes'){
+        const secondary=window.RepRivalIntelligence?.getSecondaryContributions?.({exId:e.id,muscle:e.muscle})||[];
+        if(secondary.some(([muscle,factor])=>muscle==='Glutes'&&factor>=0.35)){
+          grouped.Glutes.push(e);
+        }
+      }
+    });
     const opts=(v)=>v3.FOCUSES.map(([key,label])=>'<option value="'+esc(key)+'" '+(key===v?'selected':'')+'>'+esc(label)+'</option>').join('');
     const categories=v3.CATEGORIES.filter(cat=>(grouped[cat]||[]).length>0);
     if(!categories.includes(adaptiveLibraryMuscle))adaptiveLibraryMuscle=categories[0]||null;
@@ -4489,6 +4501,7 @@
         '<div class="rr-adaptive-group-heading"><h4>'+esc(cat)+'</h4><span>'+list.length+' movements</span></div>'+
         '<div class="rr-adaptive-exercise-list">'+list.map(ex=>{
           const value=v3.pref(cfg,ex.id);
+          const crossListed=v3.category(ex)!==cat;
           let gear=(ex.equipment||[]).map(g=>lib.gear[g]?.name||g).join(' + ')||'No required equipment';
           if(ex.equipmentAlternatives)gear='Bench or stable step';
           if(ex.optionalEquipment?.includes('dumbbells')){
@@ -4503,10 +4516,10 @@
             ?'Stabilises: '+stabilisers.join(', ')+' (no additional sets)'
             :null;
           return '<article class="rr-element-exercise rr-adaptive-exercise" data-adaptive-item="'+esc((ex.name+' '+gear).toLocaleLowerCase())+'">'+
-            '<div class="rr-adaptive-exercise-info"><strong>'+esc(ex.name)+'</strong><small>'+esc(gear)+'</small>'+(ex.displayMuscle?'<small class="rr-adaptive-target">'+esc(ex.displayMuscle)+'</small>':'')+(secondaryText?'<small class="rr-adaptive-secondary">'+esc(secondaryText)+'</small>':'')+(supportText?'<small class="rr-adaptive-secondary">'+esc(supportText)+'</small>':'')+'</div>'+
+            '<div class="rr-adaptive-exercise-info"><strong>'+esc(ex.name)+'</strong><small>'+esc(gear)+'</small>'+(crossListed?'<small class="rr-adaptive-target">Primary: '+esc(v3.category(ex))+' · also targets '+esc(cat)+'</small>':'')+(ex.displayMuscle?'<small class="rr-adaptive-target">'+esc(ex.displayMuscle)+'</small>':'')+(secondaryText?'<small class="rr-adaptive-secondary">'+esc(secondaryText)+'</small>':'')+(supportText?'<small class="rr-adaptive-secondary">'+esc(supportText)+'</small>':'')+'</div>'+
             '<fieldset class="rr-adaptive-frequency" aria-label="'+esc(ex.name)+' appearances per rolling 7 days">'+
               '<legend>APPEARANCES / 7 DAYS</legend><div class="rr-adaptive-frequency-options">'+
-              [0,1,2,3].map(n=>'<label class="rr-adaptive-frequency-choice"><input type="radio" name="freq-'+esc(ex.id)+'" data-adaptive-frequency="'+esc(ex.id)+'" value="'+n+'" '+(value===n?'checked':'')+'><span><b>'+n+'</b><small>'+frequencyLabels[n]+'</small></span></label>').join('')+
+              [0,1,2,3].map(n=>'<label class="rr-adaptive-frequency-choice"><input type="radio" name="freq-'+esc(ex.id)+'-'+esc(cat)+'" data-adaptive-frequency="'+esc(ex.id)+'" value="'+n+'" '+(value===n?'checked':'')+'><span><b>'+n+'</b><small>'+frequencyLabels[n]+'</small></span></label>').join('')+
               '</div></fieldset></article>';
         }).join('')+'</div></section>';
     }).join('');
@@ -4521,7 +4534,7 @@
         '<div class="field"><label for="adaptiveWeeklyGoal">Sessions / week</label><select id="adaptiveWeeklyGoal" data-adaptive-weekly>'+[2,3,4,5,6].map(n=>'<option value="'+n+'" '+((cfg.frequency||3)===n?'selected':'')+'>'+n+' per week</option>').join('')+'</select></div></div>'+
         '<button class="btn primary full mt12" data-action="adaptive-generate" '+(!cfg.active||state.active?'disabled':'')+' type="button">Generate next adaptive workout</button>','section')+
       card('<section class="rr-adaptive-library" aria-label="Adaptive exercise preferences">'+
-        '<div class="rr-adaptive-library-head"><div><div class="eyebrow">BUILD YOUR EXERCISE POOL</div><h3>Exercise preferences</h3><p class="subhead">One version of each movement. Set a seven-day appearance limit; compound lifts also credit assisting muscles.</p></div><span class="label-tag">'+eligible.length+' available</span></div>'+
+        '<div class="rr-adaptive-library-head"><div><div class="eyebrow">BUILD YOUR EXERCISE POOL</div><h3>Exercise preferences</h3><p class="subhead">One preference per exercise. Multi-muscle movements can appear under more than one group, but are never counted twice.</p></div><span class="label-tag">'+eligible.length+' available</span></div>'+
         '<div class="rr-adaptive-library-controls">'+
           '<div class="field"><label for="adaptiveMuscleSelect">Muscle group</label><select id="adaptiveMuscleSelect" aria-controls="adaptiveExerciseGroups">'+muscleOptions+'</select></div>'+
           '<div class="field"><label for="adaptiveExerciseSearch">Find an exercise</label><input id="adaptiveExerciseSearch" type="search" placeholder="Search this muscle group" autocomplete="off"></div>'+
@@ -6272,6 +6285,14 @@
       const id=e.target.dataset.adaptiveFrequency;
       const cfg=profile().adaptive||(profile().adaptive={});
       cfg.exerciseFrequency=cfg.exerciseFrequency||{};cfg.exerciseFrequency[id]=Number(e.target.value);
+      // An exercise can appear under both its primary group and Glutes.
+      // Synchronise both displayed radio groups without duplicating the stored
+      // preference or altering workout history/generator IDs.
+      document.querySelectorAll('[data-adaptive-frequency]').forEach(input=>{
+        if(input.dataset.adaptiveFrequency===id && input!==e.target){
+          input.checked=input.value===e.target.value;
+        }
+      });
       persistAdaptiveConfig();return;
     }
     if(e.target.matches('[data-adaptive-default-focus]')){
