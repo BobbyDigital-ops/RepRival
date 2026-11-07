@@ -2833,7 +2833,8 @@ try {
     app.includes('if(a.isCircuit && next.pair.id===group.task.pair.id && next.round===group.task.round)'));
   assert('Existing rest countdown starts after each whole circuit round',
     app.includes("state.active.isCircuit?'Round complete")&&
-    app.includes('const prescribed=state.active.isCircuit'));
+    app.includes('const prescribed=state.active.isCircuit') &&
+    app.includes('state.active.isCircuit?prescribed:adjustedRestSeconds'));
   assert('Circuit sessions remain one-off and protect Adaptive rotations',
     app.includes("planId:'one-off',isOneOff:true,isCircuit:true"));
   assert('Circuit styling is mobile responsive and PWA has iPhone touch icon',
