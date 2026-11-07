@@ -117,6 +117,8 @@
  add('close_grip_barbell_press','Close-grip barbell bench press','Triceps',['barbell','bench','rack'],'combined');
  // LEGS
  add('goblet_squat','Goblet squat','Quads',['dumbbells'],'single',3,8,12);
+ add('kb_curl','Kettlebell curl','Biceps',['kettlebell'],'single',3,8,12,'Use a controlled grip; alternate sides if needed','per side');
+ add('kb_bent_row','Single-arm kettlebell row','Back',['kettlebell'],'single',3,8,12,'Support hand on thigh as needed; steady torso','per side');
  add('kb_goblet_squat','Kettlebell goblet squat','Quads',['kettlebell'],'single');
  add('db_front_squat','Double DB front squat','Quads',['dumbbells']);
  add('db_sumo_squat','DB sumo squat','Quads',['dumbbells'],'single');
