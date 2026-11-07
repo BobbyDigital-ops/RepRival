@@ -12,6 +12,7 @@ on:
       - fix/adaptive-glute-secondary-picker
       - feature/adaptive-kettlebell-circuits
       - fix/kettlebell-circuit-catalog
+      - feature/quick-kb-mode
   pull_request:
     branches:
       - migration/aistudio-to-vercel-2026-11-06
