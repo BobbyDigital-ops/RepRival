@@ -39,6 +39,19 @@
   const region=muscle=>muscle==='Core'?'core':
     ['Quads','Hamstrings','Glutes','Calves'].includes(muscle)?'lower':'upper';
   const targetFor=(muscle,focus)=>focusTargets[focus]?.[region(muscle)]||55;
+  // Circuit variety is about movement patterns, not only muscle labels.
+  // RDL, B-stance RDL and single-leg RDL all count as the same hip hinge.
+  const movementPattern=ex=>{
+    const id=ex.id||'';
+    if(/(?:rdl|deadlift)/.test(id))return 'deadlift';
+    if(/(?:squat)/.test(id))return 'squat';
+    if(/(?:lunge|split_squat|step_up)/.test(id))return 'lunge';
+    if(/(?:press|z_press)/.test(id))return 'press';
+    if(/(?:row)/.test(id))return 'row';
+    if(/(?:curl)/.test(id))return 'curl';
+    if(/(?:triceps_extension)/.test(id))return 'triceps';
+    return id;
+  };
   function choose({focus='full_body',count=5,selectedIds=[],poolIds=[],variant=0,previousIds=[],metrics=null,history=[]}={}){
     const available=eligible();
     const byId=new Map(available.map(x=>[x.id,x]));
@@ -59,7 +72,7 @@
       const used=new Set((session.logs||[]).filter(l=>l&&!l.skipped&&l.reps>0).map(l=>l.exId));
       for(const id of used)recent.set(id,(recent.get(id)||0)+1);
     }
-    const selected=[],represented=new Map();
+    const selected=[],represented=new Map(),representedPatterns=new Set();
     const preset=PRESETS[normalizedFocus]||PRESETS.full_body;
     const variantNumber=safeInt(variant,0,99999,0);
     const previous=new Set(Array.isArray(previousIds)?previousIds:[]);
@@ -75,8 +88,11 @@
     const hasUsefulMetrics=Object.values(weights).some(x=>x&&Number.isFinite(Number(x.stimulusScore)));
     while(selected.length<countSafe){
       let winner=null,best=-Infinity;
-      for(const ex of candidates){
-        if(selected.some(x=>x.id===ex.id))continue;
+      const unused=candidates.filter(ex=>!selected.some(x=>x.id===ex.id));
+      const distinct=unused.filter(ex=>!representedPatterns.has(movementPattern(ex)));
+      // When a custom pool has few patterns, allow repeats only as a last resort.
+      const available=distinct.length>=countSafe-selected.length?distinct:unused;
+      for(const ex of available){
         const zone=region(ex.muscle);
         const group=weights[ex.muscle]||weights[zone]||{};
         const stimulus=Number.isFinite(Number(group.stimulusScore))?Number(group.stimulusScore):55;
@@ -102,6 +118,7 @@
       }
       if(!winner)break;
       selected.push(winner);
+      representedPatterns.add(movementPattern(winner));
       const z=region(winner.muscle);
       represented.set(z,(represented.get(z)||0)+1);
     }
