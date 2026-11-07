@@ -30,34 +30,69 @@
     return [...available.filter(ex=>(ex.equipment||[]).includes('kettlebell')),
       ...available.filter(ex=>!(ex.equipment||[]).includes('kettlebell'))];
   }
-  function choose({focus='full_body',count=5,selectedIds=[],variant=0}={}){
-    const lib=window.REPRIVAL_EXERCISE_LIBRARY;
-    const available=eligible(),byId=new Map(available.map(x=>[x.id,x]));
-    const num=safeInt(count,2,8,5);
-    const chosen=[];
-    const append=id=>{const ex=byId.get(id);if(ex&&!chosen.some(x=>x.id===ex.id))chosen.push(ex);};
-    // User's manual selection takes priority; choices never include equipment
-    // outside the circuit's kettlebell / equipment-free allowance.
-    const manual=Array.isArray(selectedIds)?selectedIds.filter(id=>byId.has(id)):[];
-    if(manual.length){
-      manual.forEach(append);
-      return chosen.slice(0,num);
+  const focusTargets={
+    full_body:{upper:65,lower:55,core:45},
+    upper:{upper:75,lower:30,core:45},
+    lower:{upper:30,lower:75,core:45},
+    core:{upper:35,lower:35,core:65}
+  };
+  const region=muscle=>muscle==='Core'?'core':
+    ['Quads','Hamstrings','Glutes','Calves'].includes(muscle)?'lower':'upper';
+  const targetFor=(muscle,focus)=>focusTargets[focus]?.[region(muscle)]||55;
+  function choose({focus='full_body',count=5,selectedIds=[],poolIds=[],variant=0,metrics=null,history=[]}={}){
+    const available=eligible();
+    const byId=new Map(available.map(x=>[x.id,x]));
+    const countSafe=safeInt(count,2,8,5);
+    const actualPool=Array.isArray(poolIds)&&poolIds.length?poolIds:selectedIds;
+    const ids=Array.isArray(actualPool)&&actualPool.length
+      ? [...new Set(actualPool)].filter(id=>byId.has(id)) : available.map(x=>x.id);
+    const candidates=ids.map(id=>byId.get(id));
+    if(candidates.length<countSafe)throw new Error('Your exercise pool has '+candidates.length+
+      ' available movements. Add more or lower the exercise count.');
+    const normalizedFocus=PRESETS[focus]?focus:'full_body';
+    const weights=metrics&&typeof metrics==='object'?metrics:{};
+    const recent=new Map();
+    const cutoff=Date.now()-7*86400000;
+    for(const session of history||[]){
+      const at=Date.parse(session.endedAt||session.startedAt||'');
+      if(!Number.isFinite(at)||at<cutoff)continue;
+      const used=new Set((session.logs||[]).filter(l=>l&&!l.skipped&&l.reps>0).map(l=>l.exId));
+      for(const id of used)recent.set(id,(recent.get(id)||0)+1);
     }
-    const key=PRESETS[focus]?focus:'full_body';
-    const primary=PRESETS[key];
-    const rotation=safeInt(variant,0,10000,0)%primary.length;
-    const rotated=[...primary.slice(rotation),...primary.slice(0,rotation)];
-    rotated.forEach(append);
-    const suitable=available.filter(ex=>{
-      if(key==='upper')return ['Chest','Back','Biceps','Triceps','Side delts','Rear delts'].includes(ex.muscle);
-      if(key==='lower')return ['Quads','Hamstrings','Glutes','Calves'].includes(ex.muscle);
-      if(key==='core')return ['Core','Glutes','Back','Quads'].includes(ex.muscle);
-      return true;
-    });
-    // Prioritise weighted candidates; bodyweight core is selectable manually.
-    suitable.filter(ex=>(ex.equipment||[]).includes('kettlebell')).forEach(ex=>append(ex.id));
-    suitable.filter(ex=>ex.load==='bodyweight').forEach(ex=>append(ex.id));
-    return chosen.slice(0,num);
+    const selected=[],represented=new Map();
+    const preset=PRESETS[normalizedFocus]||PRESETS.full_body;
+    const variantNumber=safeInt(variant,0,99999,0);
+    const hasUsefulMetrics=Object.values(weights).some(x=>x&&Number.isFinite(Number(x.stimulusScore)));
+    while(selected.length<countSafe){
+      let winner=null,best=-Infinity;
+      for(const ex of candidates){
+        if(selected.some(x=>x.id===ex.id))continue;
+        const zone=region(ex.muscle);
+        const group=weights[ex.muscle]||weights[zone]||{};
+        const stimulus=Number.isFinite(Number(group.stimulusScore))?Number(group.stimulusScore):55;
+        const ready=Number.isFinite(Number(group.readinessScore))?Number(group.readinessScore):75;
+        const deficit=Math.max(0,targetFor(ex.muscle,normalizedFocus)-stimulus);
+        const base=hasUsefulMetrics?deficit*.9:0;
+        const priorInZone=represented.get(zone)||0;
+        const primaryAlready=selected.filter(x=>x.muscle===ex.muscle).length;
+        const rotationIndex=preset.indexOf(ex.id);
+        const presetPriority=rotationIndex>=0?Math.max(0,20-rotationIndex*2.2):0;
+        // Fill a balanced circuit even if history is sparse; when a user
+        // chooses a narrow pool, honour it rather than introducing exercises.
+        const diversity=priorInZone===0?19:-priorInZone*8;
+        const reusePenalty=primaryAlready*17+(recent.get(ex.id)||0)*17;
+        const tiredPenalty=ready<45?40:ready<60?15:0;
+        const determinism=[...ex.id].reduce((a,ch)=>a+ch.charCodeAt(0),0);
+        const tie=((determinism+variantNumber*37)%29)/100;
+        const score=base+presetPriority+diversity-reusePenalty-tiredPenalty+tie;
+        if(score>best){best=score;winner=ex;}
+      }
+      if(!winner)break;
+      selected.push(winner);
+      const z=region(winner.muscle);
+      represented.set(z,(represented.get(z)||0)+1);
+    }
+    return selected;
   }
   function create(options={}){
     const count=safeInt(options.count,2,8,5);
@@ -77,7 +112,7 @@
       sessionName:FOCUSES.find(x=>x[0]===focus)?.[1]+' Kettlebell Circuit',
       pairs:[{id:'KB-CIRCUIT',restMin:rest,restMax:rest,exercises}],
       estimatedMinutes:Math.ceil(rounds*exercises.length*.7+(rounds-1)*rest/60),
-      explanation:'Circuit: one exercise at a time, then rest after each complete round. Exercise choices can be changed before starting.'
+      explanation:'Adaptive chooses exercises from the saved pool, guided by recent training, muscle stimulus, readiness and session focus. One movement at a time; rest after each round.'
     };
   }
   window.RepRivalAdaptiveCircuits={PRESETS,FOCUSES,eligible,choose,create};
