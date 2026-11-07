@@ -5106,7 +5106,7 @@
     const prescribed=state.active.isCircuit
       ?prior.pair.restMin
       :prior.pair.id===next.pair.id?calcRest(prior.pair,rir):Math.max(60,calcRest(prior.pair,rir));
-    const seconds=adjustedRestSeconds(prescribed,false);
+    const seconds=state.active.isCircuit?prescribed:adjustedRestSeconds(prescribed,false);
     state.active.stage='rest';
     state.active.restSeconds=seconds;
     state.active.restNote=state.active.isCircuit?'Round complete · recover before the next circuit'
