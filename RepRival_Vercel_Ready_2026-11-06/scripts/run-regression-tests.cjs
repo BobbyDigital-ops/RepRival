@@ -2818,10 +2818,11 @@ try {
     ['Back','Quads','Side delts','Glutes'].every(m=>ready.pairs[0].exercises.some(e=>e.muscle===m)));
   assert('No unowned barbell, dumbbell or bench equipment is selected',
     ready.pairs[0].exercises.every(e=>(e.equipment||[]).every(g=>g==='kettlebell')));
-  assert('Custom circuit preserves chosen ordering, rep targets and rest',
-    (()=>{const c=circuit.create({focus:'upper',count:3,rounds:2,reps:7,rest:90,selectedIds:['kb_curl','kb_press','kb_bent_row']});
-    return c.pairs[0].exercises.map(e=>e.id).join(',')==='kb_curl,kb_press,kb_bent_row' &&
-      c.pairs[0].exercises.every(e=>e.sets===2&&e.min===7&&e.max===7) &&
+  assert('Custom circuit chooses only pool movements and preserves rep targets and rest',
+    (()=>{const pool=['kb_curl','kb_press','kb_bent_row'];
+    const c=circuit.create({focus:'upper',count:3,rounds:2,reps:7,rest:90,poolIds:pool});
+    return c.pairs[0].exercises.length===3 &&
+      c.pairs[0].exercises.every(e=>pool.includes(e.id)&&e.sets===2&&e.min===7&&e.max===7) &&
       c.pairs[0].restMin===90;})());
   assert('Circuit UI exposes focus, exercises, rounds, target reps and rest controls',
     (()=>{const s=test.circuitScreen();return ['circuitFocus','circuitCount','circuitRounds','circuitReps',
@@ -2871,12 +2872,15 @@ try {
    (()=>{const a=circuit.create({focus:'full_body',count:5,rounds:3});
    return a.pairs[0].exercises.length===5&&a.pairs[0].exercises.every(e=>e.equipment.includes('kettlebell'))&&
    a.pairs[0].exercises.some(e=>e.id==='kb_bent_row');})());
- assert('Custom weighted lunge, triceps, chest, core selection preserves order',
+ assert('Custom weighted lunge, triceps, chest, core pool limits generated choices',
    (()=>{const ids=['kb_forward_lunge','kb_triceps_extension','kb_floor_press','kb_russian_twist'];
-   const a=circuit.create({focus:'full_body',selectedIds:ids,count:4,rounds:2,reps:8});
-   return a.pairs[0].exercises.map(e=>e.id).join('|')===ids.join('|');})());
- assert('Kettlebell circuit picker labels weighted options correctly',
-   t.circuitScreen().includes('Kettlebell · weighted')&&!t.circuitScreen().includes('No equipment'));
+   const a=circuit.create({focus:'full_body',poolIds:ids,count:4,rounds:2,reps:8});
+   return a.pairs[0].exercises.length===4 &&
+     a.pairs[0].exercises.every(e=>ids.includes(e.id)&&e.sets===2&&e.min===8);})());
+ assert('Kettlebell circuit picker lists weighted kettlebell movements',
+   t.circuitScreen().includes('My exercise pool')&&
+   t.circuitScreen().includes('Kettlebell floor chest press')&&
+   t.circuitScreen().includes('Single-arm kettlebell row'));
  assert('Kettlebell load detection uses singular library equipment identifier',
    t.getAvailableLoadsForExercise(lib.byId.kb_bent_row).some(n=>n>0));
  assert('Every KB movement allows explicitly choosing zero without losing real weights',
