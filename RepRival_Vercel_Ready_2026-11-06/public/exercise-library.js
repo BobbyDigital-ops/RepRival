@@ -198,7 +198,7 @@
  add('suitcase_carry','Suitcase carry (steps per side)','Core',['dumbbells'],'single',3,25,50,'Log steps as reps','per side');
  add('kb_suitcase_carry','Kettlebell suitcase carry (steps)','Core',['kettlebell'],'single',3,25,50,'Log steps as reps','per side');
  add('kb_clean','Kettlebell clean','Hamstrings',['kettlebell'],'single',3,6,10,'','per side');
- add('kb_press','Kettlebell strict press','Side delts',['kettlebell'],'single',3,6,10,'','per side');
+ add('kb_press','Kettlebell shoulder press','Side delts',['kettlebell'],'single',3,6,10,'','per side');
  add('kb_clean_press','Kettlebell clean and press','Side delts',['kettlebell'],'single',3,6,10,'','per side');
  add('kb_halo','Kettlebell halo','Core',['kettlebell'],'single',3,8,12);
  add('kb_turkish_getup','Kettlebell Turkish get-up','Core',['kettlebell'],'single',2,2,5,'Technique-intensive; start light','per side');
