@@ -91,7 +91,7 @@
       const unused=candidates.filter(ex=>!selected.some(x=>x.id===ex.id));
       const distinct=unused.filter(ex=>!representedPatterns.has(movementPattern(ex)));
       // When a custom pool has few patterns, allow repeats only as a last resort.
-      const available=distinct.length>=countSafe-selected.length?distinct:unused;
+      const available=distinct.length?distinct:unused;
       for(const ex of available){
         const zone=region(ex.muscle);
         const group=weights[ex.muscle]||weights[zone]||{};
