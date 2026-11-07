@@ -4508,6 +4508,7 @@
     if(empty)empty.hidden=visible>0;
   }
   let circuitDraft=null;
+  let circuitShuffleCount=0;
   function startCircuitFromDraft(){
     if(state.active){showToast('Finish your current workout first.');return;}
     if(!circuitDraft){showToast('Build the circuit first.');return;}
@@ -6222,7 +6223,13 @@
     if(action==='start-circuit'){startCircuitFromDraft();return;}
     if(action==='shuffle-circuit'&&circuitDraft){
       const settings=profile().circuitSettings||{};
-      try{circuitDraft=window.RepRivalAdaptiveCircuits.create({...settings,rest:90,metrics:heatData(7),history:state.history,variant:Date.now()%100000});render();}
+      try{
+        const previousIds=circuitDraft.pairs.flatMap(p=>p.exercises.map(ex=>ex.id));
+        circuitShuffleCount++;
+        circuitDraft=window.RepRivalAdaptiveCircuits.create({...settings,rest:90,metrics:heatData(7),history:state.history,
+          previousIds,variant:circuitShuffleCount});
+        render();
+      }
       catch(error){showToast(error?.message||'Unable to shuffle circuit.');}
       return;
     }
@@ -6329,6 +6336,7 @@
         profile().circuitSettings=settings;
         profile().workoutMode='kb';
         circuitDraft=fresh;
+        circuitShuffleCount=0;
         save();
         page='workout';render();
       }catch(error){showToast(error?.message||'Check circuit settings.');}
