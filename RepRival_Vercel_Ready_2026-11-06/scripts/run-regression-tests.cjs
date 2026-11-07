@@ -2928,6 +2928,14 @@ try {
   !app.includes('settings.selectedIds.length!==settings.count'));
  const selected=['kb_bent_row','kb_goblet_squat','kb_press','kb_swing','kb_reverse_lunge','kb_curl','kb_russian_twist'];
  const chosen=kb.create({focus:'full_body',count:5,poolIds:selected,rounds:3,reps:10,variant:2});
+ const initialKB=kb.create({focus:'full_body',count:5,rounds:3,reps:10,variant:1});
+ const initialIds=initialKB.pairs[0].exercises.map(ex=>ex.id);
+ const shuffledKB=kb.create({focus:'full_body',count:5,rounds:3,reps:10,variant:2,previousIds:initialIds});
+ const shuffledIds=shuffledKB.pairs[0].exercises.map(ex=>ex.id);
+ assert('KB shuffle changes the entire circuit rather than keeping first two fixed',
+  initialIds.length===5&&shuffledIds.length===5&&shuffledIds[0]!==initialIds[0]&&shuffledIds[1]!==initialIds[1]);
+ assert('KB shoulder press is discoverable by name',
+  kb.eligible().some(ex=>ex.id==='kb_press'&&/shoulder press/i.test(ex.name)));
  assert('Generator chooses five distinct exercises from a seven-movement pool',
   chosen.pairs[0].exercises.length===5&&chosen.pairs[0].exercises.every(ex=>selected.includes(ex.id))&&
   new Set(chosen.pairs[0].exercises.map(ex=>ex.id)).size===5);
