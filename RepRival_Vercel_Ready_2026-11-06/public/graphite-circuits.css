@@ -1,0 +1,45 @@
+/* RepRival / Adaptive kettlebell circuit UI — graphite, compact mobile-first. */
+.rr-graphite-home .rr-circuit-page{display:flex;flex-direction:column;gap:15px;padding-bottom:25px;min-width:0}
+.rr-graphite-home .rr-circuit-page>.eyebrow{color:#bec7d0!important;font-size:10px!important;letter-spacing:1.6px!important}
+.rr-graphite-home .rr-circuit-page .page-title{font-size:clamp(26px,7vw,39px)!important;letter-spacing:-1.2px!important;margin:0!important}
+.rr-graphite-home .rr-circuit-page>.lead{font-size:13px!important;line-height:1.55!important;color:#bdc5ce!important;margin:0 0 4px!important}
+.rr-graphite-home .rr-circuit-page .card{background:linear-gradient(145deg,#292d33,#1c2025)!important;border:1px solid #4b535d!important}
+.rr-graphite-home .rr-circuit-page h3,.rr-graphite-home .rr-circuit-entry h3{font-size:20px!important;color:#f0f2f4!important;letter-spacing:-.55px!important;margin:0 0 12px!important}
+.rr-graphite-home .rr-circuit-form{display:flex;flex-direction:column;gap:14px}
+.rr-graphite-home .rr-circuit-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.rr-graphite-home .rr-circuit-form .field{min-width:0!important;margin:0!important}
+.rr-graphite-home .rr-circuit-form label:not(.rr-circuit-choice){color:#c1cad3!important;font-size:11px!important;font-weight:680!important}
+.rr-graphite-home .rr-circuit-form :is(select,input[type=number]){
+ box-sizing:border-box!important;width:100%!important;max-width:100%!important;
+ min-height:45px!important;border:1px solid #5b6571!important;border-radius:10px!important;
+ background:#181d23!important;color:#f0f3f5!important;font-size:14px!important;padding:9px 11px!important
+}
+.rr-graphite-home .rr-circuit-choices{background:#1c2228!important;border:1px solid #47515c!important;border-radius:12px!important;overflow:hidden!important}
+.rr-graphite-home .rr-circuit-choices>summary{cursor:pointer!important;display:flex!important;justify-content:space-between!important;align-items:center!important;gap:9px!important;padding:14px!important;color:#eef2f5!important;font-size:12px!important;font-weight:700!important}
+.rr-graphite-home .rr-circuit-choices>summary small{font-weight:450!important;color:#aab5c0!important;font-size:10px!important}
+.rr-graphite-home .rr-circuit-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:0 11px 12px}
+.rr-graphite-home .rr-circuit-choice{position:relative!important;display:flex!important;min-width:0!important;gap:10px!important;align-items:flex-start!important;border:1px solid #48535e!important;background:#272d34!important;border-radius:9px!important;padding:10px!important}
+.rr-graphite-home .rr-circuit-choice input[type=checkbox]{flex:0 0 19px!important;width:19px!important;height:19px!important;margin:0!important;accent-color:#bec6d0!important}
+.rr-graphite-home .rr-circuit-choice span{min-width:0!important;display:flex!important;flex-direction:column!important;gap:3px!important}
+.rr-graphite-home .rr-circuit-choice strong{font-size:12px!important;line-height:1.32!important;font-weight:650!important;color:#e7ecf1!important}
+.rr-graphite-home .rr-circuit-choice small{font-size:10px!important;color:#a6b2bf!important}
+.rr-graphite-home .rr-circuit-choice:has(input:checked){background:#3c444e!important;border-color:#aab6c1!important}
+.rr-graphite-home .rr-circuit-buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px;min-width:0}
+.rr-graphite-home .rr-circuit-buttons .btn{font-size:13px!important;min-height:46px!important;padding:9px!important;white-space:normal!important}
+.rr-graphite-home .rr-circuit-preview ol{list-style:none!important;padding:0!important;margin:13px 0!important;display:flex!important;flex-direction:column!important;gap:8px!important;counter-reset:circuits!important}
+.rr-graphite-home .rr-circuit-preview li{counter-increment:circuits;display:flex!important;align-items:center!important;flex-wrap:wrap!important;gap:6px 12px!important;min-height:42px!important;background:#232a31!important;border:1px solid #48515b!important;border-radius:10px!important;padding:9px 12px!important}
+.rr-graphite-home .rr-circuit-preview li:before{content:counter(circuits);font-size:12px!important;font-weight:780!important;color:#f1f4f5!important;background:#3f4851!important;padding:4px 8px;border-radius:7px}
+.rr-graphite-home .rr-circuit-preview li strong{font-size:13px!important;color:#f1f3f5!important}
+.rr-graphite-home .rr-circuit-preview li small{margin-left:auto;font-size:11px!important;color:#b2bdc8!important}
+.rr-graphite-home .rr-circuit-preview .btn{min-height:49px!important}
+.rr-graphite-home .rr-circuit-entry{display:flex;flex-direction:column;gap:8px}
+.rr-graphite-home .rr-circuit-entry .subhead{font-size:12px!important;line-height:1.45!important;margin:0 0 5px!important}
+.rr-graphite-home .rr-circuit-entry button{align-self:flex-start!important}
+@media(max-width:550px){
+ .rr-graphite-home .rr-circuit-list{grid-template-columns:1fr}
+ .rr-graphite-home .rr-circuit-buttons{grid-template-columns:1fr}
+ .rr-graphite-home .rr-circuit-choices>summary{align-items:flex-start!important;flex-direction:column!important}
+ .rr-graphite-home .rr-circuit-fields{gap:9px}
+ .rr-graphite-home .rr-circuit-preview li small{margin-left:0}
+}
+@media(max-width:350px){.rr-graphite-home .rr-circuit-fields{grid-template-columns:1fr}}
