@@ -70,7 +70,7 @@
         const zone=region(ex.muscle);
         const group=weights[ex.muscle]||weights[zone]||{};
         const stimulus=Number.isFinite(Number(group.stimulusScore))?Number(group.stimulusScore):55;
-        const ready=Number.isFinite(Number(group.readinessScore))?Number(group.readinessScore):75;
+        const ready=group.readinessScore!=null&&Number.isFinite(Number(group.readinessScore))?Number(group.readinessScore):75;
         const deficit=Math.max(0,targetFor(ex.muscle,normalizedFocus)-stimulus);
         const base=hasUsefulMetrics?deficit*.9:0;
         const priorInZone=represented.get(zone)||0;
