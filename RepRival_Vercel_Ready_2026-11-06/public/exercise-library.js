@@ -124,7 +124,6 @@
  add('kb_forward_lunge','Kettlebell forward lunge','Quads',['kettlebell'],'single',3,8,12,'Hold bell goblet or suitcase style','per leg');
  add('kb_walking_lunge','Kettlebell walking lunge','Quads',['kettlebell'],'single',3,8,16,'Hold bell in goblet position or at side','per leg');
  add('kb_split_squat','Kettlebell split squat','Quads',['kettlebell'],'single',3,8,12,'Stationary stance, bell held securely','per leg');
- add('kb_step_back_lunge','Kettlebell alternating reverse lunge','Quads',['kettlebell'],'single',3,8,14,'Alternate legs, total reps','');
  add('kb_glute_bridge','Kettlebell glute bridge','Glutes',['kettlebell'],'single',3,10,15,'Bell supported securely at hips','');
  add('kb_single_leg_rdl','Single-leg kettlebell RDL','Hamstrings',['kettlebell'],'single',3,8,12,'Hinge slowly with balanced stance','per leg');
  add('kb_staggered_rdl','B-stance kettlebell Romanian deadlift','Hamstrings',['kettlebell'],'single',3,8,12,'Rear foot lightly supported','per leg');
