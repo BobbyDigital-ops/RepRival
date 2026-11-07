@@ -2199,10 +2199,16 @@
         const validLoad = findConservativeAvailableLoad(rawWeight, availableLoads);
         baseWeight = validLoad;
       } else {
-        baseWeight = permitsBodyweight(ex) ? 0 : (availableLoads[0] || '');
+        // Honour an explicitly logged 0 kg load instead of silently
+        // substituting a kettlebell or a generic recommended weight.
+        baseWeight = rawWeight===0 ? 0 : (permitsBodyweight(ex)?0:(availableLoads.find(w=>w>0)||''));
       }
       baseReps = Number(baselineLog.reps) || ex.min;
       baseRir = baselineLog.rir != null ? baselineLog.rir : '';
+    } else if (isKettlebellExercise(ex)) {
+      // A kettlebell circuit should start loaded when inventory permits,
+      // even though 0 kg remains an available manual choice.
+      baseWeight = availableLoads.find(w=>w>0)||0;
     } else if (ex.load === 'bodyweight' || permitsBodyweight(ex)) {
       baseWeight = 0;
     } else {
