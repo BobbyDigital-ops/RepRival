@@ -2547,7 +2547,7 @@ try {
   assert('Responsive Home supports muscle rows and workout-first overview',
     css.includes('.rr-g-muscle-row')&&css.includes('.rr-g-home-overview')&&css.includes('@media(max-width:360px)'));
   const index=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
-  assert('Second-pass assets cache-busted for mobile',index.includes('graphite-stage1.css?v=5')&&index.includes('app.js?v=adaptive-catalog-audit1'));
+  assert('Second-pass assets cache-busted for mobile',index.includes('graphite-stage1.css?v=5')&&index.includes('app.js?v=adaptive-glutes2'));
 } catch(err) {
   assert('Suite 50 Exception: '+err.message,false);
 }
@@ -2679,7 +2679,7 @@ try {
   assert('Google popup resolves via genuine Firebase auth observer or times out visibly',cloud.includes('Promise.race([popup, authenticated, stalled])')&&cloud.includes('auth/popup-timeout'));
   assert('App closes auth overlay on a confirmed sign-in',source.includes("if(authDialog?.open)authDialog.close()"));
   assert('Cloud sync avoids simultaneous duplicate initial reads',source.includes('cloudSyncInFlight&&cloudSyncUserId===user.uid'));
-  assert('Phone app refreshes app JS and offline Graphite assets',index.includes('/app.js?v=adaptive-catalog-audit1')&&sw.includes('graphite-polish.css')&&sw.includes('graphite-session.css'));
+  assert('Phone app refreshes app JS and offline Graphite assets',index.includes('/app.js?v=adaptive-glutes2')&&sw.includes('graphite-polish.css')&&sw.includes('graphite-session.css'));
 } catch(err) {
   assert('Suite 54 Exception: '+err.message,false);
 }
@@ -2750,6 +2750,48 @@ try {
     window.RepRivalTest.adaptiveStudioScreen().includes('Also trains:'));
 } catch(err){
   assert('Suite 55 Exception: '+err.message,false);
+}
+
+// -----------------------------------------------------------------------------
+// SUITE 56: Multi-muscle exercise discovery without duplicated training choices
+// -----------------------------------------------------------------------------
+console.log('\n--- SUITE 56: Glutes multi-muscle discovery ---');
+try {
+  const app=fs.readFileSync(path.join(__dirname,'../public/app.js'),'utf8');
+  const library=window.REPRIVAL_EXERCISE_LIBRARY;
+  const v3=window.RepRivalAdaptiveV3;
+  const t=window.RepRivalTest;
+  const historyBefore=t.getState().history.map(w=>w.id).join('|');
+  const html=t.adaptiveStudioScreen();
+  const glutesStart=html.indexOf('data-adaptive-muscle="Glutes"');
+  const glutesEnd=html.indexOf('</section>',glutesStart);
+  const glutes=html.slice(glutesStart,glutesEnd);
+  assert('Glutes category is available',glutesStart>=0&&glutesEnd>glutesStart);
+  assert('Reverse lunges are discoverable under Glutes',
+    glutes.includes('Reverse lunge')&&glutes.includes('Primary: Quads'));
+  assert('Romanian deadlifts are discoverable under Glutes',
+    glutes.includes('Romanian deadlift')&&glutes.includes('Primary: Hamstrings'));
+  assert('Glute cross-listing retains the actual primary category',
+    v3.category(library.byId.reverse_lunge)==='Quads' &&
+    v3.category(library.byId.db_romanian_deadlift)==='Hamstrings');
+  assert('Lunges and RDL still award secondary Glutes credit',
+    window.RepRivalIntelligence.getSecondaryContributions({exId:'reverse_lunge',muscle:'Quads'})
+      .some(x=>x[0]==='Glutes'&&x[1]>=.35) &&
+    window.RepRivalIntelligence.getSecondaryContributions({exId:'db_romanian_deadlift',muscle:'Hamstrings'})
+      .some(x=>x[0]==='Glutes'&&x[1]>=.35));
+  assert('No duplicate exercise objects are added to canonical catalogue',
+    new Set(library.entries.map(e=>e.id)).size===library.entries.length);
+  assert('Cross-listed radio groups have distinct DOM names and shared preference IDs',
+    html.includes('name="freq-reverse_lunge-Quads"') &&
+    html.includes('name="freq-reverse_lunge-Glutes"') &&
+    glutes.includes('data-adaptive-frequency="reverse_lunge"'));
+  assert('Changing one exercise preference synchronises its cross-listed controls',
+    app.includes("input.dataset.adaptiveFrequency===id && input!==e.target") &&
+    app.includes("input.checked=input.value===e.target.value"));
+  assert('Merely rendering the cross-list does not mutate history',
+    historyBefore===t.getState().history.map(w=>w.id).join('|'));
+} catch(err){
+  assert('Suite 56 Exception: '+err.message,false);
 }
 
 console.log('\n================================================================');
