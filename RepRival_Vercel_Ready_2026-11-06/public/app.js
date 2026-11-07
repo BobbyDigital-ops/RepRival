@@ -5298,7 +5298,9 @@
       }
 
       const next = tasks[a.taskIndex];
-      if(pbEvents.length) celebratePB(pbEvents[0].ex, pbEvents[0].log, pbEvents[0].prev);
+      // Do not interrupt a fast kettlebell circuit with a full-screen PB
+      // celebration; PRs remain recorded in the normal workout summary.
+      if(pbEvents.length && !a.isCircuit) celebratePB(pbEvents[0].ex, pbEvents[0].log, pbEvents[0].prev);
 
       // On final set of workout (or when all sets completed/skipped), do NOT enter rest; prompt directly to finish workout.
       if(!next || a.taskIndex >= tasks.length || a.logs.filter(Boolean).length >= tasks.length){
