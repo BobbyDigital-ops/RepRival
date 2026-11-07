@@ -1922,13 +1922,16 @@
   }
 
   function isKettlebellExercise(ex){
-    if(!ex) return false;
-    if(ex.load === 'bodyweight') return false;
-    if(ex.equipment && ex.equipment.includes('kettlebells')) return true;
-    if(/(\bkb\b|kettlebell)/i.test(ex.name || '')) return true;
-    const libEx = window.REPRIVAL_EXERCISE_LIBRARY?.byId?.[ex.id || ex.exId];
-    if(libEx?.equipment?.includes('kettlebells')) return true;
-    return false;
+    if(!ex||ex.load==='bodyweight')return false;
+    const libEx=window.REPRIVAL_EXERCISE_LIBRARY?.byId?.[ex.id||ex.exId];
+    return !!(
+      ex.equipment?.includes('kettlebell')||
+      ex.optionalEquipment?.includes('kettlebell')||
+      libEx?.equipment?.includes('kettlebell')||
+      libEx?.optionalEquipment?.includes('kettlebell')||
+      /^(kb_|kettlebell)/i.test(String(ex.id||ex.exId||''))||
+      /kettlebell/i.test(String(ex.name||''))
+    );
   }
 
   const DEFAULT_DUMBBELL_INVENTORY = [5, 7.5, 10, 12.5, 15, 17.5, 20, 22.5, 25, 27.5];
@@ -1987,9 +1990,9 @@
     }
     if(isKettlebellExercise(ex)){
       const inv = (profile()?.kettlebellInventory && profile().kettlebellInventory.length) ? profile().kettlebellInventory : [16];
-      const list = [...new Set(inv)].sort((a,b) => a - b);
-      if(permitsBodyweight(ex)) list.unshift(0);
-      return list;
+      const list = [...new Set(inv.map(Number).filter(n=>Number.isFinite(n)&&n>0))].sort((a,b) => a - b);
+      // Keep 0 kg as an unweighted rehearsal; use the actual bell when loaded.
+      return [0,...list];
     }
     // Barbell, cable, machine, etc.
     const step = 2.5;
@@ -2025,6 +2028,9 @@
     const w = Number(weight) || 0;
     if(ex?.load === 'bodyweight' || (w === 0 && permitsBodyweight(ex))){
       return '0 kg · Bodyweight';
+    }
+    if(isKettlebellExercise(ex)){
+      return w===0?'0 kg · Unweighted':'Kettlebell · '+fmt(w)+' kg';
     }
     if(isDumbbellExercise(ex)){
       const inv = getAvailableDumbbellLoads();
@@ -4484,7 +4490,10 @@
     const all=builder.eligible();
     const selected=new Set(saved.selectedIds||[]);
     const option=(value,label,current)=>'<option value="'+esc(value)+'" '+(String(value)===String(current)?'selected':'')+'>'+esc(label)+'</option>';
-    const tiles=all.map(ex=>'<label class="rr-circuit-choice"><input type="checkbox" name="circuitExercise" value="'+esc(ex.id)+'" '+(selected.has(ex.id)?'checked':'')+'><span><strong>'+esc(ex.name)+'</strong><small>'+esc(ex.muscle)+' · '+((ex.equipment||[]).includes('kettlebell')?'Kettlebell':'No equipment')+'</small></span></label>').join('');
+    const tiles=all.map(ex=>{
+      const kb=(ex.equipment||[]).includes('kettlebell');
+      return '<label class="rr-circuit-choice"><input type="checkbox" name="circuitExercise" value="'+esc(ex.id)+'" '+(selected.has(ex.id)?'checked':'')+'><span><strong>'+esc(ex.name)+'</strong><small>'+esc(ex.muscle)+' · '+(kb?'Kettlebell · weighted':'Bodyweight core')+'</small></span></label>';
+    }).join('');
     return '<div class="rr-circuit-page">'+
       '<div class="eyebrow">ADAPTIVE · KETTLEBELL CIRCUITS</div><h1 class="page-title">Kettlebell circuits.</h1>'+
       '<p class="lead">Choose a ready-made full-body session or select your own movements. Log one exercise at a time, then rest after each round.</p>'+
@@ -4496,7 +4505,7 @@
           '<div class="field"><label for="circuitReps">Target reps / exercise</label><input id="circuitReps" name="reps" type="number" min="1" max="40" value="'+(Number(saved.reps)||10)+'"></div>'+
           '<div class="field"><label for="circuitRest">Rest between rounds</label><select id="circuitRest" name="rest">'+[30,45,60,75,90,120,150,180].map(n=>option(n,n+' seconds',saved.rest||75)).join('')+'</select></div>'+
         '</div>'+
-        '<details class="rr-circuit-choices" '+(selected.size?'open':'')+'><summary>Choose specific exercises <small>optional · leave empty for a ready-made session</small></summary>'+
+        '<details class="rr-circuit-choices" '+(selected.size?'open':'')+'><summary>Choose specific exercises <small>weighted kettlebell first · bodyweight core optional</small></summary>'+
           '<div class="rr-circuit-list">'+tiles+'</div></details>'+
         '<div class="rr-circuit-buttons"><button type="button" class="btn outline" data-action="circuit-preset">Use ready-made selection</button>'+
           '<button type="submit" class="btn primary">Build circuit</button></div></form>','section')+
