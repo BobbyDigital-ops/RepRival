@@ -2826,7 +2826,7 @@ try {
       c.pairs[0].restMin===90;})());
   assert('Circuit UI exposes focus, exercises, rounds, target reps and rest controls',
     (()=>{const s=test.circuitScreen();return ['circuitFocus','circuitCount','circuitRounds','circuitReps',
-    'circuitRest','circuitExercise','circuit-preset','circuitBuilderForm'].every(x=>s.includes(x));})());
+    'name="rest" value="90"','circuitExercise','circuit-preset','circuitBuilderForm'].every(x=>s.includes(x));})());
   assert('Generator and manual selections do not alter stored workout history',
     before===JSON.stringify(test.getState().history));
   assert('Live circuit logging shows one movement per screen and skips in-round rest',
@@ -2835,7 +2835,7 @@ try {
   assert('Existing rest countdown starts after each whole circuit round',
     app.includes("state.active.isCircuit?'Round complete")&&
     app.includes('const prescribed=state.active.isCircuit') &&
-    app.includes('state.active.isCircuit?prescribed:adjustedRestSeconds'));
+    app.includes('state.active.isCircuit?90:adjustedRestSeconds'));
   assert('Circuit sessions remain one-off and protect Adaptive rotations',
     app.includes("planId:'one-off',isOneOff:true,isCircuit:true"));
   assert('Circuit styling is mobile responsive and PWA has iPhone touch icon',
@@ -2912,8 +2912,15 @@ try {
  assert('Circuit launcher is directly accessible with a Workout toggle',
   app.includes("if(!state.active&&profile().workoutMode==='kb')return circuitScreen()")&&
   app.includes('switch-workout-kb')&&app.includes('switch-workout-standard'));
- assert('One-button start is built into Workout screen',
-  picker.includes('id="circuitBuilderForm"')&&picker.includes('Start circuit'));
+ assert('Circuit preview is required before starting',
+  picker.includes('id="circuitBuilderForm"')&&picker.includes('Preview circuit')&&
+  app.includes('data-action="shuffle-circuit"')&&app.includes('data-action="start-circuit"'));
+ assert('Reps control uses numeric input, rest is fixed at 90 seconds',
+  picker.includes('<input id="circuitReps"')&&picker.includes('name="rest" value="90"')&&
+  !picker.includes('<select id="circuitReps"'));
+ assert('Kettlebell inventory and explicit discard/delete are available',
+  app.includes('name="kettlebellInventory"')&&app.includes('data-action="discard"')&&
+  app.includes('data-action="delete-workout"'));
  assert('Pool description clarifies that choices are not fixed exercises',
   picker.includes('My exercise pool')&&picker.includes('Adaptive may choose from'));
  assert('Pool has minimum size but does not require exactly five choices',
