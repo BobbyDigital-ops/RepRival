@@ -1809,7 +1809,7 @@ try {
   const twoDbLoads = RepRivalTest.getAvailableLoadsForExercise(twoDbEx);
   const singleDbLoads = RepRivalTest.getAvailableLoadsForExercise(singleDbEx);
   
-  assert('Kettlebell inventory uses default [16] if not set', kbLoads.length === 1 && kbLoads[0] === 16);
+  assert('Kettlebell inventory uses default 16 kg plus optional 0 kg setting', kbLoads.includes(16) && kbLoads.includes(0) && kbLoads.length===2);
   assert('Single dumbbell inventory uses default range [5, 7.5, ... 27.5]', singleDbLoads.length > 5 && singleDbLoads[0] === 5 && singleDbLoads.at(-1) === 27.5);
   assert('Two-dumbbell combined loads start at 10 kg (5 kg each * 2) and reach 55 kg', twoDbLoads[0] === 10 && twoDbLoads.at(-1) === 55);
   assert('Kettlebell and dumbbell inventories are separate', JSON.stringify(kbLoads) !== JSON.stringify(twoDbLoads));
