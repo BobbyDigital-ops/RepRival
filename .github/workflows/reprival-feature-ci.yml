@@ -9,6 +9,7 @@ on:
       - design/graphite-compact-workout
       - fix/google-auth-and-cool-heat-zones
       - fix/adaptive-catalog-muscle-audit
+      - fix/adaptive-glute-secondary-picker
   pull_request:
     branches:
       - migration/aistudio-to-vercel-2026-11-06
