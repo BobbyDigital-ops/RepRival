@@ -2383,7 +2383,7 @@
     }
     if(a.stage==='feedback')return feedbackView();
     const group=fullRound(tasks,a.taskIndex);
-    const activeGroupItems = (a.isCircuit ? group.items.filter(t=>t.index===a.taskIndex) : group.items)
+    const activeGroupItems = group.items
       .filter(t => !a.logs[t.index]?.skipped);
     if(!activeGroupItems.length){
       a.taskIndex = group.end + 1;
@@ -4559,35 +4559,36 @@
   }
 
   function circuitLiftScreen(tasks,task){
-    const a=state.active,ex=task.ex,idx=task.index;
-    const values=resolveSetValues(task,a);
-    const equipment=getAvailableLoadsForExercise(ex);
-    const saved=a.circuitSelections?.[ex.id]||{};
-    const savedWeight=a.drafts?.['weight-'+idx]??saved.weight;
-    const weight=savedWeight!==undefined?Number(savedWeight):Number(values.weight);
-    const options=[...new Set(equipment)].sort((x,y)=>x-y).map(w=>
-      '<option value="'+w+'" '+(Math.abs(w-weight)<.01?'selected':'')+'>'+esc(w===0?'0 kg · unweighted':w+' kg')+'</option>').join('');
+    const a=state.active;
+    const roundItems=fullRound(tasks,a.taskIndex).items.filter(t=>!a.logs[t.index]?.skipped);
     const progress=a.logs.filter(Boolean).length;
-    const next=tasks[idx+1];
-    const lastInRound=!next||next.round!==task.round;
-    const reps=Math.min(99,Math.max(1,Number(a.drafts?.['reps-'+idx]??saved.reps??values.reps)||ex.min));
-    const rir=Math.max(0,Math.min(5,Number(saved.rir??3)));
-    return '<div class="rr-kb-live"><div class="rr-kb-live-top"><span>ROUND '+task.round+'/'+task.rounds+'</span>'+
-      '<span>'+(task.ei+1)+'/'+task.pair.exercises.length+' MOVEMENTS</span></div>'+
+    const finalRound=roundItems[0]?.round===roundItems[0]?.rounds;
+    const rows=roundItems.map((t,i)=>{
+      const ex=t.ex,idx=t.index,values=resolveSetValues(t,a);
+      const saved=a.circuitSelections?.[ex.id]||{};
+      const selected=Number(a.drafts?.['weight-'+idx]??saved.weight??values.weight);
+      const reps=Math.min(99,Math.max(1,Number(a.drafts?.['reps-'+idx]??saved.reps??values.reps)||ex.min));
+      const rir=Math.max(0,Math.min(5,Number(saved.rir??3)));
+      const weights=[...new Set(getAvailableLoadsForExercise(ex))].sort((x,y)=>x-y);
+      const options=weights.map(w=>'<option value="'+w+'" '+(Math.abs(w-selected)<.01?'selected':'')+'>'+esc(w===0?'0 kg':w+' kg')+'</option>').join('');
+      return '<div class="rr-kb-round-row" style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid rgba(200,210,225,.13)">'+
+        '<span style="color:#9ca8b8;font-weight:800;min-width:20px">'+(i+1)+'.</span>'+
+        '<div style="flex:1;min-width:0"><strong style="font-size:15px;line-height:1.4;display:block">'+esc(ex.name)+'</strong>'+
+        '<span style="color:#aeb8c6;font-size:13px">'+reps+' reps'+(ex.suffix?' '+esc(ex.suffix):'')+'</span></div>'+
+        '<label style="width:116px;flex-shrink:0"><span class="sr-only">'+esc(ex.name)+' weight</span>'+
+        (ex.load==='bodyweight'?'<span style="display:block;padding:11px 4px;text-align:center">Bodyweight</span><input type="hidden" name="weight-'+idx+'" value="0">':
+        '<select aria-label="'+esc(ex.name)+' kettlebell weight" name="weight-'+idx+'" style="width:100%;padding:10px 4px;background:#303640;color:#fff;border:1px solid #566071;border-radius:9px">'+options+'</select>')+
+        '</label>'+
+        '<input type="hidden" name="reps-'+idx+'" value="'+reps+'"><input type="hidden" name="rir-'+idx+'" value="'+rir+'"></div>';
+    }).join('');
+    return '<div class="rr-kb-live"><div class="rr-kb-live-top"><span>ROUND '+task.round+' OF '+task.rounds+'</span>'+
+      '<span>'+roundItems.length+' MOVEMENTS</span></div>'+
       '<div class="rr-kb-live-progress"><div style="width:'+(100*progress/tasks.length)+'%"></div></div>'+
-      '<form id="roundForm" class="rr-kb-live-form"><span class="eyebrow">NOW DO</span>'+
-      '<h1>'+esc(ex.name)+'</h1><p class="rr-kb-target">'+esc(ex.displayMuscle||ex.muscle)+' · '+reps+' reps'+(ex.suffix?' '+esc(ex.suffix):'')+'</p>'+
-      '<label class="rr-kb-weight-label" for="rr-kb-weight">Kettlebell weight</label>'+
-      '<select id="rr-kb-weight" class="rr-kb-weight" name="weight-'+idx+'" '+(ex.load==='bodyweight'?'disabled':'')+'>'+options+'</select>'+
-      (ex.load==='bodyweight'?'<input name="weight-'+idx+'" type="hidden" value="0">':'')+
-      '<input type="hidden" name="reps-'+idx+'" value="'+reps+'">'+
-      '<input type="hidden" name="rir-'+idx+'" value="'+rir+'">'+
-      '<details class="rr-kb-tweak"><summary>Adjust reps or effort</summary><div class="rr-kb-tweak-inner">'+
-      '<label>Actual reps<input id="rr-kb-reps-editor" type="number" min="1" max="99" value="'+reps+'"></label>'+
-      '<label>Reps in reserve<select id="rr-kb-rir-editor">'+[0,1,2,3,4,5].map(n=>'<option value="'+n+'" '+(n===rir?'selected':'')+'>'+n+(n===5?'+':'')+'</option>').join('')+'</select></label></div></details>'+
-      '<button type="submit" class="rr-kb-next">'+(next?(lastInRound?'Finish round → Rest':'Next exercise →'):'Finish circuit →')+'</button></form>'+
-      '<p class="rr-kb-next-hint">'+(next?lastInRound?'Rest after this move':'Next: '+esc(next.ex.name):'Last movement — review and save when finished')+'</p>'+
-      '<button class="rr-kb-pause" data-action="pause" type="button">Pause & exit</button>'+ 
+      '<form id="roundForm" class="rr-kb-live-form"><h1 style="margin:18px 0 4px">Your circuit</h1>'+
+      '<p style="color:#aeb8c6;margin:0 0 14px">Work through these in order. Adjust the weight alongside each exercise if needed.</p>'+
+      '<div class="rr-kb-round-list">'+rows+'</div>'+
+      '<button type="submit" class="rr-kb-next" style="margin-top:18px">'+(finalRound?'Complete final round →':'Complete round → Rest')+'</button></form>'+
+      '<button class="rr-kb-pause" data-action="pause" type="button">Pause & exit</button>'+
       '<button class="rr-kb-pause" data-action="discard" type="button" style="color:#f5a7a7">Discard & exit</button></div>';
   }
 
@@ -5216,7 +5217,7 @@
       const pairs = currentSessionPairs();
       const tasks = buildTasks(a.session, pairs);
       const group = fullRound(tasks, a.taskIndex);
-      const activeItems = (a.isCircuit?group.items.filter(t=>t.index===a.taskIndex):group.items)
+      const activeItems = group.items
         .filter(t => !a.logs[t.index]?.skipped);
       const data = form instanceof FormData ? form : (form && typeof form.querySelector === 'function' ? new FormData(form) : (form && typeof form.get === 'function' ? form : new FormData()));
       let values = [];
