@@ -2548,7 +2548,7 @@ try {
   assert('Responsive Home supports muscle rows and workout-first overview',
     css.includes('.rr-g-muscle-row')&&css.includes('.rr-g-home-overview')&&css.includes('@media(max-width:360px)'));
   const index=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
-  assert('Second-pass assets cache-busted for mobile',index.includes('graphite-stage1.css?v=5')&&index.includes('app.js?v=circuit1'));
+  assert('Second-pass assets cache-busted for mobile',index.includes('graphite-stage1.css?v=5')&&index.includes('app.js?v=kb-catalog2'));
 } catch(err) {
   assert('Suite 50 Exception: '+err.message,false);
 }
@@ -2680,7 +2680,7 @@ try {
   assert('Google popup resolves via genuine Firebase auth observer or times out visibly',cloud.includes('Promise.race([popup, authenticated, stalled])')&&cloud.includes('auth/popup-timeout'));
   assert('App closes auth overlay on a confirmed sign-in',source.includes("if(authDialog?.open)authDialog.close()"));
   assert('Cloud sync avoids simultaneous duplicate initial reads',source.includes('cloudSyncInFlight&&cloudSyncUserId===user.uid'));
-  assert('Phone app refreshes app JS and offline Graphite assets',index.includes('/app.js?v=circuit1')&&sw.includes('graphite-polish.css')&&sw.includes('graphite-session.css'));
+  assert('Phone app refreshes app JS and offline Graphite assets',index.includes('/app.js?v=kb-catalog2')&&sw.includes('graphite-polish.css')&&sw.includes('graphite-session.css'));
 } catch(err) {
   assert('Suite 54 Exception: '+err.message,false);
 }
@@ -2839,10 +2839,60 @@ try {
     app.includes("planId:'one-off',isOneOff:true,isCircuit:true"));
   assert('Circuit styling is mobile responsive and PWA has iPhone touch icon',
     ui.includes('@media(max-width:550px)')&&html.includes('apple-touch-icon')&&
-    html.includes('icon-192.png')&&html.includes('adaptive-circuits.js?v=1'));
+    html.includes('icon-192.png')&&html.includes('adaptive-circuits.js?v=2'));
 } catch(err){
   assert('Suite 57 Exception: '+err.message,false);
 }
+
+// -----------------------------------------------------------------------------
+// SUITE 58: Full kettlebell-only weighted circuit catalogue and logging
+// -----------------------------------------------------------------------------
+console.log('\n--- SUITE 58: Complete weighted KB movements + correct load units ---');
+try {
+ const lib=window.REPRIVAL_EXERCISE_LIBRARY, circuit=window.RepRivalAdaptiveCircuits, t=window.RepRivalTest;
+ const ids=circuit.eligible().map(e=>e.id);
+ const kb=ids.filter(id=>lib.byId[id].equipment.includes('kettlebell'));
+ const names=new Set(ids);
+ const expected=['kb_bent_row','kb_floor_press','kb_crush_press','kb_curl','kb_hammer_curl',
+ 'kb_press','kb_push_press','kb_sumo_squat','kb_goblet_squat','kb_reverse_lunge',
+ 'kb_forward_lunge','kb_walking_lunge','kb_split_squat','kb_triceps_extension',
+ 'kb_halo','kb_russian_twist','kb_rdl','kb_deadlift','kb_glute_bridge','kb_swing'];
+ assert('All requested weighted KB movements are selectable',expected.every(id=>names.has(id)));
+ assert('Single-arm kettlebell row remains explicitly available',names.has('kb_bent_row'));
+ assert('Kettlebell circuit library contains over 30 weighted choices',kb.length>=30);
+ assert('All weighted entries require only one kettlebell, never dumbbells',kb.every(id=>
+   lib.byId[id].equipment.length===1&&lib.byId[id].equipment[0]==='kettlebell'));
+ assert('Bodyweight options are exclusively equipment-free Core exercises',
+   ids.filter(id=>!kb.includes(id)).every(id=>lib.byId[id].muscle==='Core'&&
+     lib.byId[id].load==='bodyweight'&&!lib.byId[id].equipment.length));
+ assert('Weighted kettlebell versions replace generic No equipment choices',
+   !names.has('russian_twist')&&!names.has('reverse_lunge')&&!names.has('goblet_squat'));
+ assert('One-click full-body preset uses five weighted moves including a kettlebell row',
+   (()=>{const a=circuit.create({focus:'full_body',count:5,rounds:3});
+   return a.pairs[0].exercises.length===5&&a.pairs[0].exercises.every(e=>e.equipment.includes('kettlebell'))&&
+   a.pairs[0].exercises.some(e=>e.id==='kb_bent_row');})());
+ assert('Custom weighted lunge, triceps, chest, core selection preserves order',
+   (()=>{const ids=['kb_forward_lunge','kb_triceps_extension','kb_floor_press','kb_russian_twist'];
+   const a=circuit.create({focus:'full_body',selectedIds:ids,count:4,rounds:2,reps:8});
+   return a.pairs[0].exercises.map(e=>e.id).join('|')===ids.join('|');})());
+ assert('Kettlebell circuit picker labels weighted options correctly',
+   t.circuitScreen().includes('Kettlebell · weighted')&&!t.circuitScreen().includes('No equipment'));
+ assert('Kettlebell load detection uses singular library equipment identifier',
+   t.getAvailableLoadsForExercise(lib.byId.kb_bent_row).some(n=>n>0));
+ assert('Every KB movement allows explicitly choosing zero without losing real weights',
+   (()=>{const loads=t.getAvailableLoadsForExercise(lib.byId.kb_sumo_squat);return loads.includes(0)&&loads.some(n=>n>0);})());
+ assert('KB load label indicates kettlebell rather than dumbbell',
+   t.formatWeightConvention(16,lib.byId.kb_goblet_squat).includes('Kettlebell')&&
+   !t.formatWeightConvention(16,lib.byId.kb_goblet_squat).includes('DB'));
+ assert('New KB workout starts with actual kettlebell load rather than zero if configured',
+   (()=>{const ex=lib.byId.kb_curl;const tsk={ex,index:999,round:1,ei:0,pi:0};
+    const result=t.resolveSetValues(tsk,{logs:[],drafts:{}});
+    return Number(result.weight)>0;})());
+ assert('Manual 0 kg entries remain possible and remain zero',
+   (()=>{const ex=lib.byId.kb_curl;const tsk={ex,index:999,round:1,ei:0,pi:0};
+    const result=t.resolveSetValues(tsk,{logs:[],drafts:{'weight-999':0}});
+    return Number(result.weight)===0;})());
+} catch(err){assert('Suite 58 Exception: '+err.message,false);}
 
 console.log('\n================================================================');
 console.log('                   REGRESSION TEST RESULTS SUMMARY');
