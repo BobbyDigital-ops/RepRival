@@ -117,6 +117,30 @@
  add('close_grip_barbell_press','Close-grip barbell bench press','Triceps',['barbell','bench','rack'],'combined');
  // LEGS
  add('goblet_squat','Goblet squat','Quads',['dumbbells'],'single',3,8,12);
+ add('kb_floor_press','Kettlebell floor chest press','Chest',['kettlebell'],'single',3,8,12,'Press from the floor with one kettlebell; alternate sides','per side');
+ add('kb_crush_press','Two-hand kettlebell crush press','Chest',['kettlebell'],'single',3,8,12,'Floor press holding the bell securely by both sides','');
+ add('kb_sumo_squat','Kettlebell sumo squat','Quads',['kettlebell'],'single',3,8,15,'Wide stance, bell held centrally; glutes assist','');
+ add('kb_front_rack_squat','Single-arm kettlebell front-rack squat','Quads',['kettlebell'],'single',3,6,12,'Bell held securely at shoulder; switch sides','per side');
+ add('kb_forward_lunge','Kettlebell forward lunge','Quads',['kettlebell'],'single',3,8,12,'Hold bell goblet or suitcase style','per leg');
+ add('kb_walking_lunge','Kettlebell walking lunge','Quads',['kettlebell'],'single',3,8,16,'Hold bell in goblet position or at side','per leg');
+ add('kb_split_squat','Kettlebell split squat','Quads',['kettlebell'],'single',3,8,12,'Stationary stance, bell held securely','per leg');
+ add('kb_step_back_lunge','Kettlebell alternating reverse lunge','Quads',['kettlebell'],'single',3,8,14,'Alternate legs, total reps','');
+ add('kb_glute_bridge','Kettlebell glute bridge','Glutes',['kettlebell'],'single',3,10,15,'Bell supported securely at hips','');
+ add('kb_single_leg_rdl','Single-leg kettlebell RDL','Hamstrings',['kettlebell'],'single',3,8,12,'Hinge slowly with balanced stance','per leg');
+ add('kb_staggered_rdl','B-stance kettlebell Romanian deadlift','Hamstrings',['kettlebell'],'single',3,8,12,'Rear foot lightly supported','per leg');
+ add('kb_calf_raise','Kettlebell standing calf raise','Calves',['kettlebell'],'single',3,12,20,'Hold kettlebell at side; use support for balance if needed','');
+ add('kb_triceps_extension','Kettlebell overhead triceps extension','Triceps',['kettlebell'],'single',3,8,15,'Two hands holding kettlebell by horns, neutral wrist position','');
+ add('kb_single_arm_triceps_extension','Single-arm kettlebell triceps extension','Triceps',['kettlebell'],'single',3,8,12,'Use a light bell and stable wrist; alternate arms','per side');
+ add('kb_russian_twist','Weighted kettlebell Russian twist','Core',['kettlebell'],'single',3,12,24,'Controlled rotation with bell kept close; total alternating reps','');
+ add('kb_side_bend','Kettlebell side bend','Core',['kettlebell'],'single',3,8,15,'Controlled anti-side-bend movement','per side');
+ add('kb_windmill','Kettlebell windmill','Core',['kettlebell'],'single',3,4,8,'Advanced shoulder stability and hinge movement; use a light bell','per side');
+ add('kb_around_world','Kettlebell around-the-world pass','Core',['kettlebell'],'single',3,8,16,'Pass around waist with upright trunk; count complete revolutions','');
+ add('kb_high_pull','Kettlebell high pull','Back',['kettlebell'],'single',3,8,12,'Explosive hip hinge and high elbow; technique-focused','per side');
+ add('kb_hammer_curl','Kettlebell neutral-grip curl','Biceps',['kettlebell'],'single',3,8,12,'Hold by horns using both hands when appropriate','');
+ add('kb_push_press','Kettlebell push press','Side delts',['kettlebell'],'single',3,6,10,'Slight leg drive then press overhead','per side');
+ add('kb_z_press','Kettlebell seated floor press (Z-press)','Side delts',['kettlebell'],'single',3,6,10,'Seated floor position; press with braced trunk','per side');
+ add('kb_front_raise','Kettlebell front raise','Side delts',['kettlebell'],'single',3,8,12,'Two-hand grip on horns, use a light bell','');
+ add('kb_clean_to_squat','Kettlebell clean to squat','Quads',['kettlebell'],'single',3,6,10,'Clean to rack then perform squat','per side');
  add('kb_curl','Kettlebell curl','Biceps',['kettlebell'],'single',3,8,12,'Use a controlled grip; alternate sides if needed','per side');
  add('kb_bent_row','Single-arm kettlebell row','Back',['kettlebell'],'single',3,8,12,'Support hand on thigh as needed; steady torso','per side');
  add('kb_goblet_squat','Kettlebell goblet squat','Quads',['kettlebell'],'single');
@@ -291,6 +315,7 @@
       ex.muscle='Quads'; ex.details='Wide-stance squat; glutes contribute secondarily';
     }
     if(ex.id==='db_rear_delt_row')ex.muscle='Rear delts';
+    if(['kb_floor_press','kb_crush_press'].includes(ex.id))ex.details+='; chest-dominant press';
     // Swing/clean power predominantly uses hip extension; give hamstrings
     // secondary credit instead of presenting these as isolation hamstring work.
     if(['kb_swing','kb_clean','db_clean'].includes(ex.id))ex.muscle='Glutes';
