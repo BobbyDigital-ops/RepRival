@@ -254,7 +254,7 @@
     SESSION_ORDER=Object.keys(profile().plans[selectedPlan]||PLAN);
     if(!SESSION_ORDER.includes(state.next))state.next=SESSION_ORDER[0];
   }
-  function switchTo(id){activeProfile=id;manager.last=id;ensureTraining();page='home';save();render();}
+  function switchTo(id){circuitDraft=null;activeProfile=id;manager.last=id;ensureTraining();page='home';save();render();}
   function profileNames(){return Object.keys(manager.profiles);}
   function newProfileId(){return 'athlete-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,5);}
   function weightKg(v,unit){return unit==='lb'?v/2.2046226218:unit==='st'?v*6.35029318:v;}
@@ -6207,8 +6207,8 @@
       if(settings.selectedIds.length && settings.selectedIds.length<2){
         showToast('Select two or more exercises, or use a ready-made circuit.');return;
       }
-      if(settings.selectedIds.length>settings.count){
-        showToast('Increase the exercise count or deselect extra choices.');return;
+      if(settings.selectedIds.length && settings.selectedIds.length!==settings.count){
+        showToast('Select exactly '+settings.count+' exercises or leave all unchecked for a ready-made workout.');return;
       }
       try{
         const fresh=window.RepRivalAdaptiveCircuits.create(settings);
@@ -6751,6 +6751,7 @@
     pauseProgrammeForAdaptive,
     resumePausedProgramme,
     adaptiveStudioScreen,
+    circuitScreen,
     setProfile:(p)=>{ Object.assign(profile(), p); save(); },
     setDumbbellInventory:(inv)=>{ profile().dumbbellInventory = inv; save(); },
     setMetadata:(m)=>{ profile().equipmentMetadata = m; save(); },
