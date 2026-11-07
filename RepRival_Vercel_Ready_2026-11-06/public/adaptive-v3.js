@@ -63,6 +63,9 @@
     const groups=window.RepRivalAdaptive.calculateHeatScores(history,now,28);
     const weekly=weeklyOccurrences(history,now);
     const avoid=new Set([...(cfg.avoid||[]),...(opts.avoid||[])]);
+    // A shuffle should replace some proposed movements rather than reproduce
+    // the same high-scoring selection with a negligible tie-breaker change.
+    const priorPlan=new Set(opts.previousIds||[]);
     const sore=new Set([...(checkin?.groups||[]),...Object.entries(checkin?.sorenessMap||{}).filter(([,v])=>v==='severe').map(([k])=>k)]);
     const style=opts.style || 'mixed';
     const gearMeta=opts.equipmentMetadata || {};
@@ -160,8 +163,9 @@
           (100-h.score)*1.2;
         const focusNudge=hasHistorySignal&&focus==='upper_focused'&&zone(e.muscle)==='upper'?8:
           hasHistorySignal&&focus==='lower_focused'&&zone(e.muscle)==='lower'?8:0;
+        const repeatPenalty=priorPlan.has(e.id)?65:0;
         return {e,score:adaptivePriority+focusNudge+Math.min(18,h.daysSince)*.35+(h.readiness-65)*.4
-          +frequencyScore+variety+quality+pairing-coverage-fatigue+tie};
+          +frequencyScore+variety+quality+pairing-coverage-fatigue-repeatPenalty+tie};
       }).sort((a,b)=>b.score-a.score);
       return ranked[0]?.e||null;
     }
