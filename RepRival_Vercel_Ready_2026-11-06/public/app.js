@@ -784,7 +784,7 @@
   }
 
   function historyList(limit=6){
-    return [...state.history].reverse().slice(0,limit).map(s=>`<div class="session-row" data-action="review-session" data-id="${esc(s.id)}" style="cursor:pointer;" title="Review & Edit Workout"><div><strong>${esc(s.sessionName||'Full Body '+s.session)}</strong><small>${dateText(s.endedAt||s.startedAt)} · ${(s.logs||[]).filter(l=>!l.skipped).length} sets · ${fmt((s.logs||[]).reduce((n,l)=>n+setVolume(l),0))} kg volume</small></div><button type="button" class="quiet-link" data-action="review-session" data-id="${esc(s.id)}">Review →</button></div>`).join('')||'<p class="muted">No saved workouts yet.</p>';
+    return [...state.history].reverse().slice(0,limit).map(s=>`<div class="session-row" data-action="review-session" data-id="${esc(s.id)}" style="cursor:pointer;" title="Review & Edit Workout"><div><strong>${esc(s.sessionName||'Full Body '+s.session)}</strong><small>${dateText(s.endedAt||s.startedAt)} · ${(s.logs||[]).filter(l=>!l.skipped).length} sets · ${fmt((s.logs||[]).reduce((n,l)=>n+setVolume(l),0))} kg volume</small></div><div class="row gap8"><button type="button" class="quiet-link" data-action="review-session" data-id="${esc(s.id)}">Review →</button><button type="button" class="quiet-link" style="color:#efb3b3" data-action="delete-workout" data-id="${esc(s.id)}" aria-label="Delete ${esc(s.sessionName||'Full Body '+s.session)}">Delete</button></div></div>`).join('')||'<p class="muted">No saved workouts yet.</p>';
   }
 
   function lastSessionOf(id){return [...state.history].reverse().find(s=>s.session===id);}
@@ -4423,9 +4423,10 @@
   function lastReadinessForAdaptive(){return todayReadiness()||readinessLog().at(-1)||null;}
   function createAdaptiveNext(variant=0,keepFocus=false){
     const cfg=profile().adaptive;if(!cfg)return;
-    const effectiveFocus=cfg.nextFocus || cfg.focus || 'balanced';
+    const effectiveFocus=(keepFocus ? (cfg.lastWorkoutFocus || cfg.nextFocus || cfg.focus) : (cfg.nextFocus || cfg.focus)) || 'balanced';
+    const previousIds=keepFocus?(profile().plans?.[ADAPT_ID]?.A?.pairs||[]).flatMap(p=>p.exercises||[]).map(e=>e.id):[];
     const fresh=ADAPT_V3.generate(cfg,state.history,profile().equipment||[],lastReadinessForAdaptive(),{
-      variant,focus:effectiveFocus,avoid:cfg.avoid||[],equipmentMetadata:profile().equipmentMetadata||{}
+      variant,focus:effectiveFocus,previousIds,avoid:cfg.avoid||[],equipmentMetadata:profile().equipmentMetadata||{}
     });
     if(!fresh.pairs.length){cfg.lastReason=fresh.warning||'No eligible exercises';return null;}
     const day={name:fresh.name,pairs:fresh.pairs};
@@ -6038,7 +6039,10 @@
     if(action==='adaptive-review'){page='adaptive-review';render();return;}
     if(action==='regenerate-adaptive'){
       if(state.active||!adaptivePlan()){showToast('Finish your session before generating another');return;}
-      const cfg=profile().adaptive;createAdaptiveNext((cfg.variant||0)+1,true);save();page='workout-intro';render();showToast('Next adaptive session regenerated');return;
+      const cfg=profile().adaptive;
+      const next=createAdaptiveNext((cfg.variant||0)+1,true);
+      if(!next){showToast(cfg.lastReason||'No eligible replacement exercises available.');return;}
+      save();page='workout-intro';render();showToast('New exercise selection · same focus');return;
     }
     if(action==='accept-adaptive-review'||action==='dismiss-adaptive-review'){
       const cfg=profile().adaptive;if(!cfg?.active)return;
