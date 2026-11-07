@@ -39,7 +39,7 @@
   const region=muscle=>muscle==='Core'?'core':
     ['Quads','Hamstrings','Glutes','Calves'].includes(muscle)?'lower':'upper';
   const targetFor=(muscle,focus)=>focusTargets[focus]?.[region(muscle)]||55;
-  function choose({focus='full_body',count=5,selectedIds=[],poolIds=[],variant=0,metrics=null,history=[]}={}){
+  function choose({focus='full_body',count=5,selectedIds=[],poolIds=[],variant=0,previousIds=[],metrics=null,history=[]}={}){
     const available=eligible();
     const byId=new Map(available.map(x=>[x.id,x]));
     const countSafe=safeInt(count,2,8,5);
@@ -62,6 +62,15 @@
     const selected=[],represented=new Map();
     const preset=PRESETS[normalizedFocus]||PRESETS.full_body;
     const variantNumber=safeInt(variant,0,99999,0);
+    const previous=new Set(Array.isArray(previousIds)?previousIds:[]);
+    const hasAlternatives=candidates.length>countSafe;
+    const rotation=(id)=>{
+      // Exercise-specific variation, rather than the same global variant
+      // offset applied to every candidate (which barely changed rankings).
+      let hash=(variantNumber+1)*2654435761;
+      for(const char of id)hash=Math.imul(hash^char.charCodeAt(0),16777619);
+      return ((hash>>>0)%1000)/1000;
+    };
     const hasUsefulMetrics=Object.values(weights).some(x=>x&&Number.isFinite(Number(x.stimulusScore)));
     while(selected.length<countSafe){
       let winner=null,best=-Infinity;
@@ -82,9 +91,12 @@
         const diversity=priorInZone===0?19:-priorInZone*8;
         const reusePenalty=primaryAlready*17+(recent.get(ex.id)||0)*17;
         const tiredPenalty=ready<45?40:ready<60?15:0;
-        const determinism=[...ex.id].reduce((a,ch)=>a+ch.charCodeAt(0),0);
-        const tie=((determinism+variantNumber*37)%29)/100;
-        const score=base+presetPriority+diversity-reusePenalty-tiredPenalty+tie;
+        // Prefer alternatives when the user shuffles, without ignoring
+        // muscle needs, recovery, equipment, or the chosen exercise pool.
+        const wasPrevious=previous.has(ex.id);
+        const previousPenalty=hasAlternatives&&wasPrevious?38:0;
+        const variation=hasAlternatives?rotation(ex.id)*24:rotation(ex.id);
+        const score=base+presetPriority+diversity-reusePenalty-tiredPenalty-previousPenalty+variation;
         if(score>best){best=score;winner=ex;}
       }
       if(!winner)break;
