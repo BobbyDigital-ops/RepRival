@@ -2370,7 +2370,8 @@
     }
     if(a.stage==='feedback')return feedbackView();
     const group=fullRound(tasks,a.taskIndex);
-    const activeGroupItems = group.items.filter(t => !a.logs[t.index]?.skipped);
+    const activeGroupItems = (a.isCircuit ? group.items.filter(t=>t.index===a.taskIndex) : group.items)
+      .filter(t => !a.logs[t.index]?.skipped);
     if(!activeGroupItems.length){
       a.taskIndex = group.end + 1;
       return workout();
@@ -2380,7 +2381,7 @@
     const hasDroppedInRound = group.items.some(t => a.logs[t.index]?.skipped);
 
     return `<div class="compact-workout rr-session-compact"><div class="row workout-top-actions"><div class="workout-timer"><span class="workout-timer-value">${formatDuration(a.accumulatedTime + (a.lastStartTime ? (Date.now() - a.lastStartTime) / 1000 : 0))}</span></div><details class="workout-menu"><summary>••• Options</summary><div class="menu-items">${btn('Finish & Save early','finish-partial','outline full')}${btn('Pause & exit','pause','outline full')}${btn('Discard workout','discard','text full')}</div></details></div>
-      <div class="rr153-active-header rr-session-header"><div class="row"><span class="eyebrow">LIVE SESSION <b>●</b></span><span class="rr153-set-counter">${completedCount} of ${tasks.length} sets logged${skippedCount ? ` (${skippedCount} skipped)` : ''}</span></div><h1>${esc(planFor(a.session).name||'WORKOUT '+a.session)}</h1><p>${isSolo?'MOVEMENT':'SUPERSET ' + (group.task.pi + 1)} · ROUND ${group.task.round} OF ${group.task.rounds}</p>${bar(resolvedCount,tasks.length)}</div>
+      <div class="rr153-active-header rr-session-header"><div class="row"><span class="eyebrow">LIVE SESSION <b>●</b></span><span class="rr153-set-counter">${completedCount} of ${tasks.length} sets logged${skippedCount ? ` (${skippedCount} skipped)` : ''}</span></div><h1>${esc(a.sessionName||planFor(a.session).name||'WORKOUT '+a.session)}</h1><p>${a.isCircuit?'CIRCUIT · EXERCISE '+(group.task.ei+1)+'/'+pair.exercises.length:' '+(isSolo?'MOVEMENT':'SUPERSET ' + (group.task.pi + 1))} · ROUND ${group.task.round} OF ${group.task.rounds}</p>${bar(resolvedCount,tasks.length)}</div>
       ${hasDroppedInRound ? `<div class="dropped-round-note" style="background:rgba(148,163,184,0.1); border:1px dashed rgba(148,163,184,0.3); border-radius:8px; padding:6px 12px; margin-bottom:12px; font-size:11px; color:#cbd5e1;">⚡ <em>Dropped in this round:</em> ${group.items.filter(t => a.logs[t.index]?.skipped).map(t => esc(t.ex.name)).join(', ')} (skipped)</div>` : ''}
       <form id="roundForm" class="round-form" novalidate>${activeGroupItems.map((t,i)=>{
         const ex=t.ex, idx=t.index;
@@ -2403,7 +2404,7 @@
           <div class="mini-head rr-session-set-head">
             <div class="mini-title" style="width:100%;">
               <div class="row" style="align-items:center; justify-content:space-between; width:100%; margin-bottom:4px;">
-                <span class="eyebrow" style="color:#d97241; font-weight:800; font-size:10px; letter-spacing:1px;">${isSolo ? 'MOVEMENT' : 'ROUND ' + group.task.round + ' · EXERCISE ' + (i+1) + '/' + activeGroupItems.length}</span>
+                <span class="eyebrow" style="color:#d97241; font-weight:800; font-size:10px; letter-spacing:1px;">${a.isCircuit ? 'ROUND '+t.round+' · MOVE '+(t.ei+1)+'/'+pair.exercises.length : isSolo ? 'MOVEMENT' : 'ROUND ' + group.task.round + ' · EXERCISE ' + (i+1) + '/' + activeGroupItems.length}</span>
                 <button type="button" class="btn text btn-compact-action btn-exercise-options" data-action="open-active-exercise-edit-modal" data-pair="${t.pi}" data-ex="${t.ei}" data-index="${idx}" style="font-size:11px; padding:3px 8px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:#cbd5e1; font-weight:700;">••• Edit</button>
               </div>
               <h2 class="rr-session-exercise-name">${esc(ex.name)} <span class="rr-session-set-number">· ${t.round}/${ex.sets}</span></h2>
@@ -2471,7 +2472,7 @@
           </div>
         </section>`;
       }).join('')}<div class="up-next rr-session-up-next"><div><span class="eyebrow">UP NEXT</span><strong>${next.items.length?next.task.pair.id===pair.id?'Round '+next.task.round+' of '+next.task.rounds:next.items.map(t=>t.ex.name).join(' + '):'Finish workout'}</strong><span>${next.items.length?next.task.pair.id===pair.id?'Same exercises':'Prepare next movement(s)':'Review and save your session'}</span></div><div class="next-rest">${next.items.length?`Rest<strong>${Math.max(15, pair.restMin-15)}–${Math.max(15, pair.restMax-15)}s</strong>`:''}</div></div>
-      <button class="btn primary full round-log-button rr-session-submit" type="submit">${activeGroupItems.some(t=>a.logs[t.index])?'Update':'Log & Start Rest'} ${isSolo?'set':'superset round'} →</button></form>
+      <button class="btn primary full round-log-button rr-session-submit" type="submit">${a.isCircuit?'Log & '+(group.task.ei===pair.exercises.length-1?'Rest':'Next exercise'):(activeGroupItems.some(t=>a.logs[t.index])?'Update':'Log & Start Rest')+' '+(isSolo?'set':'superset round')} →</button></form>
       ${workoutRoadmap(tasks, a.taskIndex, a.logs)}
       </div>`;
   }
@@ -2488,7 +2489,8 @@
       return feedbackView();
     }
     const group=fullRound(tasks,a.taskIndex);
-    const activeItems = group.items.filter(t => !a.logs[t.index]?.skipped);
+    const activeItems = (a.isCircuit ? group.items.filter(t=>t.index===a.taskIndex) : group.items)
+      .filter(t => !a.logs[t.index]?.skipped);
     if(!activeItems.length){
       a.taskIndex = group.end + 1;
       return restView(tasks, tasks[a.taskIndex]);
@@ -2505,7 +2507,7 @@
     return `
       <div class="rr-rest-screen">
       <div class="row session-controls"><div class="workout-timer"><span class="workout-timer-value">${formatDuration(a.accumulatedTime + (a.lastStartTime ? (Date.now() - a.lastStartTime) / 1000 : 0))}</span></div><button class="quiet-link" type="button" data-action="pause">Pause & exit</button></div>
-      <div class="eyebrow" style="color:#d97241; font-weight:800; letter-spacing:1px;">WORKOUT ${a.session} · RECOVERY &amp; REST</div>
+      <div class="eyebrow" style="color:#d97241; font-weight:800; letter-spacing:1px;">${a.isCircuit?'KETTLEBELL CIRCUIT':'WORKOUT '+esc(a.session)} · RECOVERY &amp; REST</div>
       <h1 class="page-title" style="font-size:28px; margin:4px 0 6px 0;">Rest &amp; Recover</h1>
       <p class="lead" style="color:#aaa8a5; margin-bottom:16px;">${esc(a.restNote || 'Take a breath and recover for your next set.')}</p>
 
@@ -4569,7 +4571,7 @@
         '<div class="field"><label for="adaptiveWeeklyGoal">Sessions / week</label><select id="adaptiveWeeklyGoal" data-adaptive-weekly>'+[2,3,4,5,6].map(n=>'<option value="'+n+'" '+((cfg.frequency||3)===n?'selected':'')+'>'+n+' per week</option>').join('')+'</select></div></div>'+
         '<button class="btn primary full mt12" data-action="adaptive-generate" '+(!cfg.active||state.active?'disabled':'')+' type="button">Generate next adaptive workout</button>','section')+
       card('<div class="rr-circuit-entry"><div><div class="eyebrow">NEW · CIRCUIT TRAINING</div><h3>Kettlebell circuits</h3><p class="subhead">Quick ready-made full-body workouts or custom 2–8 exercise circuits. Choose rounds, reps, and rest. Logged into your own progress.</p></div><button class="btn primary" data-page="adaptive-circuit" type="button">Build kettlebell circuit →</button></div>','section')+
-      card('<section class="rr-adaptive-library" aria-label="Adaptive exercise preferences'+
+      card('<section class="rr-adaptive-library" aria-label="Adaptive exercise preferences">'+
         '<div class="rr-adaptive-library-head"><div><div class="eyebrow">BUILD YOUR EXERCISE POOL</div><h3>Exercise preferences</h3><p class="subhead">One preference per exercise. Multi-muscle movements can appear under more than one group, but are never counted twice.</p></div><span class="label-tag">'+eligible.length+' available</span></div>'+
         '<div class="rr-adaptive-library-controls">'+
           '<div class="field"><label for="adaptiveMuscleSelect">Muscle group</label><select id="adaptiveMuscleSelect" aria-controls="adaptiveExerciseGroups">'+muscleOptions+'</select></div>'+
@@ -5101,11 +5103,14 @@
       render();
       return;
     }
-    const prescribed=prior.pair.id===next.pair.id?calcRest(prior.pair,rir):Math.max(60,calcRest(prior.pair,rir));
+    const prescribed=state.active.isCircuit
+      ?prior.pair.restMin
+      :prior.pair.id===next.pair.id?calcRest(prior.pair,rir):Math.max(60,calcRest(prior.pair,rir));
     const seconds=adjustedRestSeconds(prescribed,false);
     state.active.stage='rest';
     state.active.restSeconds=seconds;
-    state.active.restNote=prior.pair.id===next.pair.id?'Rest between rounds':'Next block coming up';
+    state.active.restNote=state.active.isCircuit?'Round complete · recover before the next circuit'
+      :prior.pair.id===next.pair.id?'Rest between rounds':'Next block coming up';
     state.active.restUntil=Date.now()+seconds*1000;
     save();
     render();
@@ -5127,7 +5132,8 @@
       const pairs = currentSessionPairs();
       const tasks = buildTasks(a.session, pairs);
       const group = fullRound(tasks, a.taskIndex);
-      const activeItems = group.items.filter(t => !a.logs[t.index]?.skipped);
+      const activeItems = (a.isCircuit?group.items.filter(t=>t.index===a.taskIndex):group.items)
+        .filter(t => !a.logs[t.index]?.skipped);
       const data = form instanceof FormData ? form : (form && typeof form.querySelector === 'function' ? new FormData(form) : (form && typeof form.get === 'function' ? form : new FormData()));
       let values = [];
 
@@ -5194,13 +5200,13 @@
       for(const {t, log} of values) a.logs[t.index] = log;
 
       a.drafts = a.drafts || {};
-      for(const t of group.items){
+      for(const {t} of values){
         delete a.drafts[`weight-${t.index}`];
         delete a.drafts[`reps-${t.index}`];
         delete a.drafts[`rir-${t.index}`];
       }
 
-      a.taskIndex = group.end + 1;
+      a.taskIndex = a.isCircuit ? activeItems[activeItems.length-1].index+1 : group.end + 1;
       while(a.taskIndex < tasks.length && a.logs[a.taskIndex]){
         a.taskIndex++;
       }
@@ -5217,6 +5223,14 @@
         return;
       }
 
+      // Circuit movements flow straight into each other. Only start the
+      // existing rest screen when the final movement in the round is logged.
+      if(a.isCircuit && next.pair.id===group.task.pair.id && next.round===group.task.round){
+        a.stage='lift';
+        save();render();
+        if(typeof window.scrollTo==='function')window.scrollTo({top:0,left:0,behavior:'instant'});
+        return;
+      }
       advanceWithRest(group.task, next, Math.min(...values.map(v => v.log.rir)));
     } finally {
       setTimeout(() => { isSubmittingSet = false; }, 300);
