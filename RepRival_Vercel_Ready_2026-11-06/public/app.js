@@ -2773,6 +2773,7 @@
       session: a.session,
       sessionName: a.sessionName || sessionPlan.name || ('Workout ' + a.session),
       isOneOff: !!a.isOneOff,
+      isCircuit: !!a.isCircuit,
       isHoliday: !!a.isHoliday,
       planId: a.isOneOff ? (a.isHoliday ? 'holiday' : 'one-off') : (a.planId || selectedPlan),
       startedAt: workoutStartedAt,
