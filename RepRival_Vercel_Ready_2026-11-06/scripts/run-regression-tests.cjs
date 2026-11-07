@@ -46,6 +46,7 @@ require('../public/muscle-intelligence.js');
 require('../public/body-map.js');
 require('../public/adaptive.js');
 require('../public/adaptive-v3.js');
+require('../public/adaptive-circuits.js');
 require('../public/app.js');
 
 const RepRivalTest = window.RepRivalTest;
@@ -2547,7 +2548,7 @@ try {
   assert('Responsive Home supports muscle rows and workout-first overview',
     css.includes('.rr-g-muscle-row')&&css.includes('.rr-g-home-overview')&&css.includes('@media(max-width:360px)'));
   const index=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
-  assert('Second-pass assets cache-busted for mobile',index.includes('graphite-stage1.css?v=5')&&index.includes('app.js?v=adaptive-glutes2'));
+  assert('Second-pass assets cache-busted for mobile',index.includes('graphite-stage1.css?v=5')&&index.includes('app.js?v=circuit1'));
 } catch(err) {
   assert('Suite 50 Exception: '+err.message,false);
 }
@@ -2679,7 +2680,7 @@ try {
   assert('Google popup resolves via genuine Firebase auth observer or times out visibly',cloud.includes('Promise.race([popup, authenticated, stalled])')&&cloud.includes('auth/popup-timeout'));
   assert('App closes auth overlay on a confirmed sign-in',source.includes("if(authDialog?.open)authDialog.close()"));
   assert('Cloud sync avoids simultaneous duplicate initial reads',source.includes('cloudSyncInFlight&&cloudSyncUserId===user.uid'));
-  assert('Phone app refreshes app JS and offline Graphite assets',index.includes('/app.js?v=adaptive-glutes2')&&sw.includes('graphite-polish.css')&&sw.includes('graphite-session.css'));
+  assert('Phone app refreshes app JS and offline Graphite assets',index.includes('/app.js?v=circuit1')&&sw.includes('graphite-polish.css')&&sw.includes('graphite-session.css'));
 } catch(err) {
   assert('Suite 54 Exception: '+err.message,false);
 }
@@ -2792,6 +2793,54 @@ try {
     historyBefore===t.getState().history.map(w=>w.id).join('|'));
 } catch(err){
   assert('Suite 56 Exception: '+err.message,false);
+}
+
+// -----------------------------------------------------------------------------
+// SUITE 57: Adaptive kettlebell circuits — one movement at a time on mobile
+// -----------------------------------------------------------------------------
+console.log('\n--- SUITE 57: Kettlebell Circuit Generator & iPhone UI ---');
+try {
+  const lib=window.REPRIVAL_EXERCISE_LIBRARY;
+  const circuit=window.RepRivalAdaptiveCircuits;
+  const test=window.RepRivalTest;
+  const app=fs.readFileSync(path.join(__dirname,'../public/app.js'),'utf8');
+  const ui=fs.readFileSync(path.join(__dirname,'../public/graphite-circuits.css'),'utf8');
+  const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+  const before=JSON.stringify(test.getState().history);
+  const ready=circuit.create({focus:'full_body',count:5,rounds:3,reps:10,rest:75});
+  assert('Kettlebell curl and row exist as compatible equipment movements',
+    lib.byId.kb_curl?.muscle==='Biceps'&&lib.byId.kb_bent_row?.muscle==='Back'&&
+    lib.compatible(lib.byId.kb_curl,['kettlebell'])&&lib.compatible(lib.byId.kb_bent_row,['kettlebell']));
+  assert('Ready-made circuit has five movements, three rounds and 15 logged sets',
+    ready.pairs.length===1&&ready.pairs[0].exercises.length===5&&
+    test.buildTasks('Quick',ready.pairs).length===15);
+  assert('Preset includes pushes, pulls, lower-body and hinge patterns',
+    ['Back','Quads','Side delts','Glutes'].every(m=>ready.pairs[0].exercises.some(e=>e.muscle===m)));
+  assert('No unowned barbell, dumbbell or bench equipment is selected',
+    ready.pairs[0].exercises.every(e=>(e.equipment||[]).every(g=>g==='kettlebell')));
+  assert('Custom circuit preserves chosen ordering, rep targets and rest',
+    (()=>{const c=circuit.create({focus:'upper',count:3,rounds:2,reps:7,rest:90,selectedIds:['kb_curl','kb_press','kb_bent_row']});
+    return c.pairs[0].exercises.map(e=>e.id).join(',')==='kb_curl,kb_press,kb_bent_row' &&
+      c.pairs[0].exercises.every(e=>e.sets===2&&e.min===7&&e.max===7) &&
+      c.pairs[0].restMin===90;})());
+  assert('Circuit UI exposes focus, exercises, rounds, target reps and rest controls',
+    (()=>{const s=test.circuitScreen();return ['circuitFocus','circuitCount','circuitRounds','circuitReps',
+    'circuitRest','circuitExercise','circuit-preset','circuitBuilderForm'].every(x=>s.includes(x));})());
+  assert('Generator and manual selections do not alter stored workout history',
+    before===JSON.stringify(test.getState().history));
+  assert('Live circuit logging shows one movement per screen and skips in-round rest',
+    app.includes('a.isCircuit ? group.items.filter(t=>t.index===a.taskIndex)') &&
+    app.includes('if(a.isCircuit && next.pair.id===group.task.pair.id && next.round===group.task.round)'));
+  assert('Existing rest countdown starts after each whole circuit round',
+    app.includes("state.active.isCircuit?'Round complete")&&
+    app.includes('const prescribed=state.active.isCircuit'));
+  assert('Circuit sessions remain one-off and protect Adaptive rotations',
+    app.includes("planId:'one-off',isOneOff:true,isCircuit:true"));
+  assert('Circuit styling is mobile responsive and PWA has iPhone touch icon',
+    ui.includes('@media(max-width:550px)')&&html.includes('apple-touch-icon')&&
+    html.includes('icon-192.png')&&html.includes('adaptive-circuits.js?v=1'));
+} catch(err){
+  assert('Suite 57 Exception: '+err.message,false);
 }
 
 console.log('\n================================================================');
