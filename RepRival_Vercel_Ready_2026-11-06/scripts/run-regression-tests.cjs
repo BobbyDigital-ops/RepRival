@@ -2934,6 +2934,10 @@ try {
  const shuffledIds=shuffledKB.pairs[0].exercises.map(ex=>ex.id);
  assert('KB shuffle changes the entire circuit rather than keeping first two fixed',
   initialIds.length===5&&shuffledIds.length===5&&shuffledIds[0]!==initialIds[0]&&shuffledIds[1]!==initialIds[1]);
+ const hingePool=['kb_rdl','kb_single_leg_rdl','kb_deadlift','kb_goblet_squat','kb_reverse_lunge'];
+ const uniquePatterns=kb.create({focus:'lower',count:3,poolIds:hingePool,variant:7});
+ const hingeCount=uniquePatterns.pairs[0].exercises.filter(e=>/rdl|deadlift/.test(e.id)).length;
+ assert('KB circuit avoids overlapping RDL and deadlift variations',hingeCount===1);
  assert('KB shoulder press is discoverable by name',
   kb.eligible().some(ex=>ex.id==='kb_press'&&/shoulder press/i.test(ex.name)));
  assert('Generator chooses five distinct exercises from a seven-movement pool',
