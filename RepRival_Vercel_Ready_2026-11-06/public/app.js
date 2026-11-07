@@ -2500,7 +2500,7 @@
     const round=previous?.round||1;
     return '<div class="rr-kb-live rr-kb-rest"><div class="eyebrow">ROUND '+round+' COMPLETE</div>'+
       '<h1>Take a break.</h1>'+
-      '<div class="rr-kb-clock" id="restTimerValue">'+time+'</div>'+
+      '<div class="rr-kb-clock timer" id="restTimerValue">'+time+'</div>'+
       '<p>Next: '+esc(task?.ex?.name||'Next movement')+' · Round '+esc(task?.round||round+1)+'</p>'+
       '<button type="button" class="rr-kb-next" data-action="rest-skip">Ready · Next round →</button>'+
       '<button type="button" class="rr-kb-pause" data-action="rest-add">+15 seconds</button>'+
