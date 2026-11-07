@@ -64,6 +64,7 @@
     const variantNumber=safeInt(variant,0,99999,0);
     const previous=new Set(Array.isArray(previousIds)?previousIds:[]);
     const hasAlternatives=candidates.length>countSafe;
+    const shuffling=hasAlternatives&&previous.size>0;
     const rotation=(id)=>{
       // Exercise-specific variation, rather than the same global variant
       // offset applied to every candidate (which barely changed rankings).
@@ -94,8 +95,8 @@
         // Prefer alternatives when the user shuffles, without ignoring
         // muscle needs, recovery, equipment, or the chosen exercise pool.
         const wasPrevious=previous.has(ex.id);
-        const previousPenalty=hasAlternatives&&wasPrevious?38:0;
-        const variation=hasAlternatives?rotation(ex.id)*24:rotation(ex.id);
+        const previousPenalty=shuffling&&wasPrevious?38:0;
+        const variation=shuffling?rotation(ex.id)*24:rotation(ex.id)*.2;
         const score=base+presetPriority+diversity-reusePenalty-tiredPenalty-previousPenalty+variation;
         if(score>best){best=score;winner=ex;}
       }
