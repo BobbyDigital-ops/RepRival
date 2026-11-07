@@ -2491,8 +2491,24 @@
       </div>`;
   }
 
+  function circuitRestScreen(tasks){
+    const a=state.active;
+    const task=tasks[a.taskIndex];
+    const remain=Math.max(0,Math.ceil((a.restUntil-Date.now())/1000));
+    const time=String(Math.floor(remain/60)).padStart(2,'0')+':'+String(remain%60).padStart(2,'0');
+    const previous=tasks[Math.max(0,a.taskIndex-1)];
+    const round=previous?.round||1;
+    return '<div class="rr-kb-live rr-kb-rest"><div class="eyebrow">ROUND '+round+' COMPLETE</div>'+
+      '<h1>Take a break.</h1>'+
+      '<div class="rr-kb-clock" id="restTimerValue">'+time+'</div>'+
+      '<p>Next: '+esc(task?.ex?.name||'Next movement')+' · Round '+esc(task?.round||round+1)+'</p>'+
+      '<button type="button" class="rr-kb-next" data-action="rest-skip">Ready · Next round →</button>'+
+      '<button type="button" class="rr-kb-pause" data-action="rest-add">+15 seconds</button>'+
+      '<button type="button" class="rr-kb-pause" data-action="pause">Pause & exit</button></div>';
+  }
   function restView(tasks,nextTask){
     const a=state.active;
+    if(a?.isCircuit)return circuitRestScreen(tasks);
     // Advance taskIndex over any already resolved tasks
     while(a.taskIndex < tasks.length && a.logs[a.taskIndex]){
       a.taskIndex++;
@@ -4542,14 +4558,16 @@
     const a=state.active,ex=task.ex,idx=task.index;
     const values=resolveSetValues(task,a);
     const equipment=getAvailableLoadsForExercise(ex);
-    const savedWeight=a.drafts?.['weight-'+idx];
+    const saved=a.circuitSelections?.[ex.id]||{};
+    const savedWeight=a.drafts?.['weight-'+idx]??saved.weight;
     const weight=savedWeight!==undefined?Number(savedWeight):Number(values.weight);
     const options=[...new Set(equipment)].sort((x,y)=>x-y).map(w=>
       '<option value="'+w+'" '+(Math.abs(w-weight)<.01?'selected':'')+'>'+esc(w===0?'0 kg · unweighted':w+' kg')+'</option>').join('');
     const progress=a.logs.filter(Boolean).length;
     const next=tasks[idx+1];
     const lastInRound=!next||next.round!==task.round;
-    const reps=Math.min(99,Math.max(1,Number(a.drafts?.['reps-'+idx]??values.reps)||ex.min));
+    const reps=Math.min(99,Math.max(1,Number(a.drafts?.['reps-'+idx]??saved.reps??values.reps)||ex.min));
+    const rir=Math.max(0,Math.min(5,Number(saved.rir??3)));
     return '<div class="rr-kb-live"><div class="rr-kb-live-top"><span>ROUND '+task.round+'/'+task.rounds+'</span>'+
       '<span>'+(task.ei+1)+'/'+task.pair.exercises.length+' MOVEMENTS</span></div>'+
       '<div class="rr-kb-live-progress"><div style="width:'+(100*progress/tasks.length)+'%"></div></div>'+
@@ -4559,10 +4577,10 @@
       '<select id="rr-kb-weight" class="rr-kb-weight" name="weight-'+idx+'" '+(ex.load==='bodyweight'?'disabled':'')+'>'+options+'</select>'+
       (ex.load==='bodyweight'?'<input name="weight-'+idx+'" type="hidden" value="0">':'')+
       '<input type="hidden" name="reps-'+idx+'" value="'+reps+'">'+
-      '<input type="hidden" name="rir-'+idx+'" value="3">'+
+      '<input type="hidden" name="rir-'+idx+'" value="'+rir+'">'+
       '<details class="rr-kb-tweak"><summary>Adjust reps or effort</summary><div class="rr-kb-tweak-inner">'+
       '<label>Actual reps<input id="rr-kb-reps-editor" type="number" min="1" max="99" value="'+reps+'"></label>'+
-      '<label>Reps in reserve<select id="rr-kb-rir-editor">'+[0,1,2,3,4,5].map(n=>'<option value="'+n+'" '+(n===3?'selected':'')+'>'+n+(n===5?'+':'')+'</option>').join('')+'</select></label></div></details>'+
+      '<label>Reps in reserve<select id="rr-kb-rir-editor">'+[0,1,2,3,4,5].map(n=>'<option value="'+n+'" '+(n===rir?'selected':'')+'>'+n+(n===5?'+':'')+'</option>').join('')+'</select></label></div></details>'+
       '<button type="submit" class="rr-kb-next">'+(next?(lastInRound?'Finish round → Rest':'Next exercise →'):'Finish circuit →')+'</button></form>'+
       '<p class="rr-kb-next-hint">'+(next?lastInRound?'Rest after this move':'Next: '+esc(next.ex.name):'Last movement — review and save when finished')+'</p>'+
       '<button class="rr-kb-pause" data-action="pause" type="button">Pause & exit</button></div>';
@@ -5258,6 +5276,14 @@
 
       for(const {t, log} of values) a.logs[t.index] = log;
 
+      // Circuit keeps per-exercise load and entered reps across rounds;
+      // the compact UI does not require entering them again.
+      if(a.isCircuit){
+        a.circuitSelections=a.circuitSelections||{};
+        for(const {t,log} of values){
+          a.circuitSelections[t.ex.id]={weight:log.weight,reps:log.reps,rir:log.rir};
+        }
+      }
       a.drafts = a.drafts || {};
       for(const {t} of values){
         delete a.drafts[`weight-${t.index}`];
