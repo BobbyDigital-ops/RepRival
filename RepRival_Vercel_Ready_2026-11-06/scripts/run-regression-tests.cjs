@@ -2548,7 +2548,7 @@ try {
   assert('Responsive Home supports muscle rows and workout-first overview',
     css.includes('.rr-g-muscle-row')&&css.includes('.rr-g-home-overview')&&css.includes('@media(max-width:360px)'));
   const index=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
-  assert('Second-pass assets cache-busted for mobile',index.includes('graphite-stage1.css?v=5')&&index.includes('app.js?v=kb-catalog2'));
+  assert('Second-pass assets cache-busted for mobile',index.includes('graphite-stage1.css?v=5')&&index.includes('app.js?v=kb-easy-mode1'));
 } catch(err) {
   assert('Suite 50 Exception: '+err.message,false);
 }
@@ -2680,7 +2680,7 @@ try {
   assert('Google popup resolves via genuine Firebase auth observer or times out visibly',cloud.includes('Promise.race([popup, authenticated, stalled])')&&cloud.includes('auth/popup-timeout'));
   assert('App closes auth overlay on a confirmed sign-in',source.includes("if(authDialog?.open)authDialog.close()"));
   assert('Cloud sync avoids simultaneous duplicate initial reads',source.includes('cloudSyncInFlight&&cloudSyncUserId===user.uid'));
-  assert('Phone app refreshes app JS and offline Graphite assets',index.includes('/app.js?v=kb-catalog2')&&sw.includes('graphite-polish.css')&&sw.includes('graphite-session.css'));
+  assert('Phone app refreshes app JS and offline Graphite assets',index.includes('/app.js?v=kb-easy-mode1')&&sw.includes('graphite-polish.css')&&sw.includes('graphite-session.css'));
 } catch(err) {
   assert('Suite 54 Exception: '+err.message,false);
 }
@@ -2839,7 +2839,7 @@ try {
     app.includes("planId:'one-off',isOneOff:true,isCircuit:true"));
   assert('Circuit styling is mobile responsive and PWA has iPhone touch icon',
     ui.includes('@media(max-width:550px)')&&html.includes('apple-touch-icon')&&
-    html.includes('icon-192.png')&&html.includes('adaptive-circuits.js?v=2'));
+    html.includes('icon-192.png')&&html.includes('adaptive-circuits.js?v=3'));
 } catch(err){
   assert('Suite 57 Exception: '+err.message,false);
 }
@@ -2893,6 +2893,58 @@ try {
     const result=t.resolveSetValues(tsk,{logs:[],drafts:{'weight-999':0}});
     return Number(result.weight)===0;})());
 } catch(err){assert('Suite 58 Exception: '+err.message,false);}
+
+// -----------------------------------------------------------------------------
+// SUITE 59: One-tap kettlebell workout mode and persistent adaptive pool
+// -----------------------------------------------------------------------------
+console.log('\n--- SUITE 59: Fast KB mode / muscle gaps / one-hand workout UI ---');
+try {
+ const app=fs.readFileSync(path.join(__dirname,'../public/app.js'),'utf8');
+ const css=fs.readFileSync(path.join(__dirname,'../public/graphite-circuits.css'),'utf8');
+ const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+ const kb=window.RepRivalAdaptiveCircuits,t=window.RepRivalTest;
+ const before=JSON.stringify(t.getState().history);
+ const picker=t.circuitScreen();
+ assert('Circuit launcher is directly accessible with a Workout toggle',
+  app.includes("if(!state.active&&profile().workoutMode==='kb')return circuitScreen()")&&
+  app.includes('switch-workout-kb')&&app.includes('switch-workout-standard'));
+ assert('One-button start is built into Workout screen',
+  picker.includes('id="circuitBuilderForm"')&&picker.includes('Start circuit'));
+ assert('Pool description clarifies that choices are not fixed exercises',
+  picker.includes('My exercise pool')&&picker.includes('Adaptive may choose from'));
+ assert('Pool has minimum size but does not require exactly five choices',
+  app.includes('settings.poolIds.length<settings.count')&&
+  !app.includes('settings.selectedIds.length!==settings.count'));
+ const selected=['kb_bent_row','kb_goblet_squat','kb_press','kb_swing','kb_reverse_lunge','kb_curl','kb_russian_twist'];
+ const chosen=kb.create({focus:'full_body',count:5,poolIds:selected,rounds:3,reps:10,variant:2});
+ assert('Generator chooses five distinct exercises from a seven-movement pool',
+  chosen.pairs[0].exercises.length===5&&chosen.pairs[0].exercises.every(ex=>selected.includes(ex.id))&&
+  new Set(chosen.pairs[0].exercises.map(ex=>ex.id)).size===5);
+ const metrics={'Back':{stimulusScore:82,readinessScore:80},'Quads':{stimulusScore:10,readinessScore:95},
+  'Glutes':{stimulusScore:5,readinessScore:91},'Side delts':{stimulusScore:90,readinessScore:25}};
+ const gap=kb.create({focus:'full_body',count:3,poolIds:['kb_bent_row','kb_goblet_squat','kb_swing','kb_press'],
+  metrics,history:[],rounds:2});
+ assert('Low-stimulus recovered legs are chosen over fatigued pressing',
+  gap.pairs[0].exercises.some(ex=>ex.id==='kb_goblet_squat')&&
+  gap.pairs[0].exercises.some(ex=>ex.id==='kb_swing'));
+ assert('Circuit screen omits strength recommendation panels and RIR blocks',
+  app.includes('function circuitLiftScreen(tasks,task)')&&
+  app.includes('if(a.isCircuit)return circuitLiftScreen(tasks,group.task)')&&
+  !app.slice(app.indexOf('function circuitLiftScreen'),app.indexOf('function adaptiveStudioScreen')).includes('overload-badge'));
+ assert('Circuit uses a simple kettlebell weight selector',
+  app.includes('class="rr-kb-weight"')&&app.includes('getAvailableLoadsForExercise(ex)'));
+ assert('Reps and effort can be adjusted if desired',
+  app.includes('rr-kb-reps-editor')&&app.includes('rr-kb-rir-editor'));
+ assert('Rest screen is a countdown and one-button next round',
+  app.includes('function circuitRestScreen(tasks)')&&
+  app.includes('if(a?.isCircuit)return circuitRestScreen(tasks)'));
+ assert('Selected weight and reps persist for later rounds',
+  app.includes('a.circuitSelections[t.ex.id]')&&app.includes('a.circuitSelections?.[ex.id]'));
+ assert('Creating a draft leaves workout history unchanged',before===JSON.stringify(t.getState().history));
+ assert('Responsive assets are versioned for mobile refresh',
+  css.includes('@media(max-width:480px)')&&html.includes('graphite-circuits.css?v=2')&&
+  html.includes('adaptive-circuits.js?v=3'));
+} catch(err){assert('Suite 59 Exception: '+err.message,false);}
 
 console.log('\n================================================================');
 console.log('                   REGRESSION TEST RESULTS SUMMARY');
