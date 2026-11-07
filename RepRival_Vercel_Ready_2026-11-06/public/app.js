@@ -165,23 +165,11 @@
         last: 'admin',
         profiles: {
           admin: {
-            username: 'Rival Athlete',
+            username: 'New athlete',
             pin: '1234',
             role: 'admin',
             training: structuredClone(state),
-            body: {
-              unit: 'kg',
-              heightUnit: 'cm',
-              waistUnit: 'cm',
-              dob: '1992-05-14',
-              sex: 'male',
-              height: 178,
-              measurements: [
-                { date: dateOnly(new Date(Date.now() - 24 * 86400000).toISOString()), kg: 78.5 },
-                { date: dateOnly(new Date(Date.now() - 14 * 86400000).toISOString()), kg: 78.1 },
-                { date: dateOnly(new Date(Date.now() - 1 * 86400000).toISOString()), kg: 77.8 }
-              ]
-            },
+            body: { unit: 'kg', heightUnit: 'cm', waistUnit: 'cm', measurements: [] },
             selectedMovements: ['A:low_incline_db_press', 'B:flat_db_bench_press', 'C:low_incline_db_press'],
             planId: 'pump',
             plans: null
@@ -193,21 +181,7 @@
       page = 'home';
     }
 
-    // Auto-populate preview build with 10 workouts if profile has no workouts yet
-    if (profile() && profile().training && (!profile().training.history || profile().training.history.length === 0)) {
-      profile().training.history = generate10PreviewWorkouts();
-      profile().training.next = 'B';
-      profile().training.lastSummary = profile().training.history.at(-1)?.id || null;
-      if (!profile().body.measurements || profile().body.measurements.length === 0) {
-        profile().body.measurements = [
-          { date: dateOnly(new Date(Date.now() - 24 * 86400000).toISOString()), kg: 78.5 },
-          { date: dateOnly(new Date(Date.now() - 14 * 86400000).toISOString()), kg: 78.1 },
-          { date: dateOnly(new Date(Date.now() - 1 * 86400000).toISOString()), kg: 77.8 }
-        ];
-      }
-      state = profile().training;
-      save();
-    }
+    // New athletes begin with empty workout history. Demo sessions are opt-in only.
 
     ensureTraining();
   }
