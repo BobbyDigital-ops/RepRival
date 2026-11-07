@@ -1314,7 +1314,7 @@
     const currentStrength=calculateStrengthGainPct();
     const signedIn=Boolean(window.RepRivalCloud?.getCurrentUser?.());
     const newVisitor=!signedIn&&state.history.length===0;
-    return `${newVisitor?card(`<h2>Welcome to RepRival</h2><p class="subhead">Create your own athlete account to keep your workouts, kettlebell settings and Heat Zones separate and synced across devices.</p><button type="button" class="btn primary full mt12" data-action="auth-modal" data-mode="signup">Create my athlete account →</button>`,"section"):""}<section class="rr-g-home-overview" aria-label="Your training overview">
+    return `${newVisitor?card(`<h2>Welcome to RepRival</h2><p class="subhead">Start with a local profile on this device. No email, cloud account or payment required.</p><button type="button" class="btn primary full mt12" data-action="local-onboarding">Continue without email →</button><button type="button" class="btn outline full mt12" data-action="auth-modal" data-mode="signup">Sign up for cloud sync (optional)</button>`,"section"):""}<section class="rr-g-home-overview" aria-label="Your training overview">
         <div class="rr-g-welcome">
           <div>
             <span class="rr-g-section-eyebrow">YOUR TRAINING</span>
@@ -4819,8 +4819,8 @@
       ${card(`<h3>Training focus</h3><p class="subhead">Your active programme defines the training goal and workouts. For a different focus, switch plans in the library. Running can fit around rest days but is not counted as a strength workout.</p><p class="fineprint">Previously saved Main Focus / Include Cardio preferences are retained in backups, but they did not change training recommendations; the unused controls have been removed.</p>`,'section')}
       ${card(`<h3>Your local data</h3><p class="subhead">Workouts are stored on this device, separately for each profile. Export a backup before a major update or changing devices.</p><div class="stack mt16">${btn('Export complete backup (JSON)','export','outline full')}<label class="btn outline full" for="backupFile">Import backup (JSON)</label><input id="backupFile" type="file" accept="application/json,.json" style="display:none">${card(`<div class="row"><div><span class="eyebrow" style="margin-bottom:2px">BRAND IDENTITY</span><h3>Two Shadowed Rs</h3></div><span class="label-tag">NEW LOGO</span></div><p class="subhead mt8">Upgraded athletic monogram featuring two forward-leaning shadowed Rs representing personal rivalry against your baseline.</p><button type="button" class="btn outline full mt12" data-action="logo-showcase">Preview Twin-R Logo & Scales →</button>`,'section')}      ${canImportOwnerBaseline()?btn('Import 17 Oct Workout A baseline','import-v5','outline full'):''}</div>`,'section')}`;
   }
-  function setupScreen(){return `<div class="eyebrow">WELCOME TO REPRIVAL</div><h1 class="page-title">Create your admin profile.</h1><p class="lead">Your existing workouts will be migrated to this profile. Measurements are optional and editable later.</p>
-    ${card(`<form id="setupForm" class="stack"><h3>1 · Login details</h3><div class="field"><label>Admin username</label><input name="username" minlength="2" maxlength="28" required autocomplete="off"></div><div class="form-grid"><div class="field"><label>4-digit PIN</label><input name="pin" type="password" pattern="[0-9]{4}" inputmode="numeric" maxlength="4" required></div><div class="field"><label>Confirm PIN</label><input name="confirm" type="password" pattern="[0-9]{4}" inputmode="numeric" maxlength="4" required></div></div><h3>2 · Personal measurements</h3>${bodyInputFields(profile().body)}<button class="btn primary full" type="submit">Create admin profile →</button></form>`,'section')}
+  function setupScreen(){return `<div class="eyebrow">WELCOME TO REPRIVAL</div><h1 class="page-title">Create your local athlete profile.</h1><p class="lead">No email needed. Your workout history stays on this device. Measurements are optional.</p>
+    ${card(`<form id="setupForm" class="stack"><h3>1 · Local profile</h3><div class="field"><label>Your name</label><input name="username" minlength="2" maxlength="28" required autocomplete="off"></div><div class="form-grid"><div class="field"><label>4-digit PIN</label><input name="pin" type="password" pattern="[0-9]{4}" inputmode="numeric" maxlength="4" required></div><div class="field"><label>Confirm PIN</label><input name="confirm" type="password" pattern="[0-9]{4}" inputmode="numeric" maxlength="4" required></div></div><h3>2 · Personal measurements</h3>${bodyInputFields(profile().body)}<button class="btn primary full" type="submit">Start training →</button></form>`,'section')}
     <p class="fineprint">PINs are only a convenience on this device, not secure online authentication. You only enter the PIN when switching profiles.</p>`;}
   function unlockScreen(){const target=manager.profiles[manager.pending];if(!target){page='home';return home();}return `<div class="eyebrow">SWITCH ATHLETE</div><h1 class="page-title">${esc(target.username)}</h1><p class="lead">Enter this athlete’s 4-digit PIN to switch profiles.</p>${card(`<form id="unlockForm" class="stack"><div class="field"><label>4-digit PIN</label><input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" required autofocus></div><button class="btn primary full" type="submit">Switch profile →</button>${btn('Cancel','cancel-switch','outline full')}</form>`,'section')}`;}
   function profileTable(){return profileNames().map(id=>{const u=manager.profiles[id];return `<div class="session-row"><div><strong>${esc(u.username||'Setup needed')}</strong><small>${u.role==='admin'?'Administrator':'Athlete'} · ${u.training?.history?.length||0} workouts ${id===activeProfile?'· Active':''}</small></div>${id===activeProfile?'<span class="label-tag">Active</span>':`<button type="button" data-action="switch-profile" data-id="${esc(id)}" class="quiet-link">Switch →</button>`}</div>`;}).join('');}
@@ -6248,6 +6248,7 @@
     }
     if(action==='explain-strength-trend'){showStrengthExplanationModal();return;}
     if(action==='close-modal'){closeAllModals();return;}
+    if(action==='local-onboarding'){closeAllModals();page='setup';render();return;}
     if(action==='auth-modal'){showAuthModal(el.dataset.mode||'login');return;}
     if(action==='cloud-login'){showAuthModal('login');return;}
     if(action==='cloud-logout'){handleCloudLogout();return;}
@@ -6373,7 +6374,7 @@
     if(id==='setupForm'){
       e.preventDefault();const f=new FormData(e.target),username=String(f.get('username')).trim(),pin=String(f.get('pin'));
       if(username.length<2||!/^\d{4}$/.test(pin)||pin!==f.get('confirm')){showToast('Check username and matching four-digit PINs');return;}
-      profile().username=username;profile().pin=pin;profile().body=readBodyForm(f,profile().body,true);manager.setupPending=false;save();page='home';render();return;
+      profile().username=username;profile().pin=pin;profile().role='athlete';profile().body=readBodyForm(f,profile().body,true);manager.setupPending=false;save();page='workout';profile().workoutMode='kb';save();render();return;
     }
     if(id==='equipmentForm'){
       e.preventDefault();
@@ -6665,6 +6666,8 @@
           ${isLogin ? 'Log in with your email & password to sync your workouts across phone and laptop.' : 'New accounts join as Athletes. Your workouts and PBs will be securely saved in Firestore.'}
         </p>
 
+        <button type="button" id="authLocalBtn" class="btn outline full" style="margin-bottom:14px">Continue without email · Local profile</button>
+
         <!-- Segmented Toggle Switch -->
         <div class="rr-auth-toggle" role="tablist">
           <button type="button" class="rr-auth-toggle-btn ${isLogin ? 'active' : ''}" id="authTabLogin">Log In</button>
@@ -6715,6 +6718,7 @@
 
       dlg.querySelectorAll('[data-close-auth]').forEach(b => b.addEventListener('click', () => dlg.close()));
 
+      dlg.querySelector('#authLocalBtn')?.addEventListener('click',()=>{dlg.close();page='setup';render();});
       const tabLogin = dlg.querySelector('#authTabLogin');
       const tabSignup = dlg.querySelector('#authTabSignup');
       tabLogin.addEventListener('click', () => { mode = 'login'; renderModalContent(); });
