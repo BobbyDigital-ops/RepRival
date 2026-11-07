@@ -3,23 +3,32 @@
    safely consume exercise-by-exercise; does not update any saved programme. */
 (function(){
   'use strict';
+  // Entire preset is weighted with a kettlebell. Core-only movements can be
+  // offered as optional bodyweight additions in the custom list below.
   const PRESETS={
-    full_body:['kb_bent_row','kb_goblet_squat','kb_press','kb_swing','kb_reverse_lunge','kb_curl','kb_suitcase_carry'],
-    upper:['kb_bent_row','kb_press','kb_curl','kb_clean_press','kb_halo','kb_suitcase_carry'],
-    lower:['kb_goblet_squat','kb_rdl','kb_reverse_lunge','kb_swing','kb_deadlift','kb_suitcase_carry'],
-    core:['kb_halo','kb_suitcase_carry','kb_goblet_squat','kb_bent_row','kb_reverse_lunge','russian_twist']
+    full_body:['kb_bent_row','kb_goblet_squat','kb_press','kb_swing','kb_reverse_lunge','kb_floor_press','kb_curl','kb_triceps_extension','kb_russian_twist'],
+    upper:['kb_bent_row','kb_floor_press','kb_press','kb_curl','kb_triceps_extension','kb_hammer_curl','kb_crush_press','kb_push_press'],
+    lower:['kb_goblet_squat','kb_rdl','kb_reverse_lunge','kb_sumo_squat','kb_deadlift','kb_glute_bridge','kb_calf_raise','kb_single_leg_rdl'],
+    core:['kb_russian_twist','kb_halo','kb_suitcase_carry','kb_around_world','kb_side_bend','kb_windmill','kb_goblet_squat','kb_bent_row']
   };
   const FOCUSES=[['full_body','Full body'],['upper','Upper body'],['lower','Lower body'],['core','Core & stability']];
   const safeInt=(value,min,max,fallback)=>{const n=Number(value);return Number.isFinite(n)?Math.min(max,Math.max(min,Math.round(n))):fallback;};
   const isAvailable=(ex,kit=['kettlebell'])=>{
     const lib=window.REPRIVAL_EXERCISE_LIBRARY;
-    return !!ex && !!lib?.compatible(ex,kit) &&
-      (ex.equipment||[]).every(x=>x==='kettlebell');
+    if(!ex||!lib?.compatible(ex,kit))return false;
+    const required=ex.equipment||[];
+    const weighted=required.includes('kettlebell')&&required.every(x=>x==='kettlebell');
+    // Truly equipment-free core moves stay available as optional alternatives;
+    // generic DB exercises are NOT misrepresented as kettlebell movements.
+    const coreBW=ex.muscle==='Core'&&ex.load==='bodyweight'&&!required.length;
+    return weighted||coreBW;
   };
   function eligible(){
     const lib=window.REPRIVAL_EXERCISE_LIBRARY;
-    return (lib?.entries||[]).filter(ex=>isAvailable(ex))
-      .filter(ex=>ex.load==='bodyweight'||ex.load==='optional'||(ex.equipment||[]).includes('kettlebell'));
+    const available=(lib?.entries||[]).filter(ex=>isAvailable(ex));
+    // Weighted kettlebell movements first. Bodyweight core follows as extras.
+    return [...available.filter(ex=>(ex.equipment||[]).includes('kettlebell')),
+      ...available.filter(ex=>!(ex.equipment||[]).includes('kettlebell'))];
   }
   function choose({focus='full_body',count=5,selectedIds=[],variant=0}={}){
     const lib=window.REPRIVAL_EXERCISE_LIBRARY;
@@ -45,7 +54,9 @@
       if(key==='core')return ['Core','Glutes','Back','Quads'].includes(ex.muscle);
       return true;
     });
-    suitable.forEach(ex=>append(ex.id));
+    // Prioritise weighted candidates; bodyweight core is selectable manually.
+    suitable.filter(ex=>(ex.equipment||[]).includes('kettlebell')).forEach(ex=>append(ex.id));
+    suitable.filter(ex=>ex.load==='bodyweight').forEach(ex=>append(ex.id));
     return chosen.slice(0,num);
   }
   function create(options={}){
