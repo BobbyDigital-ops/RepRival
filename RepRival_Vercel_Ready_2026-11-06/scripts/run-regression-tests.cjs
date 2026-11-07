@@ -2951,9 +2951,14 @@ try {
   app.includes('if(a.isCircuit)return circuitLiftScreen(tasks,group.task)')&&
   !app.slice(app.indexOf('function circuitLiftScreen'),app.indexOf('function adaptiveStudioScreen')).includes('overload-badge'));
  assert('Circuit uses a simple kettlebell weight selector',
-  app.includes('class="rr-kb-weight"')&&app.includes('getAvailableLoadsForExercise(ex)'));
+  app.includes('class="rr-kb-round-row"')&&app.includes('getAvailableLoadsForExercise(ex)'));
  assert('Reps and effort can be adjusted if desired',
   app.includes('rr-kb-reps-editor')&&app.includes('rr-kb-rir-editor'));
+ assert('KB circuit displays all movements together, logging a complete round',
+  app.includes('const roundItems=fullRound(tasks,a.taskIndex).items')&&
+  app.includes('const activeItems = group.items')&&
+  app.includes('Complete round → Rest')&&
+  app.includes('roundItems.map((t,i)=>')&&app.includes('name="weight-'+idx'));
  assert('Rest screen is a countdown and one-button next round',
   app.includes('function circuitRestScreen(tasks)')&&
   app.includes('if(a?.isCircuit)return circuitRestScreen(tasks)'));
