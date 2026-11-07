@@ -2958,7 +2958,7 @@ try {
   app.includes('const roundItems=fullRound(tasks,a.taskIndex).items')&&
   app.includes('const activeItems = group.items')&&
   app.includes('Complete round → Rest')&&
-  app.includes('roundItems.map((t,i)=>')&&app.includes('name="weight-'+idx'));
+  app.includes('roundItems.map((t,i)=>')&&app.includes('const options=weights.map'));
  assert('Rest screen is a countdown and one-button next round',
   app.includes('function circuitRestScreen(tasks)')&&
   app.includes('if(a?.isCircuit)return circuitRestScreen(tasks)'));
