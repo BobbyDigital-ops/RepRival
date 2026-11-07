@@ -4472,6 +4472,41 @@
     const empty=document.getElementById('adaptiveEmpty');
     if(empty)empty.hidden=visible>0;
   }
+  let circuitDraft=null;
+  function circuitScreen(){
+    const builder=window.RepRivalAdaptiveCircuits;
+    const p=profile();
+    const saved=p.circuitSettings||{};
+    const draft=circuitDraft;
+    const focus=saved.focus||'full_body';
+    const all=builder.eligible();
+    const selected=new Set(saved.selectedIds||[]);
+    const option=(value,label,current)=>'<option value="'+esc(value)+'" '+(String(value)===String(current)?'selected':'')+'>'+esc(label)+'</option>';
+    const tiles=all.map(ex=>'<label class="rr-circuit-choice"><input type="checkbox" name="circuitExercise" value="'+esc(ex.id)+'" '+(selected.has(ex.id)?'checked':'')+'><span><strong>'+esc(ex.name)+'</strong><small>'+esc(ex.muscle)+' · '+((ex.equipment||[]).includes('kettlebell')?'Kettlebell':'No equipment')+'</small></span></label>').join('');
+    return '<div class="rr-circuit-page">'+
+      '<div class="eyebrow">ADAPTIVE · KETTLEBELL CIRCUITS</div><h1 class="page-title">Kettlebell circuits.</h1>'+
+      '<p class="lead">Choose a ready-made full-body session or select your own movements. Log one exercise at a time, then rest after each round.</p>'+
+      card('<h3>Build your circuit</h3><form id="circuitBuilderForm" class="rr-circuit-form">'+
+        '<div class="field"><label for="circuitFocus">Workout focus</label><select id="circuitFocus" name="focus">'+builder.FOCUSES.map(x=>option(x[0],x[1],focus)).join('')+'</select></div>'+
+        '<div class="rr-circuit-fields">'+
+          '<div class="field"><label for="circuitCount">Exercises</label><select id="circuitCount" name="count">'+[2,3,4,5,6,7,8].map(n=>option(n,n+' exercises',saved.count||5)).join('')+'</select></div>'+
+          '<div class="field"><label for="circuitRounds">Rounds</label><select id="circuitRounds" name="rounds">'+[1,2,3,4,5,6].map(n=>option(n,n+' rounds',saved.rounds||3)).join('')+'</select></div>'+
+          '<div class="field"><label for="circuitReps">Target reps / exercise</label><input id="circuitReps" name="reps" type="number" min="1" max="40" value="'+(Number(saved.reps)||10)+'"></div>'+
+          '<div class="field"><label for="circuitRest">Rest between rounds</label><select id="circuitRest" name="rest">'+[30,45,60,75,90,120,150,180].map(n=>option(n,n+' seconds',saved.rest||75)).join('')+'</select></div>'+
+        '</div>'+
+        '<details class="rr-circuit-choices" '+(selected.size?'open':'')+'><summary>Choose specific exercises <small>optional · leave empty for a ready-made session</small></summary>'+
+          '<div class="rr-circuit-list">'+tiles+'</div></details>'+
+        '<div class="rr-circuit-buttons"><button type="button" class="btn outline" data-action="circuit-preset">Use ready-made selection</button>'+
+          '<button type="submit" class="btn primary">Build circuit</button></div></form>','section')+
+      (draft?card('<div class="rr-circuit-preview"><h3>'+esc(draft.sessionName)+'</h3>'+
+        '<p class="subhead">'+draft.rounds+' rounds · '+draft.pairs[0].exercises.length+' exercises · '+draft.reps+' reps each · about '+draft.estimatedMinutes+' min</p>'+
+        '<ol>'+draft.pairs[0].exercises.map(ex=>'<li><strong>'+esc(ex.name)+'</strong><small>'+esc(ex.muscle)+(ex.suffix?' · '+esc(ex.suffix):'')+'</small></li>').join('')+'</ol>'+
+        '<p class="fineprint">The same sequence repeats each round. You can adjust weights and actual reps during the workout.</p>'+
+        '<button type="button" class="btn primary full" data-action="start-circuit" '+(state.active?'disabled':'')+'>Start circuit</button></div>','section'):'')+
+      '<p class="fineprint">Use a suitable kettlebell weight for each movement. Single-side exercises show their side instructions. Keep the exercise area clear of children and pets.</p>'+
+      '<button type="button" class="btn outline full" data-page="adaptive-studio">← Back to Adaptive Training</button></div>';
+  }
+
   function adaptiveStudioScreen(){
     const athlete=profile(),cfg=athlete.adaptive||{},v3=ADAPT_V3;
     const owned=athlete.equipment||[],lib=window.REPRIVAL_EXERCISE_LIBRARY;
@@ -4533,7 +4568,8 @@
         '<div class="form-grid"><div class="field"><label for="adaptiveSessionCount">Workout blocks</label><select id="adaptiveSessionCount" data-adaptive-blocks>'+[2,3,4,5].map(n=>'<option value="'+n+'" '+((cfg.supersets||3)===n?'selected':'')+'>'+n+' blocks</option>').join('')+'</select></div>'+
         '<div class="field"><label for="adaptiveWeeklyGoal">Sessions / week</label><select id="adaptiveWeeklyGoal" data-adaptive-weekly>'+[2,3,4,5,6].map(n=>'<option value="'+n+'" '+((cfg.frequency||3)===n?'selected':'')+'>'+n+' per week</option>').join('')+'</select></div></div>'+
         '<button class="btn primary full mt12" data-action="adaptive-generate" '+(!cfg.active||state.active?'disabled':'')+' type="button">Generate next adaptive workout</button>','section')+
-      card('<section class="rr-adaptive-library" aria-label="Adaptive exercise preferences">'+
+      card('<div class="rr-circuit-entry"><div><div class="eyebrow">NEW · CIRCUIT TRAINING</div><h3>Kettlebell circuits</h3><p class="subhead">Quick ready-made full-body workouts or custom 2–8 exercise circuits. Choose rounds, reps, and rest. Logged into your own progress.</p></div><button class="btn primary" data-page="adaptive-circuit" type="button">Build kettlebell circuit →</button></div>','section')+
+      card('<section class="rr-adaptive-library" aria-label="Adaptive exercise preferences'+
         '<div class="rr-adaptive-library-head"><div><div class="eyebrow">BUILD YOUR EXERCISE POOL</div><h3>Exercise preferences</h3><p class="subhead">One preference per exercise. Multi-muscle movements can appear under more than one group, but are never counted twice.</p></div><span class="label-tag">'+eligible.length+' available</span></div>'+
         '<div class="rr-adaptive-library-controls">'+
           '<div class="field"><label for="adaptiveMuscleSelect">Muscle group</label><select id="adaptiveMuscleSelect" aria-controls="adaptiveExerciseGroups">'+muscleOptions+'</select></div>'+
@@ -5002,6 +5038,7 @@
     else if(page==='exercises')body=exerciseBrowser();
     else if(page==='activate')body=activateScreen();
     else if(page==='adaptive-studio')body=adaptiveStudioScreen();
+    else if(page==='adaptive-circuit')body=circuitScreen();
     else if(page==='adaptive-setup')body=adaptiveSetupScreen();
     else if(page==='adaptive-review')body=adaptiveReviewScreen();
     else if(page==='metrics')body=metricsScreen();
@@ -6048,6 +6085,29 @@
     if(action==='export')exportBackup();
     if(action==='import-v5')importV5Baseline();
     if(action==='open-generator'){openOneOffGeneratorModal();return;}
+    if(action==='circuit-preset'){
+      const form=document.getElementById('circuitBuilderForm');
+      if(form){
+        form.querySelectorAll('input[name="circuitExercise"]').forEach(c=>c.checked=false);
+        showToast('Ready-made movements will be chosen when you build.');
+      }
+      return;
+    }
+    if(action==='start-circuit'){
+      if(state.active){showToast('Finish or pause your current workout first.');return;}
+      if(!circuitDraft){showToast('Build your circuit first.');return;}
+      const draft=circuitDraft;
+      closeAllModals();
+      state.active={
+        id:'circuit-'+Date.now(),session:'Quick',sessionName:draft.sessionName,
+        planId:'one-off',isOneOff:true,isCircuit:true,
+        pairs:structuredClone(draft.pairs),stage:'lift',taskIndex:0,logs:[],
+        accumulatedTime:0,lastStartTime:Date.now(),startedAt:new Date().toISOString()
+      };
+      save();page='workout';render();window.scrollTo({top:0,left:0,behavior:'instant'});
+      showToast('Circuit started · move through each exercise in order.');
+      return;
+    }
     if(action==='shuffle-generator'){
       const dur = Number(document.querySelector('#genDurationSelect')?.value || generatorDraft?.duration || 15);
       const gear = document.querySelector('#genGearSelect')?.value || generatorDraft?.gearMode || 'owned';
@@ -6121,6 +6181,30 @@
   });
   document.addEventListener('submit',e=>{
     const id=e.target.id;
+    if(id==='circuitBuilderForm'){
+      e.preventDefault();
+      const f=new FormData(e.target);
+      const settings={
+        focus:String(f.get('focus')||'full_body'),
+        count:Number(f.get('count')||5),rounds:Number(f.get('rounds')||3),
+        reps:Number(f.get('reps')||10),rest:Number(f.get('rest')||75),
+        selectedIds:f.getAll('circuitExercise').map(String)
+      };
+      if(settings.selectedIds.length && settings.selectedIds.length<2){
+        showToast('Select two or more exercises, or use a ready-made circuit.');return;
+      }
+      if(settings.selectedIds.length>settings.count){
+        showToast('Increase the exercise count or deselect extra choices.');return;
+      }
+      try{
+        const fresh=window.RepRivalAdaptiveCircuits.create(settings);
+        profile().circuitSettings=settings;
+        circuitDraft=fresh;
+        save();render();
+        showToast('Your circuit is ready.');
+      }catch(error){showToast(error?.message||'Check circuit settings.');}
+      return;
+    }
     if(id==='adaptiveForm'){
       e.preventDefault();if(state.active){state.active=null;state.activeCustomPairs=null;}
       const f=new FormData(e.target),template=String(f.get('template')),title=ADAPT.TEMPLATES[template]||(profile().adaptivePresets||[]).find(p=>p.id===template);if(!title)return;
