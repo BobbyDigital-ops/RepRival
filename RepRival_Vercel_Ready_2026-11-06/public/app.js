@@ -1313,7 +1313,8 @@
     const planCycle=Math.floor(done/Math.max(1,SESSION_ORDER.length))+1;
     const currentStrength=calculateStrengthGainPct();
     const signedIn=Boolean(window.RepRivalCloud?.getCurrentUser?.());
-    return `<section class="rr-g-home-overview" aria-label="Your training overview">
+    const newVisitor=!signedIn&&state.history.length===0;
+    return `${newVisitor?card(`<h2>Welcome to RepRival</h2><p class="subhead">Create your own athlete account to keep your workouts, kettlebell settings and Heat Zones separate and synced across devices.</p><button type="button" class="btn primary full mt12" data-action="auth-modal" data-mode="signup">Create my athlete account →</button>`,"section"):""}<section class="rr-g-home-overview" aria-label="Your training overview">
         <div class="rr-g-welcome">
           <div>
             <span class="rr-g-section-eyebrow">YOUR TRAINING</span>
@@ -1347,7 +1348,7 @@
       </section>
       ${state.holiday?.active?'<p class="rr-g-holiday-active">Holiday mode is active. Your regular workout rotation is paused.</p>':''}
       ${graphiteHomeHeatmap()}
-      ${signedIn?'':cloudBanner()}`;
+      ${signedIn||newVisitor?'':cloudBanner()}`;
   }
 
   function currentSessionPairs(){
