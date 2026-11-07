@@ -86,13 +86,36 @@
     const supersets=Math.max(1,Math.min(5,Number(opts.supersets || cfg.supersets || 3)));
     const setsPerPair=p=>supersets===1?2:p<2?3:2;
     const plannedTotal=Array.from({length:supersets},(_,p)=>setsPerPair(p)*2).reduce((a,b)=>a+b,0);
+    // Without history, keep a sensible focus-first default. Once training data
+    // exists, let muscle deficits and recovery outrank rigid region quotas.
+    const hasHistorySignal=Object.values(groups||{}).some(g=>g&&g.ever);
     const desiredDominant=Math.ceil(plannedTotal*.75);
+    const maintenanceTargets={
+      upper_focused:{upper:70,lower:30,core:50},
+      lower_focused:{upper:30,lower:70,core:50},
+      balanced:{upper:60,lower:60,core:50},
+      mixed:{upper:55,lower:55,core:50},
+      gaps:{upper:55,lower:55,core:50}
+    };
+    const targets=maintenanceTargets[focus]||maintenanceTargets.balanced;
+    const zone=m=>UPPER.has(m)?'upper':LOWER.has(m)?'lower':'core';
+    const coverageFor=e=>{
+      const contribution=[[e.muscle,1],...(window.RepRivalIntelligence?.getSecondaryContributions?.({exId:e.id,name:e.name,muscle:e.muscle})||[])];
+      return contribution.reduce((total,[m,share])=>{
+        const h=metrics(m);
+        if(!h.ever)return total;
+        const goal=targets[zone(m)];
+        const deficit=Math.max(0,goal-h.score);
+        // Don't repeatedly schedule a muscle already covered in this workout.
+        return total+Math.max(0,deficit-(muscleDose[m]||0)*9)*share;
+      },0);
+    };
     let dominantSets=0, usedSets=0;
     const picked=new Set(),families=new Set(),muscleDose={};
     const pairs=[],focusedMuscles=[];
     const metrics=m=>{
       const h=groups?.[m]||{};
-      return {score:Number(h.stimulusScore??h.score??0),readiness:Number(h.readinessScore??100),
+      return {score:Number(h.stimulusScore??h.score??55),readiness:Number(h.readinessScore??75),
         daysSince:Number(h.daysSince??30), ever:!!h.ever};
     };
     function pick(needDominant,firstExercise) {
@@ -132,7 +155,12 @@
           ? (PAIR_COMPAT[firstExercise.muscle]?.includes(e.muscle)?22:0)
           : 0;
         const tie=[...e.id].reduce((n,c)=>(n*31+c.charCodeAt(0))%997,variant+11)/997;
-        return {e,score:(100-h.score)*1.2+Math.min(18,h.daysSince)*1.1+(h.readiness-65)*.4
+        const adaptivePriority=hasHistorySignal?
+          (coverageFor(e)*3.2+(zone(e.muscle)==='core'&&metrics('Core').ever?6:0)):
+          (100-h.score)*1.2;
+        const focusNudge=hasHistorySignal&&focus==='upper_focused'&&zone(e.muscle)==='upper'?8:
+          hasHistorySignal&&focus==='lower_focused'&&zone(e.muscle)==='lower'?8:0;
+        return {e,score:adaptivePriority+focusNudge+Math.min(18,h.daysSince)*.35+(h.readiness-65)*.4
           +frequencyScore+variety+quality+pairing-coverage-fatigue+tie};
       }).sort((a,b)=>b.score-a.score);
       return ranked[0]?.e||null;
@@ -141,15 +169,17 @@
       const chosen=[],count=setsPerPair(p);
       for(let slot=0;slot<2;slot++){
         let region=null;
-        if(focus==='upper_focused')region=dominantSets<desiredDominant?'upper':'other-upper';
-        if(focus==='lower_focused')region=dominantSets<desiredDominant?'lower':'other-lower';
+        if(!hasHistorySignal&&focus==='upper_focused')region=dominantSets<desiredDominant?'upper':'other-upper';
+        if(!hasHistorySignal&&focus==='lower_focused')region=dominantSets<desiredDominant?'lower':'other-lower';
         const e=pick(region,chosen[0]);
         if(!e)continue;
         const copy={...e,sets:count};
         if(cfg.goal==='strength'){copy.min=5;copy.max=8;}
         else if(cfg.goal==='endurance'){copy.min=12;copy.max=16;}
         chosen.push(copy);picked.add(e.id);families.add(e.family||e.id);
-        muscleDose[e.muscle]=(muscleDose[e.muscle]||0)+count;focusedMuscles.push(e.muscle);
+        const allocations=[[e.muscle,1],...(window.RepRivalIntelligence?.getSecondaryContributions?.({exId:e.id,name:e.name,muscle:e.muscle})||[])];
+        allocations.forEach(([m,share])=>{muscleDose[m]=(muscleDose[m]||0)+count*share;});
+        focusedMuscles.push(e.muscle);
         usedSets+=count;
         if((focus==='upper_focused'&&UPPER.has(e.muscle))||(focus==='lower_focused'&&LOWER.has(e.muscle)))dominantSets+=count;
       }
@@ -161,7 +191,7 @@
     return {
       name:label+' · Adaptive',subtitle:setCount+' working sets · ~'+Math.round(setCount*1.7+pairs.length*2)+' min',
       pairs,focus:focusedMuscles,estimatedMinutes:Math.round(setCount*1.7+pairs.length*2),
-      explanation:caution || 'Selected using your 28-day stimulus, readiness, seven-day exercise limits and complementary muscle pairing. '+label+'.',
+      explanation:caution || (hasHistorySignal?'Selected against upper/lower/core stimulus-maintenance targets, accounting for recovery, supporting muscles, seven-day frequency and your preferred focus. ':'Selected using your exercise preferences, recovery and training focus until enough history is available. ')+label+'.',
       focusType:focus,warning:caution,weekly,dominantShare:usedSets?dominantSets/usedSets:0
     };
   }
