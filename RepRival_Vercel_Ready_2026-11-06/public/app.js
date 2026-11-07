@@ -5221,7 +5221,7 @@
         // Weight validation and resolution
         const hasWeightField = data.has ? data.has(`weight-${idx}`) : (data.get && data.get(`weight-${idx}`) !== undefined);
         const rawWeightStr = hasWeightField ? String(data.get(`weight-${idx}`) ?? '').trim() : (res.weight !== undefined && res.weight !== '' ? String(res.weight) : '');
-        const allowsZero = ex.load === 'bodyweight' || ex.load === 'optional' || permitsBodyweight(ex);
+        const allowsZero = a.isCircuit || ex.load === 'bodyweight' || ex.load === 'optional' || permitsBodyweight(ex);
         const weight = ex.load === 'bodyweight' ? 0 : (rawWeightStr !== '' ? num(rawWeightStr) : (res.weight !== undefined ? num(res.weight) : 0));
 
         // Reps validation and resolution
