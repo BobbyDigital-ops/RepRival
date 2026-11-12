@@ -115,6 +115,15 @@
     };
     let dominantSets=0, usedSets=0;
     const picked=new Set(),families=new Set(),muscleDose={};
+    // Similar movements with distinct IDs still compete for ONE slot.
+    // Different support/load mechanics remain separate for PB purposes.
+    const movementFamily=e=>{
+      const id=window.REPRIVAL_EXERCISE_LIBRARY?.canonicalId?.(e.id)||e.id;
+      if(['chest_supported_rear_fly','standing_rear_fly','reverse_db_fly'].includes(id))return 'db_rear_delt_fly';
+      if(['db_deadlift','db_romanian_deadlift','staggered_stance_rdl','single_leg_db_rdl'].includes(id))return 'db_hip_hinge';
+      if(['goblet_squat','db_sumo_squat','db_front_squat'].includes(id))return 'db_squat';
+      return e.family||id;
+    };
     const pairs=[],focusedMuscles=[];
     const metrics=m=>{
       const h=groups?.[m]||{};
@@ -136,8 +145,10 @@
       const safe=pool.filter(e=>!sore.has(e.muscle) && metrics(e.muscle).readiness>=30);
       if(safe.length)pool=safe;
       else return null; // Never override severe soreness or very low readiness.
-      const distinct=pool.filter(e=>!families.has(e.family || e.id) &&
-        (!firstExercise||(e.family||e.id)!==(firstExercise.family||firstExercise.id)));
+      const distinct=pool.filter(e=>!families.has(movementFamily(e)) &&
+        (!firstExercise||movementFamily(e)!==movementFamily(firstExercise)));
+      // Hard-prefer different movement patterns across the whole session.
+      // Fall back only if no sufficiently recovered alternative exists.
       if(distinct.length)pool=distinct;
       // Avoid repeating the same primary muscle in a superset whenever there
       // are compatible alternatives. Exact duplicate IDs are already removed.
@@ -180,7 +191,7 @@
         const copy={...e,sets:count};
         if(cfg.goal==='strength'){copy.min=5;copy.max=8;}
         else if(cfg.goal==='endurance'){copy.min=12;copy.max=16;}
-        chosen.push(copy);picked.add(e.id);families.add(e.family||e.id);
+        chosen.push(copy);picked.add(e.id);families.add(movementFamily(e));
         const allocations=[[e.muscle,1],...(window.RepRivalIntelligence?.getSecondaryContributions?.({exId:e.id,name:e.name,muscle:e.muscle})||[])];
         allocations.forEach(([m,share])=>{muscleDose[m]=(muscleDose[m]||0)+count*share;});
         focusedMuscles.push(e.muscle);
