@@ -797,9 +797,11 @@
     if(isTransition) return prescribed;
     return Math.max(15, Number(prescribed) - 15);
   }
+  const canonicalExercise=id=>window.REPRIVAL_EXERCISE_LIBRARY?.canonicalId?.(id)||String(id||'');
+  const sameExercise=(logged,exId)=>canonicalExercise(logged?.exId||logged?.name)===canonicalExercise(exId);
   function exerciseLastSet(exId,activeLogs=[]){
-    const current=[...activeLogs].reverse().find(l=>l&&l.exId===exId&&!l.skipped);
-    return current||[...allLogs()].reverse().find(l=>l&&l.exId===exId&&!l.skipped)||null;
+    const current=[...activeLogs].reverse().find(l=>l&&!l.skipped&&sameExercise(l,exId));
+    return current||[...allLogs()].reverse().find(l=>l&&!l.skipped&&sameExercise(l,exId))||null;
   }
   function score(log){
     if(!log||log.skipped||log.reps<=0)return 0;
@@ -843,7 +845,7 @@
   }
   function bestByExercise(logs){
     const result={};
-    logs.forEach(l=>{if(l&&!l.skipped&&(!result[l.exId]||score(l)>score(result[l.exId])))result[l.exId]=l;});
+    logs.forEach(l=>{if(l&&!l.skipped){const id=canonicalExercise(l.exId||l.name);if(!result[id]||score(l)>score(result[id]))result[id]=l;}});
     return result;
   }
   function recentExercises(muscle){
@@ -1035,7 +1037,7 @@
   function comparableSessions(movement){
     if(!movement)return [];
     return state.history.map(s=>{
-      const logs=(s.logs||[]).filter(l=>l.exId===movement.id && !l.skipped);
+      const logs=(s.logs||[]).filter(l=>sameExercise(l,movement.id) && !l.skipped);
       if(!logs.length)return null;
       const best=bestSet(logs);
       const volume = logs.reduce((a,l)=>a+setVolume(l),0);
@@ -1851,7 +1853,7 @@
   }
   function previousMatchingSet(exId,round){
     for(const session of [...state.history].reverse()){
-      const logs=(session.logs||[]).filter(x=>x.exId===exId && !x.skipped);
+      const logs=(session.logs||[]).filter(x=>sameExercise(x,exId) && !x.skipped);
       if(logs.length)return logs.find(l=>l.round===round)||logs[Math.min(round-1,logs.length-1)];
     }return null;
   }
@@ -1861,7 +1863,7 @@
     const now = Date.now();
     const entries = state.history
       .filter(s => now - Date.parse(s.endedAt || s.startedAt || '') < windowMs)
-      .flatMap(s => (s.logs || []).filter(l => l.exId === exId && !l.skipped));
+      .flatMap(s => (s.logs || []).filter(l => sameExercise(l,exId) && !l.skipped));
     
     if(!entries.length) return null;
     // Return the set with the highest strength score.
@@ -2051,7 +2053,7 @@
     const comparisons = [];
     for (const session of (state.history || [])) {
       const logs = (session.logs || []).filter(l => l &&
-        l.exId === ex.id && intel.validWorkingSet(l) &&
+        sameExercise(l,ex.id) && intel.validWorkingSet(l) &&
         l.rir != null && Number(l.rir) <= 5);
       if (!logs.length) continue;
       const estimatedCapacity = l => {
@@ -2150,7 +2152,7 @@
     if (activeSession?.logs) {
       for (let i = activeSession.logs.length - 1; i >= 0; i--) {
         const l = activeSession.logs[i];
-        if (l && !l.skipped && (l.exId === ex.id || l.name === ex.name)) {
+        if (l && !l.skipped && sameExercise(l,ex.id)) {
           prevRoundLog = l;
           break;
         }
@@ -2196,7 +2198,7 @@
     const reps = manualReps !== undefined ? manualReps : (logged?.reps !== undefined ? logged.reps : baseReps);
     const rir = manualRir !== undefined ? manualRir : (logged?.rir !== undefined ? logged.rir : '');
 
-    const activeExLogs = (activeSession?.logs || []).filter(l => l && (l.exId === ex.id || l.name === ex.name));
+    const activeExLogs = (activeSession?.logs || []).filter(l => l && sameExercise(l,ex.id));
 
     const rec = recommend(ex, baselineLog, activeExLogs);
     const performanceTrend = exercisePerformanceTrend(ex);
@@ -2988,7 +2990,7 @@
 
     const currentGrouped={};
     s.logs.forEach(l=>{
-      const key=l.exId||l.name;
+      const key=canonicalExercise(l.exId||l.name);
       if(!currentGrouped[key]) currentGrouped[key]={id:key,name:l.name,muscle:l.muscle,best:l,logs:[]};
       currentGrouped[key].logs.push(l);
       if(score(l)>score(currentGrouped[key].best)) currentGrouped[key].best=l;
@@ -2997,7 +2999,7 @@
     const prevGrouped={};
     if(previous&&Array.isArray(previous.logs)){
       previous.logs.forEach(l=>{
-        const key=l.exId||l.name;
+        const key=canonicalExercise(l.exId||l.name);
         if(!prevGrouped[key]) prevGrouped[key]={id:key,name:l.name,best:l};
         if(score(l)>score(prevGrouped[key].best)) prevGrouped[key].best=l;
       });
@@ -3013,7 +3015,7 @@
         else if(curScore<oldScore*0.992){ direction='lower'; change=((curScore/oldScore)-1)*100; }
         else { direction='maintained'; maintained++; change=0; }
       }
-      const pb=(s.prs||[]).some(pr=>pr.exId===g.id||pr.name===g.name);
+      const pb=(s.prs||[]).some(pr=>canonicalExercise(pr.exId||pr.name)===g.id);
       const anyTargetAchieved = g.logs.some(l => l.targetAchieved);
       return { id:g.id, name:g.name, best:curBest, old:oldBest, direction, change, pb, anyTargetAchieved };
     });
