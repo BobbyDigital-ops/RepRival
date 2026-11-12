@@ -2698,6 +2698,26 @@ try {
   assert('No duplicate exercise IDs in the displayed library',new Set(names).size===names.length);
   assert('Only one standing DB calf raise appears in the picker',
     lib.entries.filter(e=>e.name==='Standing DB calf raise').length===1);
+  assert('Historical deadlift and squat names resolve to canonical catalogue IDs',
+    lib.canonicalId('dumbbell_deadlift')==='db_deadlift' &&
+    lib.canonicalId('dumbbell_goblet_squat')==='goblet_squat');
+  const originalAliasHistory=RepRivalTest.getState().history;
+  const aliasTime=new Date().toISOString();
+  RepRivalTest.setHistory([{id:'alias-check',session:'A',endedAt:aliasTime,logs:[
+    {exId:'dumbbell_deadlift',name:'Dumbbell deadlift',muscle:'Hamstrings',weight:35,reps:9,rir:2,load:'combined',round:1},
+    {exId:'db_goblet_squat',name:'DB goblet squat',muscle:'Quads',weight:18,reps:11,rir:2,load:'single',round:1}
+  ]}]);
+  assert('PB and previous-set lookup recognize older deadlift IDs',
+    RepRivalTest.bestSetLast90Days('db_deadlift')?.weight===35 &&
+    RepRivalTest.previousMatchingSet('db_deadlift',1)?.reps===9 &&
+    RepRivalTest.exerciseLastSet('goblet_squat')?.weight===18);
+  assert('Trend history carries forward a canonical goblet-squat record',
+    RepRivalTest.comparableSessions({id:'goblet_squat'}).length===1);
+  RepRivalTest.setHistory(originalAliasHistory);
+  const redundantPairs=v3.generate({focus:'upper_focused',supersets:4,exerciseFrequency:{}},[],owned,null,{variant:3});
+  const flyIds=redundantPairs.pairs.flatMap(p=>p.exercises.map(e=>e.id)).filter(id=>
+    ['chest_supported_rear_fly','standing_rear_fly','reverse_db_fly'].includes(id));
+  assert('Adaptive does not schedule redundant rear fly variations together',flyIds.length<=1);
   assert('Historical second calf raise ID resolves to its canonical movement',
     lib.canonicalId('standing_db_calf_raise')==='db_calf_raise'&&
     lib.byId.standing_db_calf_raise===lib.byId.db_calf_raise);
