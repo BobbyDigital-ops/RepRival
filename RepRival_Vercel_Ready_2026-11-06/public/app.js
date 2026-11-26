@@ -208,7 +208,7 @@
     if(!profile().trendOverrides)profile().trendOverrides={added:[],hidden:[]};
     if(!profile().plans)profile().plans={pump:structuredClone(PLAN)};
     // Approved owner rotation; preserve the previous plan and all workout logs.
-    if(activeProfile==='admin' && !profile().demo && !state.active && !profile().pumpRotation20261126){
+    if(profile().role==='admin' && !profile().demo && !profile().pumpRotation20261126){
       profile().previousPumpRotation=structuredClone(profile().plans.pump||PLAN);
       profile().plans.pump=structuredClone(PLAN);
       profile().pumpRotation20261126=true;
@@ -216,6 +216,7 @@
     selectedPlan=profile().planId;
     SESSION_ORDER=Object.keys(profile().plans[selectedPlan]||PLAN);
     if(!SESSION_ORDER.includes(state.next))state.next=SESSION_ORDER[0];
+    if(profile().pumpRotation20261126)save();
   }
   function switchTo(id){circuitDraft=null;activeProfile=id;manager.last=id;ensureTraining();page='home';save();render();}
   function profileNames(){return Object.keys(manager.profiles);}
@@ -4858,7 +4859,7 @@
       ${card(`<div class="row"><h3>${esc(current.title)}</h3><span class="label-tag">ACTIVE</span></div><p class="subhead mt12">${esc(current.focus)} · ${esc(current.duration)} · ${esc(current.days)}</p><div class="stack mt16">${btn('Edit workouts','designer','primary full')}${btn('Adaptive exercise preferences','adaptive-studio','outline full')}${btn('Import Excel / CSV plan','page-import-plan','primary full')}
       ${btn('Browse training plans','library','outline full')}${btn('Your equipment','equipment','outline full')}${btn('Explore 146 movements','exercises','outline full')}<button type="button" class="btn outline full text-danger mt8" data-action="cancel-plan">✕ Cancel current plan</button></div>`,'section')}
       ${adaptiveStatusCard()}
-      ${card(`<h3>${adaptivePlan()?'Upcoming generated session':'Current rotation'}</h3>${SESSION_ORDER.map(id=>`<div class="session-row"><div><strong>${esc(planFor(id).name||'Workout '+id)}</strong><small>${planFor(id).pairs.length} blocks · ${buildTasks(id).length} working sets</small></div><span class="label-tag">${state.next===id?'Next':'Scheduled'}</span></div>`).join('')}`,'section')}
+      ${card(`<h3>${adaptivePlan()?'Upcoming generated session':'Current rotation'}</h3>${SESSION_ORDER.map(id=>`<div class="session-row"><div><strong>${esc(planFor(id).name||'Workout '+id)}</strong><small>${planFor(id).pairs.length} blocks · ${buildTasks(id,planFor(id).pairs).length} working sets</small></div><span class="label-tag">${state.next===id?'Next':'Scheduled'}</span></div>`).join('')}`,'section')}
       ${card(`<h3>Plan start & consistency target</h3><p class="subhead">The seven-day training week begins on your plan start date, not necessarily Monday.</p><form class="stack mt12" id="planTimingForm"><div class="form-grid"><div class="field"><label>Plan start date</label><input type="date" name="start" required value="${esc(tracking().start)}"></div><div class="field"><label>Workouts per 7 days</label><input type="number" name="goal" min="1" max="7" value="${tracking().weeklyGoal}" required></div></div><button class="btn outline full" type="submit">Update training schedule</button></form>`,'section')}
       ${card(`<h3>Recovery countdown</h3><p class="subhead">A planning guide counted from the end of your most recent completed workout, not a measurement of muscle readiness. The automatic setting uses 48 hours after most sessions, or 72 hours when you mark one as tiring.</p><form id="recoverySettingsForm" class="stack mt12"><div class="field"><label>Recovery window</label><select name="recoveryHours"><option value="auto" ${![24,36,48,72].includes(Number(profile().recoveryHours))?'selected':''}>Automatic (48h / 72h if tired)</option>${[24,36,48,72].map(h=>`<option value="${h}" ${Number(profile().recoveryHours)===h?'selected':''}>${h} hours</option>`).join('')}</select></div><button class="btn outline full" type="submit">Save recovery preference</button></form>`,'section')}
       ${card(`<h3>Training focus</h3><p class="subhead">Your active programme defines the training goal and workouts. For a different focus, switch plans in the library. Running can fit around rest days but is not counted as a strength workout.</p><p class="fineprint">Previously saved Main Focus / Include Cardio preferences are retained in backups, but they did not change training recommendations; the unused controls have been removed.</p>`,'section')}
