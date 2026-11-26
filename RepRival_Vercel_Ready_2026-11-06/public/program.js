@@ -3,7 +3,7 @@
 window.REPQUEST_PROGRAM = {
   "A": {
     "name": "Full Body A",
-    "subtitle": "Pump Plan V5 · 30–40 minutes · guided sets",
+    "subtitle": "Week A · 35–45 minutes",
     "pairs": [
       {
         "id": "A",
@@ -15,8 +15,8 @@ window.REPQUEST_PROGRAM = {
             "name": "Low-incline DB press",
             "muscle": "Chest",
             "sets": 3,
-            "min": 6,
-            "max": 10,
+            "min": 8,
+            "max": 12,
             "load": "combined"
           },
           {
@@ -32,14 +32,14 @@ window.REPQUEST_PROGRAM = {
       },
       {
         "id": "B",
-        "restMin": 75,
-        "restMax": 105,
+        "restMin": 90,
+        "restMax": 120,
         "exercises": [
           {
             "id": "reverse_lunge",
             "name": "Reverse lunge",
             "muscle": "Quads",
-            "sets": 2,
+            "sets": 3,
             "min": 8,
             "max": 10,
             "load": "combined",
@@ -49,7 +49,7 @@ window.REPQUEST_PROGRAM = {
             "id": "incline_db_curl",
             "name": "Incline DB curl",
             "muscle": "Biceps",
-            "sets": 2,
+            "sets": 3,
             "min": 10,
             "max": 15,
             "load": "combined"
@@ -96,13 +96,13 @@ window.REPQUEST_PROGRAM = {
             "load": "combined"
           },
           {
-            "id": "ab_rollout",
-            "name": "Ab rollout",
-            "muscle": "Core",
-            "sets": 2,
-            "min": 6,
-            "max": 12,
-            "load": "bodyweight"
+            "id": "db_calf_raise",
+            "name": "Standing DB calf raise",
+            "muscle": "Calves",
+            "min": 12,
+            "max": 20,
+            "load": "combined",
+            "sets": 2
           }
         ]
       }
@@ -110,7 +110,7 @@ window.REPQUEST_PROGRAM = {
   },
   "B": {
     "name": "Full Body B",
-    "subtitle": "Pump Plan V5 · 30–40 minutes · guided sets",
+    "subtitle": "Week A · 35–45 minutes",
     "pairs": [
       {
         "id": "A",
@@ -138,7 +138,7 @@ window.REPQUEST_PROGRAM = {
         ]
       },
       {
-        "id": "SOLO1",
+        "id": "B",
         "restMin": 90,
         "restMax": 120,
         "exercises": [
@@ -150,11 +150,20 @@ window.REPQUEST_PROGRAM = {
             "min": 8,
             "max": 12,
             "load": "combined"
+          },
+          {
+            "id": "hammer_curl",
+            "name": "Hammer curl",
+            "muscle": "Biceps",
+            "sets": 3,
+            "min": 10,
+            "max": 15,
+            "load": "combined"
           }
         ]
       },
       {
-        "id": "B",
+        "id": "C",
         "restMin": 60,
         "restMax": 90,
         "exercises": [
@@ -168,22 +177,6 @@ window.REPQUEST_PROGRAM = {
             "load": "combined"
           },
           {
-            "id": "hammer_curl",
-            "name": "Hammer curl",
-            "muscle": "Biceps",
-            "sets": 2,
-            "min": 10,
-            "max": 15,
-            "load": "combined"
-          }
-        ]
-      },
-      {
-        "id": "C",
-        "restMin": 60,
-        "restMax": 90,
-        "exercises": [
-          {
             "id": "overhead_db_triceps_extension",
             "name": "Overhead DB triceps extension",
             "muscle": "Triceps",
@@ -191,108 +184,11 @@ window.REPQUEST_PROGRAM = {
             "min": 10,
             "max": 15,
             "load": "combined"
-          },
-          {
-            "id": "db_lateral_raise",
-            "name": "DB lateral raise",
-            "muscle": "Side delts",
-            "sets": 2,
-            "min": 12,
-            "max": 20,
-            "load": "combined"
           }
         ]
       },
       {
-        "id": "SOLO2",
-        "restMin": 60,
-        "restMax": 90,
-        "exercises": [
-          {
-            "id": "decline_sit_up",
-            "name": "Decline sit-up",
-            "muscle": "Core",
-            "sets": 2,
-            "min": 10,
-            "max": 15,
-            "load": "optional"
-          }
-        ]
-      }
-    ]
-  },
-  "C": {
-    "name": "Full Body C",
-    "subtitle": "Pump Plan V5 · 30–40 minutes · guided sets",
-    "pairs": [
-      {
-        "id": "A",
-        "restMin": 90,
-        "restMax": 120,
-        "exercises": [
-          {
-            "id": "low_incline_db_press",
-            "name": "Low-incline DB press",
-            "muscle": "Chest",
-            "sets": 3,
-            "min": 8,
-            "max": 12,
-            "load": "combined"
-          },
-          {
-            "id": "db_bent_over_row",
-            "name": "Bent-over DB row",
-            "muscle": "Back",
-            "sets": 3,
-            "min": 8,
-            "max": 12,
-            "load": "combined"
-          }
-        ]
-      },
-      {
-        "id": "B",
-        "restMin": 60,
-        "restMax": 90,
-        "exercises": [
-          {
-            "id": "incline_db_curl",
-            "name": "Incline DB curl",
-            "muscle": "Biceps",
-            "sets": 2,
-            "min": 10,
-            "max": 15,
-            "load": "combined"
-          },
-          {
-            "id": "standing_rear_fly",
-            "name": "Standing DB rear-delt fly",
-            "muscle": "Rear delts",
-            "sets": 2,
-            "min": 12,
-            "max": 20,
-            "load": "combined"
-          }
-        ]
-      },
-      {
-        "id": "SOLO1",
-        "restMin": 90,
-        "restMax": 120,
-        "exercises": [
-          {
-            "id": "goblet_squat",
-            "name": "Goblet squat",
-            "muscle": "Quads",
-            "sets": 3,
-            "min": 10,
-            "max": 15,
-            "load": "single"
-          }
-        ]
-      },
-      {
-        "id": "C",
+        "id": "D",
         "restMin": 60,
         "restMax": 90,
         "exercises": [
@@ -315,9 +211,172 @@ window.REPQUEST_PROGRAM = {
             "load": "bodyweight"
           }
         ]
+      }
+    ]
+  },
+  "C": {
+    "name": "Full Body C",
+    "subtitle": "Week A · 35–45 minutes",
+    "pairs": [
+      {
+        "id": "A",
+        "restMin": 90,
+        "restMax": 120,
+        "exercises": [
+          {
+            "id": "seated_db_press",
+            "name": "Seated DB overhead press",
+            "muscle": "Front delts",
+            "min": 6,
+            "max": 12,
+            "load": "combined",
+            "sets": 3
+          },
+          {
+            "id": "db_bent_over_row",
+            "name": "Bent-over DB row",
+            "muscle": "Back",
+            "sets": 3,
+            "min": 8,
+            "max": 12,
+            "load": "combined"
+          }
+        ]
+      },
+      {
+        "id": "B",
+        "restMin": 90,
+        "restMax": 120,
+        "exercises": [
+          {
+            "id": "goblet_squat",
+            "name": "Goblet squat",
+            "muscle": "Quads",
+            "sets": 3,
+            "min": 10,
+            "max": 15,
+            "load": "single"
+          },
+          {
+            "id": "db_lateral_raise",
+            "name": "DB lateral raise",
+            "muscle": "Side delts",
+            "sets": 3,
+            "min": 12,
+            "max": 20,
+            "load": "combined"
+          }
+        ]
+      },
+      {
+        "id": "C",
+        "restMin": 60,
+        "restMax": 90,
+        "exercises": [
+          {
+            "id": "kb_swing",
+            "name": "Kettlebell swing",
+            "muscle": "Glutes",
+            "min": 12,
+            "max": 20,
+            "load": "single",
+            "sets": 2
+          },
+          {
+            "id": "standing_rear_fly",
+            "name": "Standing DB rear-delt fly",
+            "muscle": "Rear delts",
+            "sets": 2,
+            "min": 12,
+            "max": 20,
+            "load": "combined"
+          }
+        ]
       },
       {
         "id": "D",
+        "restMin": 60,
+        "restMax": 90,
+        "exercises": [
+          {
+            "id": "bench_dip",
+            "name": "Bench dip",
+            "muscle": "Triceps",
+            "min": 8,
+            "max": 15,
+            "load": "bodyweight",
+            "sets": 2
+          },
+          {
+            "id": "db_calf_raise",
+            "name": "Standing DB calf raise",
+            "muscle": "Calves",
+            "min": 12,
+            "max": 20,
+            "load": "combined",
+            "sets": 2
+          }
+        ]
+      }
+    ]
+  },
+  "D": {
+    "name": "Full Body D",
+    "subtitle": "Week B · 35–45 minutes",
+    "pairs": [
+      {
+        "id": "A",
+        "restMin": 90,
+        "restMax": 120,
+        "exercises": [
+          {
+            "id": "flat_db_bench_press",
+            "name": "Flat DB bench press",
+            "muscle": "Chest",
+            "sets": 3,
+            "min": 6,
+            "max": 10,
+            "load": "combined"
+          },
+          {
+            "id": "db_bent_over_row",
+            "name": "Bent-over DB row",
+            "muscle": "Back",
+            "sets": 3,
+            "min": 8,
+            "max": 12,
+            "load": "combined"
+          }
+        ]
+      },
+      {
+        "id": "B",
+        "restMin": 90,
+        "restMax": 120,
+        "exercises": [
+          {
+            "id": "reverse_lunge",
+            "name": "Reverse lunge",
+            "muscle": "Quads",
+            "sets": 3,
+            "min": 8,
+            "max": 10,
+            "load": "combined",
+            "suffix": "per leg"
+          },
+          {
+            "id": "hammer_curl",
+            "name": "Hammer curl",
+            "muscle": "Biceps",
+            "sets": 3,
+            "min": 10,
+            "max": 15,
+            "load": "combined"
+          }
+        ]
+      },
+      {
+        "id": "C",
         "restMin": 60,
         "restMax": 90,
         "exercises": [
@@ -331,6 +390,234 @@ window.REPQUEST_PROGRAM = {
             "load": "combined"
           },
           {
+            "id": "db_lateral_raise",
+            "name": "DB lateral raise",
+            "muscle": "Side delts",
+            "sets": 2,
+            "min": 12,
+            "max": 20,
+            "load": "combined"
+          }
+        ]
+      },
+      {
+        "id": "D",
+        "restMin": 60,
+        "restMax": 90,
+        "exercises": [
+          {
+            "id": "bench_dip",
+            "name": "Bench dip",
+            "muscle": "Triceps",
+            "min": 8,
+            "max": 15,
+            "load": "bodyweight",
+            "sets": 2
+          },
+          {
+            "id": "ab_rollout",
+            "name": "Ab rollout",
+            "muscle": "Core",
+            "sets": 2,
+            "min": 8,
+            "max": 12,
+            "load": "bodyweight"
+          }
+        ]
+      }
+    ]
+  },
+  "E": {
+    "name": "Full Body E",
+    "subtitle": "Week B · 35–45 minutes",
+    "pairs": [
+      {
+        "id": "A",
+        "restMin": 90,
+        "restMax": 120,
+        "exercises": [
+          {
+            "id": "seated_db_press",
+            "name": "Seated DB overhead press",
+            "muscle": "Front delts",
+            "min": 6,
+            "max": 12,
+            "load": "combined",
+            "sets": 3
+          },
+          {
+            "id": "inverted_row_neutral",
+            "name": "Inverted row • neutral",
+            "muscle": "Back",
+            "sets": 3,
+            "min": 8,
+            "max": 12,
+            "load": "bodyweight"
+          }
+        ]
+      },
+      {
+        "id": "B",
+        "restMin": 90,
+        "restMax": 120,
+        "exercises": [
+          {
+            "id": "db_romanian_deadlift",
+            "name": "DB Romanian deadlift",
+            "muscle": "Hamstrings",
+            "sets": 3,
+            "min": 8,
+            "max": 12,
+            "load": "combined"
+          },
+          {
+            "id": "db_lateral_raise",
+            "name": "DB lateral raise",
+            "muscle": "Side delts",
+            "sets": 3,
+            "min": 12,
+            "max": 20,
+            "load": "combined"
+          }
+        ]
+      },
+      {
+        "id": "C",
+        "restMin": 60,
+        "restMax": 90,
+        "exercises": [
+          {
+            "id": "chest_supported_rear_fly",
+            "name": "Chest-supported rear fly",
+            "muscle": "Rear delts",
+            "sets": 2,
+            "min": 12,
+            "max": 20,
+            "load": "combined"
+          },
+          {
+            "id": "overhead_db_triceps_extension",
+            "name": "Overhead DB triceps extension",
+            "muscle": "Triceps",
+            "sets": 2,
+            "min": 10,
+            "max": 15,
+            "load": "combined"
+          }
+        ]
+      },
+      {
+        "id": "D",
+        "restMin": 60,
+        "restMax": 90,
+        "exercises": [
+          {
+            "id": "ab_rollout",
+            "name": "Ab rollout",
+            "muscle": "Core",
+            "sets": 2,
+            "min": 8,
+            "max": 12,
+            "load": "bodyweight"
+          },
+          {
+            "id": "db_calf_raise",
+            "name": "Standing DB calf raise",
+            "muscle": "Calves",
+            "min": 12,
+            "max": 20,
+            "load": "combined",
+            "sets": 2
+          }
+        ]
+      }
+    ]
+  },
+  "F": {
+    "name": "Full Body F",
+    "subtitle": "Week B · 35–45 minutes",
+    "pairs": [
+      {
+        "id": "A",
+        "restMin": 90,
+        "restMax": 120,
+        "exercises": [
+          {
+            "id": "low_incline_db_press",
+            "name": "Low-incline DB press",
+            "muscle": "Chest",
+            "sets": 3,
+            "min": 8,
+            "max": 12,
+            "load": "combined"
+          },
+          {
+            "id": "inverted_row_neutral",
+            "name": "Inverted row • neutral",
+            "muscle": "Back",
+            "sets": 3,
+            "min": 8,
+            "max": 12,
+            "load": "bodyweight"
+          }
+        ]
+      },
+      {
+        "id": "B",
+        "restMin": 90,
+        "restMax": 120,
+        "exercises": [
+          {
+            "id": "goblet_squat",
+            "name": "Goblet squat",
+            "muscle": "Quads",
+            "sets": 3,
+            "min": 10,
+            "max": 15,
+            "load": "single"
+          },
+          {
+            "id": "incline_db_curl",
+            "name": "Incline DB curl",
+            "muscle": "Biceps",
+            "sets": 3,
+            "min": 10,
+            "max": 15,
+            "load": "combined"
+          }
+        ]
+      },
+      {
+        "id": "C",
+        "restMin": 60,
+        "restMax": 90,
+        "exercises": [
+          {
+            "id": "kb_swing",
+            "name": "Kettlebell swing",
+            "muscle": "Glutes",
+            "min": 12,
+            "max": 20,
+            "load": "single",
+            "sets": 2
+          },
+          {
+            "id": "db_lateral_raise",
+            "name": "DB lateral raise",
+            "muscle": "Side delts",
+            "sets": 2,
+            "min": 12,
+            "max": 20,
+            "load": "combined"
+          }
+        ]
+      },
+      {
+        "id": "D",
+        "restMin": 60,
+        "restMax": 90,
+        "exercises": [
+          {
             "id": "lying_db_triceps_extension",
             "name": "Lying DB triceps extension",
             "muscle": "Triceps",
@@ -338,6 +625,15 @@ window.REPQUEST_PROGRAM = {
             "min": 10,
             "max": 15,
             "load": "combined"
+          },
+          {
+            "id": "db_calf_raise",
+            "name": "Standing DB calf raise",
+            "muscle": "Calves",
+            "min": 12,
+            "max": 20,
+            "load": "combined",
+            "sets": 2
           }
         ]
       }
