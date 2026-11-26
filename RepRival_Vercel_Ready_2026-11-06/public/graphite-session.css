@@ -409,3 +409,10 @@ body.rr-active-session :is(.rr-session-roadmap>summary,.rr-rest-structure>summar
 @media(prefers-reduced-motion:reduce){
   body.rr-active-session :is(.rir-btn,.btn-step,.rr-session-submit){transition:none!important}
 }
+
+/* Mobile stepper rows: keep both controls within the card. */
+body.rr-active-session .rr-session-numbers{grid-template-columns:minmax(0,1fr)!important;gap:6px!important}
+body.rr-active-session .rr-session-numbers .stepper-field{display:grid!important;grid-template-columns:minmax(68px, 1fr) minmax(0,2fr)!important;align-items:center!important;column-gap:8px!important}
+body.rr-active-session .rr-session-numbers .stepper-field>label{margin:0!important}
+body.rr-active-session .rr-session-numbers .stepper-field>div:not(:has(.btn-step)){grid-column:2!important}
+body.rr-active-session .rr-session-numbers .btn-step{flex:0 0 44px!important;width:44px!important;min-width:44px!important;max-width:44px!important}
