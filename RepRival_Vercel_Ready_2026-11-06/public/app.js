@@ -207,22 +207,11 @@
     if(profile().planId===ADAPT_ID&&!profile().plans?.adaptive){profile().planId='pump';}
     if(!profile().trendOverrides)profile().trendOverrides={added:[],hidden:[]};
     if(!profile().plans)profile().plans={pump:structuredClone(PLAN)};
-    if(profile().plans?.pump?.C){
-      const cPairs = profile().plans.pump.C.pairs || [];
-      cPairs.forEach(p => {
-        p.exercises.forEach(ex => {
-          if(ex.id === 'chest_supported_db_row' && p.exercises.some(e => e.id === 'low_incline_db_press')){
-            ex.id = 'db_bent_over_row';
-            ex.name = 'Bent-over DB row';
-            ex.muscle = 'Back';
-          }
-          if(ex.id === 'chest_supported_rear_fly' || ex.id === 'standing_db_rear_fly'){
-            ex.id = 'standing_rear_fly';
-            ex.name = 'Standing DB rear-delt fly';
-            ex.muscle = 'Rear delts';
-          }
-        });
-      });
+    // Approved owner rotation; preserve the previous plan and all workout logs.
+    if(activeProfile==='admin' && !profile().demo && !state.active && !profile().pumpRotation20261126){
+      profile().previousPumpRotation=structuredClone(profile().plans.pump||PLAN);
+      profile().plans.pump=structuredClone(PLAN);
+      profile().pumpRotation20261126=true;
     }
     selectedPlan=profile().planId;
     SESSION_ORDER=Object.keys(profile().plans[selectedPlan]||PLAN);
@@ -2608,6 +2597,59 @@
     `;
   }
 
+
+  const finisherPools={
+    balance:['ab_rollout','dead_bug','reverse_crunch','db_romanian_deadlift','db_glute_bridge','db_calf_raise','standing_rear_fly','chest_supported_rear_fly','db_lateral_raise','hammer_curl','goblet_squat','db_bent_over_row','push_up'],
+    pump:['db_lateral_raise','hammer_curl','standing_db_curl','flat_db_pec_fly','bench_dip','standing_rear_fly','lying_db_triceps_extension','db_calf_raise','reverse_crunch','db_glute_bridge'],
+    conditioning:['db_thruster','kb_swing','kb_clean_press','db_floor_to_overhead','push_up','dead_bug','reverse_crunch','bodyweight_reverse_lunge','mountain_climbers']
+  };
+  function finisherCandidates(mode,excluded=[]){
+    const lib=window.REPRIVAL_EXERCISE_LIBRARY, a=state.active;
+    const used=new Set([...a.pairs.flatMap(p=>p.exercises.map(e=>canonicalExercise(e.id))),...excluded.map(canonicalExercise)]);
+    const metrics=heatData(7);
+    const lookup=m=>Array.isArray(metrics)?metrics.find(x=>x.name===m):metrics[m];
+    const current=m=>(a.logs||[]).filter(l=>l&&!l.skipped&&l.muscle===m).length;
+    return finisherPools[mode].map(id=>lib.byId[id]).filter(e=>e&&lib.compatible(e,profile().equipment)&&!used.has(canonicalExercise(e.id))).map(e=>{
+      const h=lookup(e.muscle)||{};
+      const readiness=Number(h.readinessScore??h.readiness??100);
+      const deficit=1-(Number(h.effectiveSets||0)+current(e.muscle))/Math.max(1,Number(h.targetSets||8));
+      return {e,score:(mode==='balance'?deficit*100:0)+(Number.isFinite(readiness)?readiness:100)*0.5-current(e.muscle)*10+Math.random()*18,ready:!Number.isFinite(readiness)||readiness>=45};
+    }).filter(x=>x.ready).sort((a,b)=>b.score-a.score).map(x=>x.e);
+  }
+  function generateFinisher(){
+    const a=state.active,f=a.finisherDraft;
+    const chosen=[];
+    for(let i=0;i<f.count*2;i++){
+      const options=finisherCandidates(f.mode,chosen);
+      const prev=i%2?window.REPRIVAL_EXERCISE_LIBRARY.byId[chosen[i-1]]:null;
+      const e=options.find(e=>!prev||e.muscle!==prev.muscle);
+      if(!e)break;
+      chosen.push(e.id);
+    }
+    f.ids=chosen;
+  }
+  function finisherView(){
+    const a=state.active;
+    if(a.isOneOff||a.planId!=='pump'||a.finisherAdded||a.taskIndex<buildTasks(a.session).length)return '';
+    if(!a.finisherDraft){a.finisherDraft={mode:'balance',count:1,rounds:2,ids:[]};generateFinisher();}
+    const f=a.finisherDraft,lib=window.REPRIVAL_EXERCISE_LIBRARY;
+    return `<section class="card section stack mt16"><h3>Optional finisher</h3><p class="subhead">Add extra work or save your workout below.</p>
+      <div class="field"><label>Mode</label><select id="finisherMode">${[['balance','Muscle balance'],['pump','Hypertrophy pump'],['conditioning','Conditioning']].map(([v,n])=>`<option value="${v}" ${f.mode===v?'selected':''}>${n}</option>`).join('')}</select></div>
+      <div class="field"><label>Supersets</label><select id="finisherCount"><option value="1" ${f.count===1?'selected':''}>1</option><option value="2" ${f.count===2?'selected':''}>2</option></select></div>
+      <div class="field"><label>Rounds</label><select id="finisherRounds"><option value="2" ${f.rounds===2?'selected':''}>2</option><option value="3" ${f.rounds===3?'selected':''}>3</option></select></div>
+      ${f.ids.map((id,i)=>`<div class="row"><span>${esc(lib.byId[id].name)}</span><button type="button" class="btn outline" data-action="finisher-swap" data-index="${i}">Swap</button></div>`).join('')}
+      ${f.ids.length!==f.count*2?'<p class="subhead">Not enough suitable recovered exercises. Try one superset or another mode.</p>':''}
+      ${btn('Shuffle suggestions','finisher-shuffle','outline full')}
+      ${f.ids.length===f.count*2?btn('Start finisher','finisher-start','primary full'):''}</section>`;
+  }
+  document.addEventListener('change',e=>{
+    const f=state.active?.finisherDraft;
+    if(!f||!['finisherMode','finisherCount','finisherRounds'].includes(e.target.id))return;
+    if(e.target.id==='finisherMode'){f.mode=e.target.value;generateFinisher();}
+    if(e.target.id==='finisherCount'){f.count=Number(e.target.value);generateFinisher();}
+    if(e.target.id==='finisherRounds')f.rounds=Number(e.target.value);
+    save();render();
+  });
   function feedbackView(){
     const a = state.active;
     if(!a) return workoutLanding();
@@ -2662,6 +2704,7 @@
           </div>
         ` : ''}
 
+        ${finisherView()}
         <form id="feedbackForm" class="stack mt16 card section">
           <h3 style="margin-top:0; font-size:16px;">How did this workout feel?</h3>
           <p class="subhead">This informs your readiness and fatigue indicators for subsequent sessions.</p>
@@ -5385,6 +5428,24 @@
     const muscle=e.target.closest('[data-muscle]');if(muscle){state.settings.selectedMuscle=muscle.dataset.muscle;page='muscle-detail';render();return;}
     const el=e.target.closest('[data-action]');if(!el)return;
     const action=el.dataset.action;
+    if(action.startsWith('finisher-')&&state.active?.finisherDraft){
+      const a=state.active,f=a.finisherDraft;
+      if(action==='finisher-shuffle'){generateFinisher();}
+      if(action==='finisher-swap'){
+        const i=Number(el.dataset.index),other=f.ids[i%2?i-1:i+1];
+        const lib=window.REPRIVAL_EXERCISE_LIBRARY;
+        const next=finisherCandidates(f.mode,f.ids).find(e=>e.muscle!==lib.byId[other]?.muscle);
+        if(next)f.ids[i]=next.id;else showToast('No suitable alternative');
+      }
+      if(action==='finisher-start'&&f.ids.length===f.count*2&&!a.finisherAdded){
+        const lib=window.REPRIVAL_EXERCISE_LIBRARY;
+        const oldLength=buildTasks(a.session).length;
+        for(let i=0;i<f.ids.length;i+=2)a.pairs.push({id:'FIN'+(i/2+1),restMin:60,restMax:90,exercises:f.ids.slice(i,i+2).map(id=>({...structuredClone(lib.byId[id]),sets:f.rounds}))});
+        a.finisherAdded=true;a.taskIndex=oldLength;a.stage='lift';a.restUntil=null;
+      }
+      save();render();return;
+    }
+
     if (action === 'spotlight-metric') {
       state.settings.spotlightMetric = el.dataset.metric;
       save(); render(); return;
