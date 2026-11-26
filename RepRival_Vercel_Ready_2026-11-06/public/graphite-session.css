@@ -416,3 +416,14 @@ body.rr-active-session .rr-session-numbers .stepper-field{display:grid!important
 body.rr-active-session .rr-session-numbers .stepper-field>label{margin:0!important}
 body.rr-active-session .rr-session-numbers .stepper-field>div:not(:has(.btn-step)){grid-column:2!important}
 body.rr-active-session .rr-session-numbers .btn-step{flex:0 0 44px!important;width:44px!important;min-width:44px!important;max-width:44px!important}
+
+/* Rest editor: same stacked controls as the active workout, no horizontal scroll. */
+.rest-edit-modal-content,.rest-edit-modal-content #restEditForm,.rest-edit-modal-content #restEditForm>div{min-width:0!important;max-width:100%!important;box-sizing:border-box!important}
+.rest-edit-modal-content #restEditForm div:has(>div>div>button[data-action="step-weight-modal"]){display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:6px!important;min-width:0!important}
+.rest-edit-modal-content #restEditForm div:has(>div>button[data-action="step-weight-modal"]),.rest-edit-modal-content #restEditForm div:has(>div>button[data-action="step-reps-modal"]){display:grid!important;grid-template-columns:minmax(58px,1fr) minmax(0,2fr)!important;align-items:center!important;gap:4px 8px!important;min-width:0!important}
+.rest-edit-modal-content #restEditForm div:has(>button[data-action="step-weight-modal"]),.rest-edit-modal-content #restEditForm div:has(>button[data-action="step-reps-modal"]){display:flex!important;min-width:0!important;width:100%!important}
+.rest-edit-modal-content #restEditForm .btn-step{flex:0 0 44px!important;width:44px!important;min-width:44px!important;max-width:44px!important;height:44px!important;padding:0!important}
+.rest-edit-modal-content #restEditForm input:is([name^="modal-weight-"],[name^="modal-reps-"]){flex:1 1 0!important;width:0!important;min-width:0!important;max-width:100%!important;height:44px!important;padding:2px!important}
+.rest-edit-modal-content [data-modal-weight-convention]{grid-column:2!important;overflow-wrap:anywhere!important}
+.rest-edit-modal-content #restEditForm>div:last-child>button{flex:1 1 0!important;min-width:0!important;width:auto!important;padding-inline:6px!important}
+.rest-edit-modal-content #restEditForm strong{min-width:0!important;overflow-wrap:anywhere!important}
